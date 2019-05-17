@@ -105,17 +105,7 @@ print(class_mapping)
 # Use the mapping dictionary to transform the class labels into integers
 mtx_df['order'] = mtx_df['order'].map(class_mapping)
 #print(class_mapping)
-#print(mtx_df['order'])
-indices = [0, 1, 2]
-depth = 3
-  # output: [3 x 3]
-# [[1., 0., 0.],
-#  [0., 1., 0.],
-#  [0., 0., 1.]]
-vector = tf.one_hot(indices, depth)
-print(vector)
-with tf.Session():
-    Tensor.eval(vector)
+
 
 
 # In[9]:
