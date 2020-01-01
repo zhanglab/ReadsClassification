@@ -24,7 +24,7 @@ from sklearn.model_selection import KFold
 import keras
 from keras import regularizers
 from operator import add
-import datetime 
+from datetime import datetime 
 # import the inspect_checkpoint library
 from tensorflow.python.tools import inspect_checkpoint as chkp
 from Bio import SeqIO
@@ -99,7 +99,18 @@ def model_performance(preds, probs, ListReadsID, FastqFile, class_mapping, Filen
 
 
 # In[4]:
+def createMatrix(DictVectors):
+    # Create a list with the reads id
+    ListReadsID = list(DictVectors.keys())
 
+    # Create matrix of zeros, where each row corresponds to a read (vector of kmers)
+    sequences = np.zeros((len(DictVectors), sequence_length), dtype=int)
+    # Replace array in corresponding position in sequences matrix
+    # (the index of the read in ListReadsID corresponds to the position of it's kmer vector
+    # in the sequences matrix)
+    for i in range(len(ListReadsID)):
+        sequences[i] = DictVectors[ListReadsID[i]]
+    return sequences
 
 def get_all_kmers(list_nt, prefix, n, k, list_kmers):
     if k == 0 :
@@ -166,21 +177,22 @@ def GetKmersDictionary(k_value=10):
 def ParseFastq(FileFastq):
     DictVectors = {} # keys = read_id, value = array of integer
     total_number_reads = 0
-    with gzip.open(FileFastq, 'rt') as fastq_in:
-        # Create an instance with fastq reads information and iterate through fastq file
-        for record in SeqIO.parse(fastq_in, 'fastq'):
-            total_number_reads += 1
-            # Check read sequence
-            KmerVector = ParseSeq(str(record.seq), kmers_dict)
-            if len(KmerVector) == 141:
-                DictVectors[record.id] = KmerVector
+    for record in Reads:
+        total_number_reads += 1
+        # Check read sequence
+        KmerVector = ParseSeq(str(record.seq), kmers_dict)
+        if len(KmerVector) == 141:
+            DictVectors[record.id] = KmerVector
     print('Total number of reads: {}'.format(total_number_reads))
     print('Number of reads after processing: {}'.format(len(DictVectors)))
     return DictVectors
 
 
 # In[12]:
-
+# Create an instance with fastq reads information
+def ReadFastq(FastqFile):
+    with gzip.open(FastqFile, 'rt') as fastq_in:
+        return list(SeqIO.parse(fastq_in, 'fastq'))
 
 def main():
     # Set model parameters
@@ -195,7 +207,11 @@ def main():
     num_classes = 8
     sequence_length = int(150 - k_value + 1)
     
-    print("\nProcess reads: START -- {}".format(datetime.datetime.now()),file=sys.stderr)
+    # Exception handling for number of arugments
+    if len(sys.argv) != 3:
+        sys.exit("Incorrect number of arguments provided.\nCorrect format: [script] [read] [num of threads]\n")
+        
+    print("\nProcess reads: START -- {}".format(datetime.now()),file=sys.stderr)
     # Get fastq file name
     FastqFile = str(sys.argv[1])
     print('Fastq File: {}'.format(FastqFile))
@@ -204,22 +220,15 @@ def main():
     print(FileName)
     # Parse Fastq file
     kmers_dict = GetKmersDictionary()
-    DictVectors = ParseFastq(FastqFile, kmers_dict)
-    # Create a list with the reads id
-    ListReadsID = list(DictVectors.keys())
-    # Create matrix of zeros, where each row corresponds to a read (vector of kmers)
-    sequences = np.zeros((len(DictVectors), sequence_length), dtype=int)  
-    # Replace array in corresponding position in sequences matrix 
-    # (the index of the read in ListReadsID corresponds to the position of it's kmer vector 
-    # in the sequences matrix)
-    for i in range(len(ListReadsID)):
-        sequences[i] = DictVectors[ListReadsID[i]]
-    X_test = sequences  
-    print("\nProcess reads: END -- {}".format(datetime.datetime.now()), file=sys.stderr)
+    Reads = ReadFastq(FastqFile)
+    DictVectors = ParseFastq(Reads, kmers_dict)
+    # Create matrix
+    X_test = createMatrix(DictVectors, sequence_length)
+    print("\nProcess reads: END -- {}".format(datetime.now()), file=sys.stderr)
 
     # Get order names mapped to integers
-    class_mapping = {'Enterobacterales': 0, 'Mycoplasmatales': 1, 'Chlamydiales': 2, 'Vibrionales': 3,
-                     'Fusobacteriales': 4, 'Spirochaetales': 5, 'Rhodobacterales': 6, 'Unclassified': 7}
+    class_mapping = {0: 'Enterobacterales', 1: 'Mycoplasmatales', 2: 'Chlamydiales', 3: 'Vibrionales',
+                     4: 'Fusobacteriales', 5: 'Spirochaetales', 6: 'Rhodobacterales', 7: 'Unclassified'}
     print('class_mapping dictionay: {}'.format(class_mapping),file=sys.stderr)
     
     # reset graph
