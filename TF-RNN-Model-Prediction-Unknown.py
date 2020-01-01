@@ -29,6 +29,7 @@ import datetime
 from tensorflow.python.tools import inspect_checkpoint as chkp
 from Bio import SeqIO
 import gzip
+import re
 
 
 # In[2]:
@@ -118,32 +119,21 @@ def get_all_kmers(list_nt, prefix, n, k, list_kmers):
 def ParseSeq(DNAsequence,kmers_dict):
     # create empty list to store all the kmers
     listKmers = []
-    # create empty string to store each kmer
-    kmer = str()
-    for n in range(len(DNAsequence)):
-        # Iterate through DNA sequence
-        if n < len(DNAsequence) - (10 - 1):
-            if DNAsequence[n] not in ['A', 'T', 'C', 'G']:
-                return listKmers
-            else:
-                # add character to kmer string
-                if len(kmer) < 10:
-                    kmer += DNAsequence[n]
-                else:
-                    # lookup integer mapped to the kmer
-                    kmer_Integer = kmers_dict[kmer]
-                    # Add kmer to vector of kmer
-                    listKmers.append(kmer_Integer)
-                    # reinitialize string
-                    kmer = str()
-    # 
-    if len(listKmers) < 141:
-        NumberZerosToAdd = 141 - len(listKmers)
-        for i in range(NumberZerosToAdd):
-            listKmers.append(0)
-    else:
-        # Get the first 141 kmers
-        listKmers = listKmers[:141]
+    
+    # Drop the read if it contains letters other than A, C, T or G
+    if not re.match('^[ATCG]+$', DNAsequence):
+        return listKmers
+
+    # Creates a sliding window of width 10
+    for n in range(len(DNAsequence) - 9):
+        kmer = DNAsequence[n:n+10]
+        # Lookup integer mapped to the kmer
+        kmer_Integer = kmers_dict[kmer]
+        # Add kmer to vector of kmer
+        listKmers.append(kmer_Integer)
+
+    # Pad or truncate list to 141 kmers
+    listKmers = listKmers[:141] + [0]*(141 - len(listKmers))
     # transform list into numpy array
     array_int = np.asarray(listKmers)
     # Flip array
@@ -175,22 +165,18 @@ def GetKmersDictionary(k_value=10):
 
 def ParseFastq(FileFastq):
     DictVectors = {} # keys = read_id, value = array of integer
-    kmers_dict = GetKmersDictionary()
     total_number_reads = 0
-    fastq_in = gzip.open(FileFastq, 'rt')
-    # Create an instance with fastq reads information
-    Reads = SeqIO.parse(fastq_in,'fastq')
-    record_dict = SeqIO.to_dict(Reads)
-    # iterate through fastq file
-    for record in Reads:
-        total_number_reads += 1
-        # Check read sequence
-        KmerVector = ParseSeq(record.seq, kmers_dict)
-        if len(KmerVector) == 141:
-            DictVectors[record.id] = KmerVector
+    with gzip.open(FileFastq, 'rt') as fastq_in:
+        # Create an instance with fastq reads information and iterate through fastq file
+        for record in SeqIO.parse(fastq_in, 'fastq'):
+            total_number_reads += 1
+            # Check read sequence
+            KmerVector = ParseSeq(str(record.seq), kmers_dict)
+            if len(KmerVector) == 141:
+                DictVectors[record.id] = KmerVector
     print('Total number of reads: {}'.format(total_number_reads))
     print('Number of reads after processing: {}'.format(len(DictVectors)))
-    return DictVectors, Reads, kmers_dict
+    return DictVectors
 
 
 # In[12]:
@@ -217,7 +203,8 @@ def main():
     FileName = str(sys.argv[1]).split('.')[0]
     print(FileName)
     # Parse Fastq file
-    DictVectors, Reads, kmers_dict = ParseFastq(FastqFile)
+    kmers_dict = GetKmersDictionary()
+    DictVectors = ParseFastq(FastqFile, kmers_dict)
     # Create a list with the reads id
     ListReadsID = list(DictVectors.keys())
     # Create matrix of zeros, where each row corresponds to a read (vector of kmers)
