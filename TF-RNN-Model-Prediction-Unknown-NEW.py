@@ -90,43 +90,37 @@ def model_performance(preds, probs, ListReadsID, FileFastq, Reads_dict, class_ma
             ResultsFile.write(str(prob) + '\t')
         ResultsFile.write('\n')
 
-# In[4]:
+        
 def createMatrix(DictVectors, sequence_length):
     # Create a list with the reads id
-    ListReadsID = list(DictVectors.keys())
-
+    #ListReadsID = list(DictVectors.keys())
     # Create matrix of zeros, where each row corresponds to a read (vector of kmers)
-    sequences = np.zeros((len(DictVectors), sequence_length), dtype=int)
+    #sequences = np.zeros((len(DictVectors), sequence_length), dtype=int)
     # Replace array in corresponding position in sequences matrix
     # (the index of the read in ListReadsID corresponds to the position of it's kmer vector
     # in the sequences matrix)
-    for i in range(len(ListReadsID)):
-        sequences[i] = DictVectors[ListReadsID[i]]
+    #for i in range(len(ListReadsID)):
+    #    sequences[i] = DictVectors[ListReadsID[i]]
+    sequences = np.full((len(DictVectors), sequence_length), list(DictVectors.values()))
     return sequences, ListReadsID
 
+
 def get_all_kmers(list_nt, prefix, n, k, list_kmers):
-    if k == 0 :
-        list_kmers.append(prefix)
-        return list_kmers
-    
+    if k == 0:
+        return list_kmers.append(prefix)
     for i in range(n):
         newPrefix = prefix + list_nt[i]
         get_all_kmers(list_nt, newPrefix, n, k-1, list_kmers)
 
-
-# In[5]:
-
-
+        
 # Function that looks for any characters different 
 # from A, C, T or G and converts the DNA sequence into a vector of 10-mers 
 def ParseSeq(DNAsequence,kmers_dict):
     # create empty list to store all the kmers
     listKmers = []
-    
     # Drop the read if it contains letters other than A, C, T or G
     if not re.match('^[ATCG]+$', DNAsequence):
         return listKmers
-
     # Creates a sliding window of width 10
     for n in range(len(DNAsequence) - 9):
         kmer = DNAsequence[n:n+10]
@@ -134,20 +128,13 @@ def ParseSeq(DNAsequence,kmers_dict):
         kmer_Integer = kmers_dict[kmer]
         # Add kmer to vector of kmer
         listKmers.append(kmer_Integer)
-
     # Pad or truncate list to 141 kmers
     listKmers = listKmers[:141] + [0]*(141 - len(listKmers))
     # transform list into numpy array
     array_int = np.asarray(listKmers)
     # Flip array
     array_int = np.flip(array_int, axis=0)
-    if len(array_int) != 141:
-        print('Size of kmer array: {}'.format(len(array_int)))
-       	print('DNA sequence: {}'.format(DNAsequence))
     return array_int
-
-
-# In[6]:
 
 
 def GetKmersDictionary(k_value=10):
@@ -163,32 +150,25 @@ def GetKmersDictionary(k_value=10):
     return kmers_dict
 
 
-# In[7]:
-
-
+# Goes through the fastq file to create the dictionary
 def ParseFastq(Reads_dict, kmers_dict):
     DictVectors = {} # keys = read_id, value = array of integer
-    total_number_reads = 0
-#     for record in Reads:
     for record in Reads_dict.keys():
-        total_number_reads += 1
         # Check read sequence
         seq_record = Reads_dict[record]
-#         KmerVector = ParseSeq(str(record.seq), kmers_dict)
         KmerVector = ParseSeq(str(seq_record.seq), kmers_dict)
         if len(KmerVector) == 141:
             DictVectors[record] = KmerVector
-#             DictVectors[record.id] = KmerVector
-    print('Total number of reads: {}'.format(total_number_reads))
-    print('Number of reads after processing: {}'.format(len(DictVectors)))
+    print(f'Total number of reads: {len(Reads_dict)}')
+    print(f'Number of reads after processing: {len(DictVectors)}')
     return DictVectors
 
 
-# In[12]:
-# Create an instance with fastq reads information
-def ReadFastq(FastqFile):
-    with gzip.open(FastqFile, 'rt') as fastq_in:
-        return list(SeqIO.parse(fastq_in, 'fastq'))
+# Unzip the .gz file for SeqIO.index command
+def unzipFile(FastqFile, FileName):
+    with gzip.open(FastqFile, 'rb') as zippedFastq:
+        with open(FileName, 'wb') as unzippedFastq:
+            shutil.copyfileobj(zippedFastq, unzippedFastq)
 
 def main():
     # Set model parameters
@@ -204,22 +184,26 @@ def main():
     sequence_length = int(150 - k_value + 1)
     
     # Exception handling for number of arugments
-#    if len(sys.argv) != 1:
-#        sys.exit("Incorrect number of arguments provided.\nCorrect format: [script] [read] [num of threads]\n")
+    if len(sys.argv) != 3:
+        sys.exit("Incorrect number of arguments provided.\nCorrect format: [script] [read] [num of threads]\n")
         
-    print("\nProcess reads: START -- {}".format(datetime.now()),file=sys.stderr)
+    print(f'\nProcess reads: START -- {datetime.now()}')
     # Get fastq file name
     FastqFile = str(sys.argv[1])
-    print('Fastq File: {}'.format(FastqFile))
+    print(f'Fastq File: {FastqFile}')
+    
     # Get filename 
-#    FileName = str(sys.argv[1]).split('.')[0]
-#    print(FileName)
+    FileName = FastqFile.split(".gz")[0]
+    print(f'File Name: {FileName}')
+    
+    # Unzip the file
+    unzipFile(FastqFile, FileName)
+    
     # Parse Fastq file
     kmers_dict = GetKmersDictionary()
-#     Reads = ReadFastq(FastqFile)
-    Reads_dict = SeqIO.index(FastqFile, 'fastq') 
-#     DictVectors = ParseFastq(Reads, kmers_dict)
+    Reads_dict = SeqIO.index(FileName, 'fastq') 
     DictVectors = ParseFastq(Reads_dict, kmers_dict)
+    
     # Create matrix
     X_test, ListReadsID = createMatrix(DictVectors, sequence_length)
     print("\nProcess reads: END -- {}".format(datetime.now()), file=sys.stderr)
@@ -227,10 +211,10 @@ def main():
     # Get order names mapped to integers
     class_mapping = {0: 'Enterobacterales', 1: 'Mycoplasmatales', 2: 'Chlamydiales', 3: 'Vibrionales',
                      4: 'Fusobacteriales', 5: 'Spirochaetales', 6: 'Rhodobacterales', 7: 'Unclassified'}
-    print('class_mapping dictionay: {}'.format(class_mapping),file=sys.stderr)
+    print(f'class_mapping dictionary: {class_mapping}\n')
     
     # reset graph
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
     
     # Create new empty computation graph
     g = tf.Graph()
