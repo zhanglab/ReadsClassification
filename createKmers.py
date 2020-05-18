@@ -6,6 +6,7 @@ np.set_printoptions(threshold=sys.maxsize)
 import gzip
 import shutil
 import re
+import itertools
 
 # Set model parameters
 k_value = 10
@@ -15,14 +16,6 @@ sequence_length = int(150 - k_value + 1)
 def createMatrix(DictVectors):
     sequences = np.full((len(DictVectors), sequence_length), list(DictVectors.values()))
     return sequences
-
-# Get list of all possible 4**k_value kmers
-def get_all_kmers(list_nt, prefix, n, k, list_kmers):
-    if k == 0:
-        return list_kmers.append(prefix)
-    for i in range(n):
-        newPrefix = prefix + list_nt[i]
-        get_all_kmers(list_nt, newPrefix, n, k-1, list_kmers)
 
 # Function that looks for any characters different 
 # from A, C, T or G and converts the DNA sequence into a vector of 10-mers 
@@ -51,18 +44,14 @@ def ParseSeq(DNAsequence,kmers_dict):
     array_int = np.flip(array_int, axis=0)
     return array_int
 
+# Get list of all possible 4**k_value kmers
 def GetKmersDictionary(k_value=10):
-    # Create empty list to store all possible kmers
-    list_kmers = []
     list_nt = ['A', 'T', 'C', 'G']
     # Get list of all possible 4**k_value kmers
-    get_all_kmers(list_nt, "", len(list_nt), k_value, list_kmers)
-    # generate a list of integers from 0 to the number of kmers
-    list_num = list(range(0,len(list_kmers)))
+    list_kmers = [''.join(p) for p in itertools.product(list_nt, repeat=k_value)]
     # Assign an integer to each kmer
-    kmers_dict = dict(zip(list_kmers, list_num))
+    kmers_dict = dict(zip(list_kmers, range(len(list_kmers))))
     return kmers_dict
-
 
 # Goes through the fastq file to create the dictionary
 def ParseFastq(Reads_dict, kmers_dict):
@@ -70,10 +59,7 @@ def ParseFastq(Reads_dict, kmers_dict):
     for record, seq_record in Reads_dict.items():
         # Check read sequence
         KmerVector = ParseSeq(str(seq_record.seq), kmers_dict)
-        if len(KmerVector) == 141:
-            DictVectors[record] = KmerVector
-    print(f'Total number of reads: {len(Reads_dict)}')
-    print(f'Number of reads after processing: {len(DictVectors)}')
+        DictVectors[record] = KmerVector
     return DictVectors
 
 def unzipFile(FastqFile, FileName):
