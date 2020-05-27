@@ -41,4 +41,6 @@ for dir in $FOLDER/*/ ; do
     genomeSize
     taxID
     CAMISIMfiles
+    /opt/software/CAMISIM/1.1.0-foss-2016b-Python-2.7.12/bin/metagenomesimulation.py $Path$dir$INI
+    echo "CAMISIM files for $SPECIES complete"
 done
