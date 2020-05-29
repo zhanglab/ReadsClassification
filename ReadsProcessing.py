@@ -18,6 +18,7 @@ import collections
 from collections import defaultdict
 from contextlib import redirect_stdout
 import csv
+import json
 import itertools
 
 # Creates a json file of the dictionaries
