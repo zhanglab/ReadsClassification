@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 # Import all necessary libraries
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
@@ -21,43 +18,29 @@ import collections
 from collections import defaultdict
 from contextlib import redirect_stdout
 import csv
+import itertools
 
-
-# In[2]:
-
+# Creates a json file of the dictionaries
+def CreateJSON(dict, k_value):
+    # Creation of the class_mapping file or the kmer file
+    filename = '{0}mer_dict.json'.format(k_value)
+    if k_value == None:
+        filename = 'class_mapping.json'
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(dict, f, ensure_ascii=False, indent=4)
 
 # Function that returns a dictionary of all possible kmers with 
 # each kmer associated with an integer
 def GetKmersDictionary(k_value):
-    # Create empty list to store all possible kmers
-    list_kmers = []
     list_nt = ['A', 'T', 'C', 'G']
     # Get list of all possible 4**k_value kmers
-    get_all_kmers(list_nt, "", len(list_nt), k_value, list_kmers)
-    # generate a list of integers
-    list_num = list(range(0,len(list_kmers)))
+    list_kmers = [''.join(p) for p in itertools.product(list_nt, repeat=k_value)]
     # Assign an integer to each kmer
-    kmers_dict = dict(zip(list_kmers, list_num))
+    kmers_dict = dict(zip(list_kmers, range(len(list_kmers))))
+    # Create a json file of the dictionary
+    CreateJSON(kmers_dict, k_value)
     print('Size of kmers dictionary: {}'.format(len(kmers_dict)))
     return kmers_dict
-
-
-# In[ ]:
-
-
-# Function to create a list of all possible kmers
-def get_all_kmers(list_nt, prefix, n, k, list_kmers):
-    if k == 0 :
-        list_kmers.append(prefix)
-        return list_kmers
-    
-    for i in range(n):
-        newPrefix = prefix + list_nt[i]
-        get_all_kmers(list_nt, newPrefix, n, k-1, list_kmers)
-
-
-# In[4]:
-
 
 # Function that looks for any characters different 
 # from A, C, T or G and converts the DNA sequence into a vector of 10-mers 
@@ -70,8 +53,8 @@ def ParseSeq(DNAsequence, kmers_dict, k_value, seq_length):
 
     # Creates a sliding window of width 10
     # 141 kmers
-#    for n in range(len(DNAsequence) - 9):
-#        kmer = DNAsequence[n:n+10]
+    #    for n in range(len(DNAsequence) - 9):
+    #        kmer = DNAsequence[n:n+10]
     # 29 kmers --> 5
     # 15 kmers --> 10
     # 71 kmers --> 2
@@ -86,16 +69,12 @@ def ParseSeq(DNAsequence, kmers_dict, k_value, seq_length):
             numkmers += 1
     print('Number of kmers: {0} - {1}'.format(len(listKmers), numkmers))
     # Pad or truncate list to 141 kmers
-#    listKmers = listKmers[:141] + [0]*(141 - len(listKmers))
+    #    listKmers = listKmers[:141] + [0]*(141 - len(listKmers))
     # transform list into numpy array
     array_int = np.asarray(listKmers)
     # Flip array
     array_int = np.flip(array_int, axis=0)
     return array_int
-
-
-# In[5]:
-
 
 # Function that parse the Fastq File and process the reads 
 def ParseFastq(DictTrainData, DictTestData, FastqFile, label, class_mapping, kmers_dict, k_value, seq_length):
@@ -107,23 +86,20 @@ def ParseFastq(DictTrainData, DictTestData, FastqFile, label, class_mapping, kme
     print(listReadIDs[0])
     random.shuffle(listReadIDs)
     print(listReadIDs[0])
-    total_number_reads = 0
+    listReadIDs = listReadIDs[:50000]
     # Check read sequence and get vector of kmers
     for i in range(len(listReadIDs)):
-        if total_number_reads < 50000:
-            total_number_reads += 1
-            read_id = listReadIDs[i]
-            seq_record = Reads_dict[read_id]
-            KmerVector = ParseSeq(str(seq_record.seq), kmers_dict, k_value, seq_length)
-            if len(KmerVector) == seq_length:
-                # Get onehot encoding --> not to use for stratified cross validation
-    #             onehotvector = OneHotEncoding(label, len(class_mapping))
-                # add read to data
-    #             data.append([KmerVector, onehotvector])
-                data.append([KmerVector, label]) 
-        else:
-            break
-    print('Number of reads in fastq file: {0} - {1}'.format(FastqFile,total_number_reads))
+         read_id = listReadIDs[i]
+         seq_record = Reads_dict[read_id]
+         KmerVector = ParseSeq(str(seq_record.seq), kmers_dict, k_value, seq_length)
+         if len(KmerVector) == seq_length:
+             # Get onehot encoding --> not to use for stratified cross validation
+             #   onehotvector = OneHotEncoding(label, len(class_mapping))
+             # add read to data
+             #   data.append([KmerVector, onehotvector])
+             data.append([KmerVector, label]) 
+
+    print('Number of reads in fastq file: {0} - {1}'.format(FastqFile,len(listReadIDs))
     # Split data into train and test sets
     NumReadsTrain = int(math.ceil(0.7 * len(data)))
     training_data = data[:NumReadsTrain]
@@ -134,10 +110,7 @@ def ParseFastq(DictTrainData, DictTestData, FastqFile, label, class_mapping, kme
     DictTrainData[label] = training_data
     DictTestData[label] = testing_data
 
-
-# In[ ]:
-
-
+# Function that gets the full path to the fq file
 def GetPathToFqFile(genomeID):
     currentdir = os.getcwd()
     for root, dirs, files in os.walk('/'.join([currentdir,genomeID])):
@@ -146,18 +119,12 @@ def GetPathToFqFile(genomeID):
                 print(os.path.join(root,file))
                 return os.path.join(root,file)
 
-
-# In[6]:
-
-
 # Function that creates the dataset of simulated reads from all the fastq files available
 def GetSetInfo():
     DictFastqFiles = {}
     class_mapping = {}
-    listspecies = []
-    numClasses = 0
     with open(os.getcwd() + '/Species.tsv', 'r') as info:
-        for line in info:
+        for numClasses, line in enumerate(info):
             line = line.strip('\n')
             columns = line.split('\t')
             species = columns[0]
@@ -165,15 +132,12 @@ def GetSetInfo():
             # Add Class to class_mapping dictionary
             class_mapping[numClasses] = species
             DictFastqFiles[numClasses] = GetPathToFqFile(genomeID)
-            listspecies.append(species)
-            numClasses += 1
+    listspecies = list(class_mapping.values())
     print('DictFastqFiles: {}'.format(DictFastqFiles))
     print('Dictionary mapping Classes to integers: {}'.format(class_mapping))
+    # Create json file of class_mapping
+    CreateJSON(class_mapping, None)
     return DictFastqFiles, class_mapping, listspecies
-
-
-# In[7]:
-
 
 def MultiProcesses(DictFastqFiles, class_mapping, kmers_dict, k_value, seq_length, num_classes):
     with mp.Manager() as manager:
@@ -195,10 +159,7 @@ def MultiProcesses(DictFastqFiles, class_mapping, kmers_dict, k_value, seq_lengt
         CreateFiles(DictTestData,'test',class_mapping,k_value,seq_length,num_classes)
         return DictTestData, DictTrainData
 
-
-# In[ ]:
-
-
+# Function that creates npy files
 def CreateFiles(Dict,SetType,class_mapping,k_value,seq_length,num_classes):
     data = np.asarray(Dict[0])
     print('Label 0 - {0} - number of reads: {1} - Label in: {2}'.format(class_mapping[0],len(Dict[0]),Dict[0][1]))
@@ -224,17 +185,18 @@ def CreateFiles(Dict,SetType,class_mapping,k_value,seq_length,num_classes):
         print('Number of reads in testing set: {}'.format(len(data)), file=sys.stderr)
         np.save(os.getcwd() + '/data/test_data_50000_{0}kmers_k{1}-{2}classes.npy'.format(seq_length,k_value,num_classes), data) 
 
-
-# In[11]:
-
-
 def main():
     #### SET MODEL PARAMETERS #####
-    k_value = 5
-    num_kmers = 4**k_value
-    num_classes = 10
-#    seq_length = int(150/k_value)
-    seq_length = 30
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", type=int, help="size of kmer", required=True)
+    parser.add_argument("-classes", type=int, help="number of classes", required=True)
+    parser.add_argument("-len", type=int, help="size of vector", required=True)
+    args = parser.parse_args()
+    
+    k_value = args.k
+    num_classes = args.classes
+    seq_length = args.len
+        
     # Get dictionary mapping all possible 10-mers to integers
     kmers_dict = GetKmersDictionary(k_value)
     # get list of species in file directory to reads
@@ -244,10 +206,5 @@ def main():
     # Get number of kmers in whole set
     print('Number of {0}-mers: {1}'.format(k_value, len(kmers_dict)))
 
-
-# In[ ]:
-
-
 if __name__ == "__main__":
     main()
-
