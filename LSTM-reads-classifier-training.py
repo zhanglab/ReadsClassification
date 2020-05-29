@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
-
-
 # Import all necessary libraries
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
@@ -41,11 +38,9 @@ from keras.regularizers import l2
 from keras.models import Sequential, model_from_json
 from keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional, Conv1D, MaxPooling1D
 from sklearn import metrics
+import json
 print(tf.__version__, file=sys.stderr)
 print(device_lib.list_local_devices(),file=sys.stderr)
-
-
-# In[ ]:
 
 
 class MultiGPUs(object):
@@ -72,12 +67,11 @@ class MultiGPUs(object):
         self.k_value = k_value
 
     def decay(self, epoch):
-        if epoch < 50:
-            return 0.01
-        if epoch >= 50 and epoch < 100:
-            return 0.0001
         if epoch >= 100:
             return 0.00001
+        elif epoch >= 50:
+            return 0.0001
+        return 0.01
  
     def compute_loss(self, label, predictions):
         loss = tf.reduce_sum(self.loss_object(label, predictions)) * (1.0 / (self.batch_size * self.strategy.num_replicas_in_sync))
@@ -154,7 +148,7 @@ class MultiGPUs(object):
         # Add vertical lines to represent each epoch
         for xcoord in x_coords:
             plt.axvline(x=xcoord,color='gray',linestyle='--')
-        plt.savefig('/glade/u/home/ccres/run/RNN5/{0}classes/LearningCurves-{1}mer-{2}length.png'.format(len(self.class_mapping),self.k_value,self.sequence_length),bbox_inches='tight')
+        plt.savefig(os.getcwd + '/run/LearningCurves-{0}mer-{1}length-{2}ul-{3}emb.png'.format(len(self.class_mapping),self.k_value,self.sequence_length, self.hidden_size, self.embedding_size),bbox_inches='tight')
     
 
     def GetMetrics(self, cm, rank, listtaxa):
@@ -335,41 +329,12 @@ class MultiGPUs(object):
             self.probabilities = list()
             self.unclassified = int()
            
-
-# In[6]:
-
-
 # Function that returns a dictionary of all possible kmers with 
 # each kmer associated with an integer
 def GetKmersDictionary(k_value):
-    # Create empty list to store all possible kmers
-    list_kmers = []
-    list_nt = ['A', 'T', 'C', 'G']
-    # Get list of all possible 4**k_value kmers
-    get_all_kmers(list_nt, "", len(list_nt), k_value, list_kmers)
-    # generate a list of integers
-    list_num = list(range(0,len(list_kmers)))
-    # Assign an integer to each kmer
-    kmers_dict = dict(zip(list_kmers, list_num))
+    with open('{0}mer_dict.json'.format(k_value)) as f:
+        kmers_dict = json.load(f)
     return kmers_dict
-
-
-# In[ ]:
-
-
-# Function to create a list of all possible kmers
-def get_all_kmers(list_nt, prefix, n, k, list_kmers):
-    if k == 0 :
-        list_kmers.append(prefix)
-        return list_kmers
-    
-    for i in range(n):
-        newPrefix = prefix + list_nt[i]
-        get_all_kmers(list_nt, newPrefix, n, k-1, list_kmers)
-
-
-# In[ ]:
-
 
 def CreateModel(num_kmers, embedding_size, sequence_length, hidden_size, num_classes, k_value):
     model = tf.keras.Sequential()
@@ -399,44 +364,33 @@ def CreateModel(num_kmers, embedding_size, sequence_length, hidden_size, num_cla
     print(model.summary())
     return model    
 
-
-
-# In[ ]:
-
-
 # Function that creates the dataset of simulated reads from all the fastq files available
 def GetSetInfo():
-    class_mapping = {}
-    listspecies = []
-    numClasses = 0
-    with open(os.getcwd() + '/Species.tsv', 'r') as info:
-        for line in info:
-            line = line.strip('\n')
-            columns = line.split('\t')
-            label = columns[0]
-            genomeID = columns[2]
-            class_mapping[numClasses] = label
-            listspecies.append(label)
-            numClasses += 1
+    with open('class_mapping.json') as f:
+        class_mapping = json.load(f)
+    listspecies = list(class_mapping.values())
     print('Dictionary mapping Classes to integers: {}'.format(class_mapping))
     return class_mapping, listspecies
 
-
-# In[12]:
-
-
 def main():
     #### SET MODEL PARAMETERS #####
-    embedding_size = 5
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", type=int, help="size of kmer", required=True)
+    parser.add_argument("-classes", type=int, help="number of classes", required=True)
+    parser.add_argument("-len", type=int, help="size of vector", required=True)
+    parser.add_argument("-emb", type=int, help="embedding size", required=True)
+    parser.add_argument("-hs", type=int, help="hidden size", required=True)
+    args = parser.parse_args()
+
+    k_value = args.k
+    num_classes = args.classes
+    sequence_length = args.len
+    embedding_size = args.emb
+    hidden_size = args.hs
+    
     num_epochs = 10
-    k_value = 5
     num_kmers = 4**k_value
-    num_classes = 10
-    hidden_size = 32
-    # Set size of vector representing each read
-#    sequence_length = int(150 - k_value + 1)
-#    sequence_length = int(150/k_value)
-    sequence_length = 30
+
     print('embedding size: {0}, number epochs: {1}, k value: {2}, number of k-mers: {3}, number of species: {4}, number of lstm units: {5}, sequence length: {6}'.format(embedding_size, num_epochs, k_value, num_kmers, num_classes, hidden_size, sequence_length))
     # Get dictionary mapping all possible 10-mers to integers
     kmers_dict = GetKmersDictionary(k_value)
@@ -444,8 +398,8 @@ def main():
     # get list of genomes in file directory to reads
     class_mapping, listspecies = GetSetInfo()
     # Load data
-    traindata = np.load('/glade/scratch/ccres/SpeciesData/reads-5/readsonly2/data/train_data_50000_{0}kmers_k{1}-{2}classes.npy'.format(sequence_length, k_value,num_classes),allow_pickle=True)
-    valdata = np.load('/glade/scratch/ccres/SpeciesData/reads-5/readsonly2/data/val_data_50000_{0}kmers_k{1}-{2}classes.npy'.format(sequence_length, k_value, num_classes),allow_pickle=True)
+    traindata = np.load(os.getcwd() + '/data/train_data_50000_{0}kmers_k{1}-{2}classes.npy'.format(sequence_length, k_value,num_classes),allow_pickle=True)
+    valdata = np.load(os.getcwd() + '/data/val_data_50000_{0}kmers_k{1}-{2}classes.npy'.format(sequence_length, k_value, num_classes),allow_pickle=True)
 #    np.random.shuffle(data)
 #    print(data[0])
     X_train = np.array([i[0] for i in traindata]) 
@@ -472,7 +426,7 @@ def main():
         # Build model
         model = CreateModel(num_kmers, embedding_size, sequence_length, hidden_size, num_classes, k_value)
         # Define checpoint path
-        checkpoint_path = "/glade/u/home/ccres/run/RNN5/10classes/LSTM-k5-30sl-32lu-1LSTM-5emb-32bpr-"
+        checkpoint_path = os.getcwd() + "/run/LSTM-k{0}-{1}sl-{2}lu-1LSTM-{3}emb-32bpr-".format(k_value, sequence_length, hidden_size, embedding_size)
         # uncomment next 2 lines if training model for another round
         #checkpoint_path_to_load = "/glade/u/home/ccres/run/RNN5/10classes/LSTM-k5-30sl-32lu-1LSTM-5emb-32bpr-V2epoch-9-batch-2553.0.ckpt"
         #model.load_weights(checkpoint_path_to_load)
@@ -488,21 +442,6 @@ def main():
         print("\nStart training: {}".format(datetime.datetime.now()), file=sys.stderr)
         trainer.custom_training_loop(train_dist_dataset, test_dist_dataset, strategy)
         print("\nEnd training: {}".format(datetime.datetime.now()), file=sys.stderr)
-        
-
-
-
-    
-
-
-# In[13]:
 
 if __name__ == "__main__":
     main()
-
-
-# In[ ]:
-
-
-
-
