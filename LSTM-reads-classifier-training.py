@@ -39,12 +39,13 @@ from keras.models import Sequential, model_from_json
 from keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional, Conv1D, MaxPooling1D
 from sklearn import metrics
 import json
+import argparse
 print(tf.__version__, file=sys.stderr)
 print(device_lib.list_local_devices(),file=sys.stderr)
 
 
 class MultiGPUs(object):
-    def __init__(self, epochs, model, batch_size, strategy, checkpoint_path, hiddensize, class_mapping, k_value, sequence_length):
+    def __init__(self, epochs, model, batch_size, strategy, checkpoint_path, hiddensize, class_mapping, k_value, sequence_length, embedding_size):
         self.epochs = epochs
         self.batch_size = batch_size
         self.strategy = strategy
@@ -57,6 +58,7 @@ class MultiGPUs(object):
         self.checkpoint_path = checkpoint_path
         self.hidden_size = hiddensize
         self.class_mapping = class_mapping
+        self.embedding_size = embedding_size
         # Create lists to store true classes and predicted classes
         self.true_classes = list()
         self.predicted_classes = list()
@@ -148,7 +150,7 @@ class MultiGPUs(object):
         # Add vertical lines to represent each epoch
         for xcoord in x_coords:
             plt.axvline(x=xcoord,color='gray',linestyle='--')
-        plt.savefig(os.getcwd + '/run/LearningCurves-{0}mer-{1}length-{2}ul-{3}emb.png'.format(len(self.class_mapping),self.k_value,self.sequence_length, self.hidden_size, self.embedding_size),bbox_inches='tight')
+        plt.savefig(os.getcwd + '/run/LearningCurves-{0}mer-{1}length-{2}ul-{3}emb.png'.format(self.k_value,self.sequence_length, self.hidden_size, self.embedding_size),bbox_inches='tight')
     
 
     def GetMetrics(self, cm, rank, listtaxa):
