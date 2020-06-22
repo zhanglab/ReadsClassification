@@ -3,6 +3,7 @@
 # Import all necessary libraries
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from ..nn.utils import process_folder
 from .prepare_data import *
 import argparse
 
@@ -18,11 +19,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-classes", type=int, help="number of classes", required=True)
     parser.add_argument("-l", "--length", type=int, help="size of sequences", default=150)
+    parser.add_argument('-f', '--folder', type=str, help="folder containing data set")
     args = parser.parse_args()
+    args.folder = process_folder(args)
     args.model = 'base-emb'
     return args
 
 if __name__ == '__main__':
     args = parse_args()
-    fastq_files = get_info()
+    fastq_files = get_info(args)
     multiprocesses(fastq_files, args)
