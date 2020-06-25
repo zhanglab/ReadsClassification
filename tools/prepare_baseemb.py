@@ -1,9 +1,6 @@
-#!/usr/bin/env python
-# coding: utf-8
-# Import all necessary libraries
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from ..nn.utils import process_folder
+from .utils import get_args, process_folder
 from .prepare_data import *
 import argparse
 
@@ -17,11 +14,9 @@ def parse_seq(sequence, args):
 def parse_args():
     #### SET MODEL PARAMETERS #####
     parser = argparse.ArgumentParser()
-    parser.add_argument("-classes", type=int, help="number of classes", required=True)
-    parser.add_argument("-l", "--length", type=int, help="size of sequences", default=150)
-    parser.add_argument('-f', '--folder', type=str, help="folder containing data set")
+    parser.add_argument("-l", "--length", type=int, help="sequence length", default=150)
     args = parser.parse_args()
-    args.folder = process_folder(args)
+    args.input, args.output = process_folder(args)
     args.model = 'base-emb'
     return args
 
