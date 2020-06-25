@@ -1,11 +1,10 @@
 # Import all necessary libraries
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from ..nn.utils import process_folder
+from .utils import get_args, process_folder
 from .prepare_data import *
 
 import numpy as np
-import argparse
 import itertools
 
 # Function that returns a dictionary of all possible kmers with
@@ -45,11 +44,9 @@ def parse_args():
     #### SET MODEL PARAMETERS #####
     parser = argparse.ArgumentParser()
     parser.add_argument("-kvalue", type=int, help="size of kmer", required=True)
-    parser.add_argument("-classes", type=int, help="number of classes", required=True)
     parser.add_argument("-l", "--length", type=int, help="size of vector", required=True)
-    parser.add_argument('-f', '--folder', type=str, help="folder containing data set")
     args = parser.parse_args()
-    args.folder = process_folder(args)
+    args.input, args.output = process_folder(args)
     args.model = 'kmer'
     return args
 
