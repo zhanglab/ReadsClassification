@@ -14,9 +14,9 @@ import re
 import json
 
 # Creates a json file of the dictionaries
-def create_json(dict):
+def create_json(dict, output):
     # Creation of the class_mapping file
-    filename = 'class_mapping.json'
+    filename = os.path.join(output, 'class_mapping.json')
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(dict, f, ensure_ascii=False, indent=4)
 
@@ -55,18 +55,18 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
     test_data_dict[label] = testing_data
 
 # Function that gets the full path to the fq file
-def path_to_fq_file(genomeID):
-    currentdir = os.getcwd()
+def path_to_fq_file(genomeID, args):
+    currentdir = args.input
     for root, dirs, files in os.walk('/'.join([currentdir, genomeID])):
         for file in files:
             if file == 'anonymous_reads.fq':
                 return os.path.join(root, file)
 
 # Function that creates the dataset of simulated reads from all the fastq files available
-def get_info():
+def get_info(args):
     fastq_files = {}
     class_mapping = {}
-    with open(os.getcwd() + '/Species.tsv', 'r') as info:
+    with open(args.input + '/Species.tsv', 'r') as info:
         for class_num, line in enumerate(info):
             line = line.strip('\n')
             columns = line.split('\t')
@@ -74,10 +74,10 @@ def get_info():
             genomeID = columns[2]
             # Add Class to class_mapping dictionary
             class_mapping[class_num] = species
-            fastq_files[class_num] = path_to_fq_file(genomeID)
+            fastq_files[class_num] = path_to_fq_file(genomeID, args)
     print('Dictionary mapping Classes to integers: {}'.format(class_mapping))
     # Create json file of class_mapping
-    create_json(class_mapping)
+    create_json(class_mapping, args.output)
     return fastq_files
 
 def multiprocesses(fastq_files, args):
@@ -116,9 +116,9 @@ def create_npy(dict, set_type, args):
         print('Number of reads in whole training dataset: {}'.format(len(data)), file=sys.stderr)
         print('Number of reads in training set: {}'.format(len(traindata)), file=sys.stderr)
         print('Number of reads in validation set: {}'.format(len(valdata)), file=sys.stderr)
-        np.save(os.getcwd() + '/train_data_{0}.npy'.format(args.model), traindata)
-        np.save(os.getcwd() + '/val_data_{0}.npy'.format(args.model), valdata)
+        np.save(args.output + '/train_data_{0}.npy'.format(args.model), traindata)
+        np.save(args.output + '/val_data_{0}.npy'.format(args.model), valdata)
 
     elif set_type == 'test':
         print('Number of reads in testing set: {}'.format(len(data)), file=sys.stderr)
-        np.save(os.getcwd() + '/test_data_{0}.npy'.format(args.model), data)
+        np.save(args.output + '/test_data_{0}.npy'.format(args.model), data)
