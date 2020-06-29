@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import numpy as np
 import os
 import sys
@@ -22,34 +17,48 @@ def create_json(dict, output):
 
 # Function that parse the Fastq File and process the reads
 def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
-    if args.model == 'kmer':
-        from .prepare_kmer import parse_seq
-    else:
-        from .prepare_baseemb import parse_seq
-
     data = []
     # Create a dictionary like object to store information about the reads
     reads_dict = SeqIO.index(fastq_files, 'fastq')
     # Get reads IDs in a list
     listReadIDs = list(reads_dict.keys())
     random.shuffle(listReadIDs)
-    listReadIDs = listReadIDs[:50000]
-    # Check read sequence and get one-hot encoded sequence
-    for i in range(len(listReadIDs)):
-        read_id = listReadIDs[i]
-        seq_record = reads_dict[read_id]
-        if re.match('^[ATCG]+$', str(seq_record.seq)):
-            integer_encoded = parse_seq(str(seq_record.seq), args)
-            if len(integer_encoded) == args.length:
-                data.append([integer_encoded, label])
 
-    print('Number of reads in fastq file: {0} - {1}'.format(fastq_files, len(listReadIDs)))
+    def unidirectional(listReadIDs):
+        if args.model == 'kmer':
+            from .kmer import parse_seq
+        else:
+            from .baseemb import parse_seq
+
+        listReadIDs = listReadIDs[:50000]
+        # Check read sequence and get one-hot encoded sequence
+        for i in range(len(listReadIDs)):
+            read_id = listReadIDs[i]
+            seq_record = reads_dict[read_id]
+            if re.match('^[ATCG]+$', str(seq_record.seq)):
+                integer_encoded = parse_seq(str(seq_record.seq), args)
+                if len(integer_encoded) == args.length:
+                    data.append([integer_encoded, label])
+
+    def bidirectional(listReadIDs):
+        from .kmer import parse_seq
+        for i in range(0, len(listReadIDs), 2):
+            fw_read_id = listReadIDs[i]
+            rv_read_id = listReadIDs[i + 1]
+            fw_seq_record = reads_dict[fw_read_id]
+            rv_seq_record = reads_dict[rv_read_id]
+            fw_KmerVector = parse_seq(str(fw_seq_record.seq), args)
+            rv_KmerVector = parse_seq(str(rv_seq_record.seq), args)
+            if len(fw_KmerVector) == args.length and len(rv_KmerVector) == args.length:
+                data.append([fw_KmerVector, rv_KmerVector, label])
+
+    bidirectional(listReadIDs) if args.model == 'bidirectional' else unidirectional(listReadIDs)
+
     # Split data into train and test sets
     NumReadsTrain = int(math.ceil(0.7 * len(data)))
     training_data = data[:NumReadsTrain]
     testing_data = data[NumReadsTrain:]
-    print('Reads for training: {}'.format(len(training_data)))
-    print('Reads for testing: {}'.format(len(testing_data)))
+
     # add data to dictionaries
     train_data_dict[label] = training_data
     test_data_dict[label] = testing_data
@@ -92,11 +101,7 @@ def multiprocesses(fastq_files, args):
             p.start()
         for p in processes:
             p.join()
-        print('Number of reads for each species and set: ')
-        for key, value in test_data_dict.items():
-            print(key, len(value))
-        for key, value in train_data_dict.items():
-            print(key, len(value))
+
         create_npy(train_data_dict, 'train', args)
         create_npy(test_data_dict, 'test', args)
 
@@ -110,6 +115,7 @@ def create_npy(dict, set_type, args):
 
     # save data
     if set_type == 'train':
+        np.random.shuffle(data)
         num_reads_train = int(0.7 * len(data))
         traindata = data[:num_reads_train]
         valdata = data[num_reads_train:]

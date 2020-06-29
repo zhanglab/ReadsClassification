@@ -1,6 +1,3 @@
-# Import all necessary libraries
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 from .utils import get_args, process_folder
 from .prepare_data import *
 
@@ -42,8 +39,8 @@ def parse_seq(sequence, args):
 
 def parse_args():
     #### SET MODEL PARAMETERS #####
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-kvalue", type=int, help="size of kmer", required=True)
+    parser = get_args()
+    parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
     parser.add_argument("-l", "--length", type=int, help="size of vector", required=True)
     args = parser.parse_args()
     args.input, args.output = process_folder(args)
@@ -52,6 +49,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    fastq_files = get_info()
+    fastq_files = get_info(args)
     args.kmers_dict = kmer_dictionary(args.kvalue)
     multiprocesses(fastq_files, args)
