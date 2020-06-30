@@ -13,6 +13,9 @@ class Bidirectional(AbstractLSTM):
         hparams = self.check_hparams(hparams)
         num_classes = len(hparams.class_mapping)
 
+        # Ensure that the reshape layer is the same size as the LSTM layers
+        assert (hparams.embedding_size * hparams.vector_size) == hparams.hidden_size
+
         # First bidirectional LSTM
         input1 = layers.Input(shape=(hparams.vector_size,))
         embed1 = layers.Embedding(input_dim=hparams.num_kmers, output_dim=hparams.embedding_size,

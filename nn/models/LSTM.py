@@ -38,14 +38,7 @@ class AbstractLSTM(tf.keras.Model):
         Process the dataset
         """
         self.hparams.global_batch_size = (self.hparams.batch_size * strategy.num_replicas_in_sync)
-        x_train, y_train, x_test, y_test = train_test_loaders(self.hparams)
-        BUFFER_SIZE = len(x_train)
-
-        # Slice and batch train and test datasets
-        train_dataset = tf.data.Dataset.from_tensor_slices(
-            (x_train, y_train)).shuffle(BUFFER_SIZE).batch(self.hparams.global_batch_size)
-        test_dataset = tf.data.Dataset.from_tensor_slices(
-            (x_test, y_test)).batch(self.hparams.global_batch_size)
+        train_dataset, test_dataset = train_test_loaders(self.hparams)
 
         # Distribute train and test datasets
         train_dataset = strategy.experimental_distribute_dataset(train_dataset)
