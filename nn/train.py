@@ -27,8 +27,8 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-b', '--batch_size', type=int, help='batch size', default=32)
     parser.add_argument('-e', '--epochs', type=int, help='number of epochs to use', default=10)
     parser.add_argument('-d', '--dropout_rate', type=float, help='dropout rate to use', default=0.5)
-    parser.add_argument('-emb', '--embedding_size', type=float, help='embedding size to use', default=60)
-    parser.add_argument('-hs', '--hidden_size', type=float, help='#LSTM memory units to use', default=40)
+    parser.add_argument('-emb', '--embedding_size', type=int, help='embedding size to use', default=60)
+    parser.add_argument('-hs', '--hidden_size', type=int, help='#LSTM memory units to use', default=40)
 
     # Kmer/Bidirectional model requirements
     parser.add_argument('-vs', '--vector_size', type=int, help="size of vectors", required=('kmer' or 'bidirectional') in sys.argv)
