@@ -18,18 +18,13 @@ def kmer_dictionary(k_value):
 def parse_seq(sequence, args):
     # Map every k bases
     list_kmers = []
-    numkmers = 0
 
-    for n in range(0, len(sequence) - (args.kvalue - 1), args.kvalue):
-        if numkmers < args.length:
-            kmer = sequence[n:n + args.kvalue]
-            # Lookup integer mapped to the kmer
-            kmer_integer = args.kmers_dict[kmer]
-            # Add kmer to vector of kmer
-            list_kmers.append(kmer_integer)
-            numkmers += 1
-        else:
-            break
+    for n in range(len(sequence) - (args.kvalue - 1)):
+        kmer = sequence[n:n + args.kvalue]
+        # Lookup integer mapped to the kmer
+        kmer_integer = args.kmers_dict[kmer]
+        # Add kmer to vector of kmer
+        list_kmers.append(kmer_integer)
 
     # transform list into numpy array
     array_int = np.asarray(list_kmers)
@@ -41,8 +36,8 @@ def parse_args():
     #### SET MODEL PARAMETERS #####
     parser = get_args()
     parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
-    parser.add_argument("-l", "--length", type=int, help="size of vector", required=True)
     args = parser.parse_args()
+    args.length = 150 - args.kvalue + 1
     args.input, args.output = process_folder(args)
     args.model = 'kmer'
     return args
