@@ -31,8 +31,8 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-hs', '--hidden_size', type=int, help='#LSTM memory units to use', default=40)
 
     # Kmer/Bidirectional model requirements
-    parser.add_argument('-vs', '--vector_size', type=int, help="size of vectors", required=('kmer' or 'bidirectional') in sys.argv)
-    parser.add_argument('-k', '--kvalue', type=int, help="size of kmers", required=('kmer' or 'bidirectional') in sys.argv)
+    parser.add_argument('-k', '--kvalue', type=int, help="size of kmers",
+                        required=('kmer' in sys.argv or 'bidirectional' in sys.argv))
     # Base embedding model requirements
     parser.add_argument("-l", "--length", type=int, help="sequence length", required='base-emb' in sys.argv)
 
@@ -56,6 +56,7 @@ def process_args(args=None):
     args.class_mapping = read_dataset(args.input)
     if args.model == 'kmer' or args.model == 'bidirectional':
         args.num_kmers = 4**args.kvalue
+        args.vector_size = 150 - args.kvalue + 1
         del args.kvalue
 
     model = process_model(args)
