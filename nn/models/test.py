@@ -22,12 +22,5 @@ def test_step(self, inputs):
     self.test_loss.update_state(test_loss)
 
 def distributed_test_epoch(self, strategy):
-    num_test_batches = 0
     for one_batch in self.loaders['test']:
-        num_test_batches += 1
         strategy.experimental_run_v2(test_step, args=(self, one_batch,))
-
-        if num_test_batches % 100 == 0:
-            print('Test batch #: {}'.format(num_test_batches))
-            print('accuracy: {}'.format(self.test_accuracy.result()))
-            print('test loss: {}'.format(self.test_loss.result()))
