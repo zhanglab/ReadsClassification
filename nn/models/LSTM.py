@@ -21,6 +21,10 @@ class AbstractLSTM(tf.keras.Model):
         self.test_accuracy = tf.keras.metrics.CategoricalAccuracy(name='test_accuracy')
         self.test_loss = tf.keras.metrics.Mean(name='test_loss')
 
+        self.val_loss_before = -1
+        self.patience = 0
+        self.stop_training = False
+
         self.true_classes = list()
         self.predicted_classes = list()
         self.probability_threshold = 0.5
@@ -72,7 +76,7 @@ class AbstractLSTM(tf.keras.Model):
             self.optimizer.learning_rate = self.decay(epoch)
             print('Learning rate at epoch {0}: {1}'.format(epoch, self.optimizer.learning_rate))
 
-            # Train - don't modify self
+            # Train
             train_total_loss, num_train_batches = distributed_train_epoch(self, strategy)
 
             # Insert train loss and train accuracy after one epoch in corresponding lists
@@ -97,18 +101,36 @@ class AbstractLSTM(tf.keras.Model):
                                    self.test_loss.result(),
                                    self.test_accuracy.result() * 100))
 
+            val_loss = self.test_loss.result()
+
+            if val_loss == self.val_loss_before:
+                self.patience += 1
+                if self.patience == 3:
+                    self.stop_training = True
+            else:
+                self.patience = 0
+
+            self.val_loss_before = val_loss
+
             # Get filtered results, learning curves, ROC and recall precision curves after last epoch
-            if epoch == self.hparams.epochs - 1:
+            if epoch == self.hparams.epochs - 1 or self.stop_training == True:
                 # Print report on precision, recall, f1-score
                 print('Metrics report from sklearn:')
                 print(metrics.classification_report(self.true_classes, self.predicted_classes, digits=3, zero_division=0))
+
+                with open(os.path.join(self.hparams.output, 'metrics.txt'), 'w') as f:
+                    f.write(metrics.classification_report(self.true_classes, self.predicted_classes, digits=3, zero_division=0))
+                    f.write('Confusion matrix: {}'.format(
+                        metrics.confusion_matrix(self.true_classes, self.predicted_classes)))
+
                 # Plot precision-recall curves
                 metrics.classification_report(self.true_classes, self.predicted_classes, zero_division=0, output_dict=True)
 
                 # GetFilteredResults(self)
-                LearningCurvesPlot(self, train_epoch_loss, train_epoch_accuracy, test_epoch_loss, test_epoch_accuracy)
+                LearningCurvesPlot(self, train_epoch_loss, train_epoch_accuracy, test_epoch_loss, test_epoch_accuracy, epoch + 1)
                 self._model.save_weights(
                     self.checkpoint_path + 'V2epoch-{0}-batch-{1}.ckpt'.format(epoch + 10, num_train_batches))
+                break
 
             # Resets all of the metric (train + test accuracies + test loss) state variables.
             self.train_accuracy.reset_states()
@@ -118,3 +140,4 @@ class AbstractLSTM(tf.keras.Model):
             self.predicted_classes = list()
             self.probabilities = list()
             self.unclassified = int()
+            self.val_loss = test_epoch_loss
