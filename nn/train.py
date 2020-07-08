@@ -60,7 +60,7 @@ def process_args(args=None):
         del args.kvalue
 
     model = process_model(args)
-    return model
+    return model, args
 
 def run_model():
     """
@@ -71,17 +71,16 @@ def run_model():
 
     with strategy.scope():
         # Build model
-        model = process_args(parse_args())
+        model, args = process_args(parse_args())
         # Train model
         start = datetime.now()
-        print("\nStart training: {}".format(start), file=sys.stderr)
         model.call(strategy)
         end = datetime.now()
-        print("\nEnd training: {}".format(end), file=sys.stderr)
         total_time = end - start
         hours, seconds = divmod(total_time.seconds, 3600)
         minutes, seconds = divmod(seconds, 60)
-        print("Took %02d:%02d:%02d.%d" % (hours, minutes, seconds, total_time.microseconds))
+        with open(os.path.join(args.output, 'metrics.txt'), 'a+') as f:
+            f.write("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
 
 
 if __name__ == "__main__":
