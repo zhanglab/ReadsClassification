@@ -7,7 +7,7 @@ from sklearn import metrics
 from .train import distributed_train_epoch
 from .test import distributed_test_epoch
 from ..loader import train_test_loaders
-from ..summarize import LearningCurvesPlot, GetFilteredResults, GetMetrics
+from ..summarize import LearningCurvesPlot
 
 class AbstractLSTM(tf.keras.Model):
     def __init__(self, hparams):
