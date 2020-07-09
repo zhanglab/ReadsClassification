@@ -17,7 +17,7 @@ def train_test_loaders(hparams):
     traindata = np.load(os.path.join(hparams.input, 'train_data_{0}.npy'.format(hparams.model)), allow_pickle=True)
     valdata = np.load(os.path.join(hparams.input, 'val_data_{0}.npy'.format(hparams.model)), allow_pickle=True)
 
-    def bidirectional():
+    def paired():
         x1_train = np.array([i[0] for i in traindata])
         x2_train = np.array([i[1] for i in traindata])
         y_train = np.array([i[2] for i in traindata])
@@ -37,7 +37,7 @@ def train_test_loaders(hparams):
         test_dataset = tf.data.Dataset.from_tensor_slices(((x1_test, x2_test), y_test)).batch(hparams.global_batch_size)
         return train_dataset, test_dataset
 
-    def unidirectional():
+    def unpaired():
         x_train = np.array([i[0] for i in traindata])
         y_train = np.array([i[1] for i in traindata])
         x_test = np.array([i[0] for i in valdata])
@@ -56,4 +56,4 @@ def train_test_loaders(hparams):
             (x_test, y_test)).batch(hparams.global_batch_size)
         return train_dataset, test_dataset
 
-    return bidirectional() if hparams.model == 'bidirectional' else unidirectional()
+    return paired() if hparams.reads == 'paired' else unpaired()

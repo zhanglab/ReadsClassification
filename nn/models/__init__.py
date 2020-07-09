@@ -10,13 +10,10 @@ def model(short_hand):
     def dec(cls):
         global _models
         _models[short_hand] = cls
-        #add(short_hand, cls)
         cls.short_hand = short_hand
         return cls
     return dec
 
-
-#from . import roznet
 import importlib
 import pkgutil
 

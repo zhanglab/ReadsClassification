@@ -23,7 +23,9 @@ class BaseEmb(AbstractLSTM):
             ]
         )
 
-        print(self._model.summary())
+        with open(os.path.join(hparams.output, 'metrics.txt', 'a+')) as f:
+            f.write(self._model.summary())
+
         plot_model(self._model, to_file=os.path.join(hparams.output, 'baseemb-model.png'),
                    show_shapes=True, show_layer_names=True)
 

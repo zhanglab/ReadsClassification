@@ -16,6 +16,8 @@ def parse_args(*addl_args, argv=None):
     """
     Get parameters for the model
     """
+    req_k = ['bidirectional', 'bidirectional-3', 'multilstm', 'multilstm-3', 'kmer']
+
     argv = check_argv(argv)
     parser = argparse.ArgumentParser(description="Run network training")
     parser.add_argument('model', type=str, help='model to run', choices=models._models.keys())
@@ -32,7 +34,7 @@ def parse_args(*addl_args, argv=None):
 
     # Kmer/Bidirectional model requirements
     parser.add_argument('-k', '--kvalue', type=int, help="size of kmers",
-                        required=('kmer' in sys.argv or 'bidirectional' in sys.argv))
+                        required=(model in sys.argv for model in req_k))
     # Base embedding model requirements
     parser.add_argument("-l", "--length", type=int, help="sequence length", required='base-emb' in sys.argv)
 
@@ -50,14 +52,17 @@ def process_args(args=None):
     """
     Process arguments for training
     """
+    unpaired = ['kmer', 'base-emb']
+
     if not isinstance(args, argparse.Namespace):
         args = parse_args(args)
     args.input, args.output = process_folder(args)
     args.class_mapping = read_dataset(args.input)
-    if args.model == 'kmer' or args.model == 'bidirectional':
+    if args.model != 'base-emb':
         args.num_kmers = 4**args.kvalue
         args.vector_size = 150 - args.kvalue + 1
         del args.kvalue
+    args.reads = 'unpaired' if args.model in unpaired else 'paired'
 
     model = process_model(args)
     return model, args
