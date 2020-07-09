@@ -28,13 +28,9 @@ class Bidirectional(AbstractLSTM):
                                   input_length=hparams.vector_size, trainable=True)(input2)
         lstm2 = layers.Bidirectional(layers.LSTM(hparams.hidden_size))(embed2)
 
-        # Make the LSTMs parallel
+        ## Make the LSTMs parallel
         added = layers.Add()([lstm1, lstm2])
-        reshaped = layers.Reshape((hparams.vector_size, hparams.embedding_size))(added)
-
-        # Feed the LSTM layers into a third bidirectional LSTM
-        lstm3 = layers.Bidirectional(layers.LSTM(hparams.hidden_size))(reshaped)
-        out = layers.Dense(num_classes, activation='softmax')(lstm3)
+        out = layers.Dense(num_classes, activation='softmax')(added)
 
         # Create the model
         self._model = models.Model(inputs=[input1, input2], outputs=out)
