@@ -24,7 +24,7 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
     listReadIDs = list(reads_dict.keys())
     random.shuffle(listReadIDs)
 
-    def unidirectional(listReadIDs):
+    def unpaired(listReadIDs):
         if args.model == 'kmer':
             from .kmer import parse_seq
         else:
@@ -40,7 +40,7 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
                 if len(integer_encoded) == args.length:
                     data.append([integer_encoded, label])
 
-    def bidirectional(listReadIDs):
+    def paired(listReadIDs):
         from .kmer import parse_seq
         for i in range(0, len(listReadIDs), 2):
             fw_read_id = listReadIDs[i]
@@ -52,7 +52,7 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
             if len(fw_KmerVector) == args.length and len(rv_KmerVector) == args.length:
                 data.append([fw_KmerVector, rv_KmerVector, label])
 
-    bidirectional(listReadIDs) if args.model == 'bidirectional' else unidirectional(listReadIDs)
+    paired(listReadIDs) if args.reads == 'paired' else unpaired(listReadIDs)
 
     # Split data into train and test sets
     NumReadsTrain = int(math.ceil(0.7 * len(data)))
@@ -84,7 +84,10 @@ def get_info(args):
             # Add Class to class_mapping dictionary
             class_mapping[class_num] = species
             fastq_files[class_num] = path_to_fq_file(genomeID, args)
-    print('Dictionary mapping Classes to integers: {}'.format(class_mapping))
+
+    with open('reads.txt', 'w') as f:
+        f.write('Dictionary mapping Classes to integers: {}\n'.format(class_mapping))
+
     # Create json file of class_mapping
     create_json(class_mapping, args.output)
     return fastq_files
@@ -119,12 +122,14 @@ def create_npy(dict, set_type, args):
         num_reads_train = int(0.7 * len(data))
         traindata = data[:num_reads_train]
         valdata = data[num_reads_train:]
-        print('Number of reads in whole training dataset: {}'.format(len(data)), file=sys.stderr)
-        print('Number of reads in training set: {}'.format(len(traindata)), file=sys.stderr)
-        print('Number of reads in validation set: {}'.format(len(valdata)), file=sys.stderr)
+        with open('reads.txt', 'a+') as f:
+            f.write('Number of reads in whole training dataset: {}\n'.format(len(data)), file=sys.stderr)
+            f.write('Number of reads in training set: {}\n'.format(len(traindata)), file=sys.stderr)
+            f.write('Number of reads in validation set: {}\n'.format(len(valdata)), file=sys.stderr)
         np.save(args.output + '/train_data_{0}.npy'.format(args.model), traindata)
         np.save(args.output + '/val_data_{0}.npy'.format(args.model), valdata)
 
     elif set_type == 'test':
-        print('Number of reads in testing set: {}'.format(len(data)), file=sys.stderr)
+        with open('reads.txt', 'a+') as f:
+            f.write('Number of reads in testing set: {}'.format(len(data)), file=sys.stderr)
         np.save(args.output + '/test_data_{0}.npy'.format(args.model), data)

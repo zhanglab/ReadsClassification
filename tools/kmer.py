@@ -39,6 +39,7 @@ def parse_args():
     args = parser.parse_args()
     args.length = 150 - args.kvalue + 1
     args.input, args.output = process_folder(args)
+    args.reads = 'unpaired'
     args.model = 'kmer'
     return args
 

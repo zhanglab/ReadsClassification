@@ -14,6 +14,7 @@ def parse_args():
     parser.add_argument("-l", "--length", type=int, help="sequence length", default=150)
     args = parser.parse_args()
     args.input, args.output = process_folder(args)
+    args.reads = 'unpaired'
     args.model = 'base-emb'
     return args
 
