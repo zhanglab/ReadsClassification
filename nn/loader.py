@@ -50,7 +50,7 @@ def train_test_loaders(hparams):
             (x_train, y_train)).shuffle(BUFFER_SIZE).batch(hparams.global_batch_size)
         test_dataset = tf.data.Dataset.from_tensor_slices(
             (x_test, y_test)).batch(hparams.global_batch_size)
-        
+
         return train_dataset, test_dataset
 
     return paired() if hparams.reads == 'paired' else unpaired()

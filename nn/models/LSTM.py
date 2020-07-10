@@ -72,7 +72,7 @@ class AbstractLSTM(tf.keras.Model):
 
         self.check_loaders(strategy)
 
-        with open(os.path.join(self.hparams.output, 'metrics.txt'), 'w') as f:
+        with open(os.path.join(self.hparams.output, 'epochs.txt'), 'a+') as f:
             for epoch in range(self.hparams.epochs):
                 self.optimizer.learning_rate = self.decay(epoch)
                 f.write('Learning rate at epoch {0}: {1}'.format(epoch, self.optimizer.learning_rate))
@@ -115,10 +115,11 @@ class AbstractLSTM(tf.keras.Model):
 
                 # Get filtered results, learning curves, ROC and recall precision curves after last epoch
                 if epoch == self.hparams.epochs - 1 or self.stop_training == True:
-                    # Print report on precision, recall, f1-score
-                    f.write(metrics.classification_report(self.true_classes, self.predicted_classes, digits=3, zero_division=0))
-                    f.write('\nConfusion matrix:\n {}'.format(
-                        metrics.confusion_matrix(self.true_classes, self.predicted_classes)))
+                    with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
+                        # Print report on precision, recall, f1-score
+                        out.write(metrics.classification_report(self.true_classes, self.predicted_classes, digits=3, zero_division=0))
+                        out.write('\nConfusion matrix:\n {}'.format(
+                            metrics.confusion_matrix(self.true_classes, self.predicted_classes)))
 
                     # Plot precision-recall curves
                     metrics.classification_report(self.true_classes, self.predicted_classes, zero_division=0, output_dict=True)

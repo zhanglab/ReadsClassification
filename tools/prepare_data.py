@@ -85,7 +85,7 @@ def get_info(args):
             class_mapping[class_num] = species
             fastq_files[class_num] = path_to_fq_file(genomeID, args)
 
-    with open('reads.txt', 'w') as f:
+    with open(os.path.join(args.output, 'reads.txt'), 'a+') as f:
         f.write('Dictionary mapping Classes to integers: {}\n'.format(class_mapping))
 
     # Create json file of class_mapping
@@ -122,14 +122,14 @@ def create_npy(dict, set_type, args):
         num_reads_train = int(0.7 * len(data))
         traindata = data[:num_reads_train]
         valdata = data[num_reads_train:]
-        with open('reads.txt', 'a+') as f:
-            f.write('Number of reads in whole training dataset: {}\n'.format(len(data)), file=sys.stderr)
-            f.write('Number of reads in training set: {}\n'.format(len(traindata)), file=sys.stderr)
-            f.write('Number of reads in validation set: {}\n'.format(len(valdata)), file=sys.stderr)
+        with open(os.path.join(args.output, 'reads.txt'), 'a+') as f:
+            f.write('Number of reads in whole training dataset: {}\n'.format(len(data)))
+            f.write('Number of reads in training set: {}\n'.format(len(traindata)))
+            f.write('Number of reads in validation set: {}\n'.format(len(valdata)))
         np.save(args.output + '/train_data_{0}.npy'.format(args.model), traindata)
         np.save(args.output + '/val_data_{0}.npy'.format(args.model), valdata)
 
     elif set_type == 'test':
-        with open('reads.txt', 'a+') as f:
-            f.write('Number of reads in testing set: {}'.format(len(data)), file=sys.stderr)
+        with open(os.path.join(args.output, 'reads.txt'), 'a+') as f:
+            f.write('Number of reads in testing set: {}'.format(len(data)))
         np.save(args.output + '/test_data_{0}.npy'.format(args.model), data)
