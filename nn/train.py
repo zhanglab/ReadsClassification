@@ -16,7 +16,7 @@ def parse_args(*addl_args, argv=None):
     """
     Get parameters for the model
     """
-    req_k = ['bidirectional', 'bidirectional-3', 'multilstm', 'multilstm-3', 'kmer']
+    req_k = ['bidirectional', 'bidirectional-3', 'multilstm', 'multilstm-3', 'kmer', 'cnn', 'gru']
 
     argv = check_argv(argv)
     parser = argparse.ArgumentParser(description="Run network training")
@@ -37,6 +37,9 @@ def parse_args(*addl_args, argv=None):
                         required=(model in sys.argv for model in req_k))
     # Base embedding model requirements
     parser.add_argument("-l", "--length", type=int, help="sequence length", required='base-emb' in sys.argv)
+    # CNN model requirements
+    parser.add_argument("-f", "--filter", type=int, help="filter number", required='cnn' in sys.argv, default=10)
+    parser.add_argument("-kernel", type=int, help="kernel size", required='cnn' in sys.argv, default=5)
 
     for a in addl_args:
         parser.add_argument(*a[0], **a[1])
@@ -52,7 +55,7 @@ def process_args(args=None):
     """
     Process arguments for training
     """
-    unpaired = ['kmer', 'base-emb']
+    unpaired = ['kmer', 'base-emb', 'gru', 'cnn']
 
     if not isinstance(args, argparse.Namespace):
         args = parse_args(args)
