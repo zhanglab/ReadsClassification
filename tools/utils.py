@@ -1,8 +1,8 @@
 import os
 import argparse
 
-def get_args():
-    parser = argparse.ArgumentParser()
+def get_args(desc):
+    parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-input', type=str, help="folder containing data set", default=os.getcwd())
     parser.add_argument('-output', type=str, help="folder to output data", default=os.getcwd())
     parser.add_argument("-c", "--classes", type=int, help="number of classes", required=True)

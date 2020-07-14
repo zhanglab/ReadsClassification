@@ -34,13 +34,24 @@ def parse_seq(sequence, args):
 
 def parse_args():
     #### SET MODEL PARAMETERS #####
-    parser = get_args()
+    models = ['kmer', 'bidirectional', 'multilstm', 'CNN', 'GRU']
+    parser = get_args('Processing reads for models that use kmers')
+    parser.add_argument('model', help='Model type that will be trained', choices=models)
     parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
+
+    # CNN and GRU support paired and unpaired reads
+    parser.add_argument("-reads", help="Specify if unpaired or paired reads",
+                        required=(model in ('CNN', 'GRU')))
+
+
     args = parser.parse_args()
     args.length = 150 - args.kvalue + 1
     args.input, args.output = process_folder(args)
-    args.reads = 'unpaired'
-    args.model = 'kmer'
+
+    # Set read type if not using CNN or GRU
+    if args.reads is None:
+        args.reads = 'unpaired' if args.model == 'kmer' else 'paired'
+
     return args
 
 if __name__ == "__main__":

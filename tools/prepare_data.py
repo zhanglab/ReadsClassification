@@ -25,10 +25,10 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
     random.shuffle(listReadIDs)
 
     def unpaired(listReadIDs):
-        if args.model == 'kmer':
-            from .kmer import parse_seq
-        else:
+        if args.model == 'baseemb':
             from .baseemb import parse_seq
+        else:
+            from .kmer import parse_seq
 
         listReadIDs = listReadIDs[:50000]
         # Check read sequence and get one-hot encoded sequence
@@ -126,10 +126,10 @@ def create_npy(dict, set_type, args):
             f.write('Number of reads in whole training dataset: {}\n'.format(len(data)))
             f.write('Number of reads in training set: {}\n'.format(len(traindata)))
             f.write('Number of reads in validation set: {}\n'.format(len(valdata)))
-        np.save(args.output + '/train_data_{0}.npy'.format(args.model), traindata)
-        np.save(args.output + '/val_data_{0}.npy'.format(args.model), valdata)
+        np.save(args.output + '/train_data.npy', traindata)
+        np.save(args.output + '/val_data.npy', valdata)
 
     elif set_type == 'test':
         with open(os.path.join(args.output, 'reads.txt'), 'a+') as f:
             f.write('Number of reads in testing set: {}'.format(len(data)))
-        np.save(args.output + '/test_data_{0}.npy'.format(args.model), data)
+        np.save(args.output + '/test_data.npy', data)

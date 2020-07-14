@@ -10,12 +10,12 @@ def parse_seq(sequence, args):
 
 def parse_args():
     #### SET MODEL PARAMETERS #####
-    parser = get_args()
+    parser = get_args('Processing reads for base-embedding model')
     parser.add_argument("-l", "--length", type=int, help="sequence length", default=150)
     args = parser.parse_args()
     args.input, args.output = process_folder(args)
     args.reads = 'unpaired'
-    args.model = 'base-emb'
+    args.model = 'baseemb'
     return args
 
 if __name__ == '__main__':
