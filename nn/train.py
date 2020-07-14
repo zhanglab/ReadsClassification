@@ -40,6 +40,10 @@ def parse_args(*addl_args, argv=None):
     # CNN model requirements
     parser.add_argument("-f", "--filter", type=int, help="filter number", required='cnn' in sys.argv, default=10)
     parser.add_argument("-kernel", type=int, help="kernel size", required='cnn' in sys.argv, default=5)
+    # CNN and GRU support paired and unpaired reads
+    parser.add_argument("-reads", help="Specify if unpaired or paired reads",
+                        required=('cnn' in sys.argv or 'gru' in sys.argv),
+                        choices=['paired', 'unpaired'])
 
     for a in addl_args:
         parser.add_argument(*a[0], **a[1])
@@ -55,7 +59,7 @@ def process_args(args=None):
     """
     Process arguments for training
     """
-    unpaired = ['kmer', 'base-emb', 'gru', 'cnn']
+    unpaired = ['kmer', 'base-emb']
 
     if not isinstance(args, argparse.Namespace):
         args = parse_args(args)
@@ -65,7 +69,10 @@ def process_args(args=None):
         args.num_kmers = 4**args.kvalue
         args.vector_size = 150 - args.kvalue + 1
         del args.kvalue
-    args.reads = 'unpaired' if args.model in unpaired else 'paired'
+
+    # Set read type if not using CNN or GRU
+    if args.reads is None:
+        args.reads = 'unpaired' if args.model in ('kmer', 'baseemb') else 'paired'
 
     model = process_model(args)
     return model, args

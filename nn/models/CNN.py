@@ -20,7 +20,7 @@ class CNN(AbstractLSTM):
                                    input_length=hparams.vector_size, trainable=True))
         self._model.add(layers.Reshape((hparams.vector_size, hparams.embedding_size, 1)))
         self._model.add(layers.Conv2D(hparams.filter, kernel_size=(hparams.kernel, hparams.embedding_size),
-                                activation='relu', kernel_regularizers.l2(3)))
+                                activation='relu', kernel_regularizer=kernel_regularizers.l2(3)))
         self._model.add(layers.MaxPool2D(hparams.vector_size - hparams.kernel + 1, 1), strides=(1,1))
         self._model.add(layers.Flatten())
         self._model.add(layers.Dense(units=num_classes, activation='softmax'))
