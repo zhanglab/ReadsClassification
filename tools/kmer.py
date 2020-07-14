@@ -41,7 +41,8 @@ def parse_args():
 
     # CNN and GRU support paired and unpaired reads
     parser.add_argument("-reads", help="Specify if unpaired or paired reads",
-                        required=(model in ('CNN', 'GRU')))
+                        required=('CNN' in sys.argv or 'GRU' in sys.argv),
+                        choices=['paired', 'unpaired'])
 
 
     args = parser.parse_args()
