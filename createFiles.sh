@@ -6,56 +6,76 @@
 #SBATCH --nodes=1 # number of nodes
 module load CAMISIM/1.1.0-foss-2016b-Python-2.7.12
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: ./createFiles.sh [Folder Name]"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: ./createFiles.sh [Folder Name] [Genome ID File]"
     exit 2
 fi
 
 FOLDER=$1
-COV=1
+GENOMEFILE=$2
 Path="/data/zhanglab/esameth/"
 INI="default_config.ini"
 Genomes="/data/zhanglab/cecile_cres/RefSeq-03-07-2020/RefSeq-03-07-2020"
 
-# Calculate genome size 
-function genomeSize {
-    chars=$(grep -v ">" "$FILE" | wc -c)
-    lines=$(grep -v ">" "$FILE" | wc -l)
-    totalchars=$((chars-lines))
-    size_gbp=$(bc <<< "scale=5 ; $COV * $totalchars / 1000000000")
-    echo "Genome size: $size_gbp"
+if [ ! -f "$GENOMEFILE" ]; then
+    echo "$GENOMEFILE does not exist"
+    exit 2
+fi
+
+function createFolder {
+    if [ ! -d "$1" ]; then
+        mkdir "$1"
+    fi
 }
 
-# Get the species tax id for metadata.tsv
-function taxID {
-    ID=$(grep "$SPECIES" "/data/zhanglab/cecile_cres/RefSeq-03-07-2020/assembly_summary.txt" | awk -F'\t' '{print $6}')
-    echo "taxID: $ID"
+# Create alculate genome size
+function genomeSize {
+    size_gbp=$(python3 genomeSize.py "$FILE" "$Path$FOLDER/$SPECIES")
+    echo "Genome size: $size_gbp"
 }
 
 # Create the metadata.tsv, genome_to_id.tsv, and default_config.ini files
 function CAMISIMfiles {
-    echo "genome_ID OTU novelty_category    NCBI_ID source" > "$dir"/metadata.tsv
-    echo "$SPECIES  0   known strain    $ID " >> "$dir"/metadata.tsv
-    echo "$SPECIES  $FILE" > "$dir"/genome_to_id.tsv
-    cp $Path$INI $Path$dir$INI
-    # Replace the output_directory, metadata, and id_to_genome_file paths to the correct path
-    sed -i "/^output_directory=/ c\output_directory="$Path$dir"output" $Path$dir$INI
-    sed -i "/^metadata=/ c\metadata="$Path$dir"metadata.tsv" $Path$dir$INI
-    sed -i "/^id_to_genome_file=/ c\id_to_genome_file="$Path$dir"genome_to_id.tsv" $Path$dir$INI
+    ID=$(grep "$SPECIES" "/data/zhanglab/cecile_cres/RefSeq-03-07-2020/assembly_summary.txt" | awk -F'\t' '{print $6}')
+    echo "genome_ID OTU novelty_category    NCBI_ID source" > "$Path$FOLDER/$SPECIES"/metadata.tsv
+    echo "$SPECIES  0   known strain    $ID " >> "$Path$FOLDER/$SPECIES"/metadata.tsv
+    echo "$SPECIES  "$Path$FOLDER/$SPECIES"/genomeWOplasmids.fna" > "$Path$FOLDER/$SPECIES"/genome_to_id.tsv
+    cp $Path$INI $Path$FOLDER/$SPECIES/$INI
+    # Replace the output_directory, metadata, and id_to_genome_file paths to the correct path, and update gbp
+    sed -i "/^output_directory=/ c\output_directory="$Path$FOLDER/$SPECIES/"output" $Path$FOLDER/$SPECIES/$INI
+    sed -i "/^metadata=/ c\metadata="$Path$FOLDER/$SPECIES/"metadata.tsv" $Path$FOLDER/$SPECIES/$INI
+    sed -i "/^id_to_genome_file=/ c\id_to_genome_file="$Path$FOLDER/$SPECIES/"genome_to_id.tsv" $Path$FOLDER/$SPECIES/$INI
+    sed -i "/^size=/ c\size="$size_gbp"" $Path$FOLDER/$SPECIES/$INI
 }
 
-# Create the CAMISIM files for every species folder
-for dir in $FOLDER/*/ ; do
-    # Get the species name based on the folder name
-    SPECIES="$(basename $dir)"
+# Unzip the fastq files
+function unzip {
+    file=$(find $Path$FOLDER/$SPECIES -name "anonymous_reads.fq.gz")
+    gzip -d $file
+}
+
+# Create Species.tsv file
+function speciesTsv {
+    name=$(grep "$SPECIES" "/data/zhanglab/cecile_cres/RefSeq-03-07-2020/assembly_summary.txt" | cut -f8)
+    echo "$name	1	$SPECIES	$totalchars	Complete" >> "$Path$FOLDER"/Species.tsv
+}
+
+# Create output folder if it does not exist
+createFolder $FOLDER
+
+# Read the file and create the CAMISIM files for each species
+while IFS= read -r line; do
+    # Get the species name and create a folder for it
+    SPECIES=$line
     echo "$SPECIES"
+    createFolder $Path$FOLDER/$SPECIES
     # Get the name of the fna file for the species
     FILE=$(find $Genomes -name "$SPECIES"*.fna)
     echo "$FILE"
     genomeSize
-    taxID
-    CAMISIMfiles
+    speciesTsv
     # Run CAMISIM
-    /opt/software/CAMISIM/1.1.0-foss-2016b-Python-2.7.12/bin/metagenomesimulation.py $Path$dir$INI
-    echo "CAMISIM files for $SPECIES complete\n"
-done
+    CAMISIMfiles
+    /opt/software/CAMISIM/1.1.0-foss-2016b-Python-2.7.12/bin/metagenomesimulation.py $Path$FOLDER/$SPECIES/$INI
+    unzip
+done < $GENOMEFILE
