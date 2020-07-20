@@ -2,9 +2,7 @@ import os
 import sys
 from Bio import SeqIO
 
-COV=20
-
-def getNonPlasmids(file, speciesPath):
+def getNonPlasmids(file, speciesPath, coverage):
     # Open fasta file
     records = []
     genome_size = 0
@@ -14,8 +12,8 @@ def getNonPlasmids(file, speciesPath):
             genome_size += len(record.seq)
     # Create fasta file with no plasmids
     SeqIO.write(records, os.path.join(speciesPath, 'genomeWOplasmids.fna'), "fasta")
-    size_gbp = round(COV*genome_size/1000000000, 5)
+    size_gbp = round(int(coverage)*genome_size/1000000000, 5)
     print(size_gbp)
 
 if __name__ == '__main__':
-    getNonPlasmids(sys.argv[1], sys.argv[2])
+    getNonPlasmids(sys.argv[1], sys.argv[2], sys.argv[3])

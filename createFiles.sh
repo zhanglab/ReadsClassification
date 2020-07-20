@@ -6,13 +6,14 @@
 #SBATCH --nodes=1 # number of nodes
 module load CAMISIM/1.1.0-foss-2016b-Python-2.7.12
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: ./createFiles.sh [Folder Name] [Genome ID File]"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: ./createFiles.sh [Folder Name] [Genome ID File] [Coverage]"
     exit 2
 fi
 
 FOLDER=$1
 GENOMEFILE=$2
+COVERAGE=$3
 Path="/data/zhanglab/esameth/"
 INI="default_config.ini"
 Genomes="/data/zhanglab/cecile_cres/RefSeq-03-07-2020/RefSeq-03-07-2020"
@@ -30,7 +31,7 @@ function createFolder {
 
 # Create alculate genome size
 function genomeSize {
-    size_gbp=$(python3 genomeSize.py "$FILE" "$Path$FOLDER/$SPECIES")
+    size_gbp=$(python3 genomeSize.py "$FILE" "$Path$FOLDER/$SPECIES" "$COVERAGE")
     echo "Genome size: $size_gbp"
 }
 
