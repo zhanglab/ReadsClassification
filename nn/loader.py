@@ -14,8 +14,8 @@ def train_test_loaders(hparams):
     Return one hot labels of the training and testing datasets
     """
     # Load data
-    traindata = np.load(os.path.join(hparams.input, 'train_data_{0}.npy'.format(hparams.model)), allow_pickle=True)
-    valdata = np.load(os.path.join(hparams.input, 'val_data_{0}.npy'.format(hparams.model)), allow_pickle=True)
+    traindata = np.load(os.path.join(hparams.input, 'train_data.npy'), allow_pickle=True)
+    valdata = np.load(os.path.join(hparams.input, 'val_data.npy'), allow_pickle=True)
 
     x_train = np.array([i[0] for i in traindata])
     y_train = np.array([i[1] for i in traindata])
@@ -42,14 +42,14 @@ def train_test_loaders(hparams):
 
     def unpaired():
         # Convert label integers into one hot encodings
-        y_train = keras.utils.to_categorical(y_train, num_classes=len(hparams.class_mapping))
-        y_test = keras.utils.to_categorical(y_test, num_classes=len(hparams.class_mapping))
+        y_train_new = keras.utils.to_categorical(y_train, num_classes=len(hparams.class_mapping))
+        y_test_new = keras.utils.to_categorical(y_test, num_classes=len(hparams.class_mapping))
 
         # Slice and batch train and test datasets
         train_dataset = tf.data.Dataset.from_tensor_slices(
-            (x_train, y_train)).shuffle(BUFFER_SIZE).batch(hparams.global_batch_size)
+            (x_train, y_train_new)).shuffle(BUFFER_SIZE).batch(hparams.global_batch_size)
         test_dataset = tf.data.Dataset.from_tensor_slices(
-            (x_test, y_test)).batch(hparams.global_batch_size)
+            (x_test, y_test_new)).batch(hparams.global_batch_size)
 
         return train_dataset, test_dataset
 

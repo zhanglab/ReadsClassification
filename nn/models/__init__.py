@@ -1,4 +1,4 @@
-from .LSTM import AbstractLSTM
+from .NN import AbstractNN
 
 _models = dict()
 

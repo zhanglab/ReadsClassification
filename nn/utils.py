@@ -16,9 +16,9 @@ def process_folder(args):
     Check the output folder to see if it exists
     """
     def check_input():
-        req_files = ['/class_mapping.json', '/train_data.npy', '/val_data.npy']
+        req_files = ['class_mapping.json', 'test_data.npy', 'train_data.npy', 'val_data.npy']
         for file in req_files:
-            if not os.path.exists(args.input + file):
+            if not os.path.exists(os.path.join(args.input, file)):
                 print(f'{args.input} does not contain a {file} file. Input a valid directory', file=sys.stderr)
                 sys.exit(1)
         return args.input

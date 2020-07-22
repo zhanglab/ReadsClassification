@@ -4,6 +4,8 @@
 #SBATCH --time=01:00:00 # walltime limit (HH:MM:SS)
 #SBATCH --ntasks-per-node=2 # processor core(s) per node
 #SBATCH --nodes=1 # number of nodes
+#SBATCH --array=2-6%5
+module load python3/3.4.1
 module load CAMISIM/1.1.0-foss-2016b-Python-2.7.12
 
 if [ "$#" -ne 3 ]; then
@@ -29,7 +31,7 @@ function createFolder {
     fi
 }
 
-# Create alculate genome size
+# Create calculate genome size
 function genomeSize {
     size_gbp=$(python3 genomeSize.py "$FILE" "$Path$FOLDER/$SPECIES" "$COVERAGE")
     echo "Genome size: $size_gbp"
@@ -58,7 +60,7 @@ function unzip {
 # Create Species.tsv file
 function speciesTsv {
     name=$(grep "$SPECIES" "/data/zhanglab/cecile_cres/RefSeq-03-07-2020/assembly_summary.txt" | cut -f8)
-    echo "$name	1	$SPECIES	$totalchars	Complete" >> "$Path$FOLDER"/Species.tsv
+    echo "$name	1	$SPECIES	$size_gbp	Complete" >> "$Path$FOLDER"/Species.tsv
 }
 
 # Create output folder if it does not exist

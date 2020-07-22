@@ -7,6 +7,7 @@ import math
 from Bio import SeqIO
 import re
 import json
+import csv
 
 # Creates a json file of the dictionaries
 def create_json(dict, output):
@@ -24,13 +25,12 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
     listReadIDs = list(reads_dict.keys())
     random.shuffle(listReadIDs)
 
-    def unpaired(listReadIDs):
+    def unpaired():
         if args.model == 'baseemb':
             from .baseemb import parse_seq
         else:
             from .kmer import parse_seq
 
-        listReadIDs = listReadIDs[:50000]
         # Check read sequence and get one-hot encoded sequence
         for i in range(len(listReadIDs)):
             read_id = listReadIDs[i]
@@ -40,19 +40,20 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
                 if len(integer_encoded) == args.length:
                     data.append([integer_encoded, label])
 
-    def paired(listReadIDs):
+    def paired():
         from .kmer import parse_seq
         for i in range(0, len(listReadIDs), 2):
             fw_read_id = listReadIDs[i]
             rv_read_id = listReadIDs[i + 1]
             fw_seq_record = reads_dict[fw_read_id]
             rv_seq_record = reads_dict[rv_read_id]
-            fw_KmerVector = parse_seq(str(fw_seq_record.seq), args)
-            rv_KmerVector = parse_seq(str(rv_seq_record.seq), args)
-            if len(fw_KmerVector) == args.length and len(rv_KmerVector) == args.length:
-                data.append([fw_KmerVector, rv_KmerVector, label])
+            if re.match('^[ATCG]+$', str(fw_seq_record.seq)) and re.match('^[ATCG]+$', str(rv_seq_record.seq)):
+                fw_KmerVector = parse_seq(str(fw_seq_record.seq), args)
+                rv_KmerVector = parse_seq(str(rv_seq_record.seq), args)
+                if len(fw_KmerVector) == args.length and len(rv_KmerVector) == args.length:
+                    data.append([fw_KmerVector, rv_KmerVector, label])
 
-    paired(listReadIDs) if args.reads == 'paired' else unpaired(listReadIDs)
+    paired() if args.reads == 'paired' else unpaired()
 
     # Split data into train and test sets
     NumReadsTrain = int(math.ceil(0.7 * len(data)))
@@ -64,28 +65,24 @@ def parse_fastq(train_data_dict, test_data_dict, fastq_files, label, args):
     test_data_dict[label] = testing_data
 
 # Function that gets the full path to the fq file
-def path_to_fq_file(genomeID, args):
-    currentdir = args.input
-    for root, dirs, files in os.walk('/'.join([currentdir, genomeID])):
-        for file in files:
-            if file == 'anonymous_reads.fq':
-                return os.path.join(root, file)
+def path_to_fq_file(genomeID, currentdir):
+    for root, dirs, files in os.walk(os.path.join(currentdir, genomeID)):
+        if os.path.exists(os.path.join(root, 'anonymous_reads.fq')):
+            return os.path.join(root, 'anonymous_reads.fq')
 
 # Function that creates the dataset of simulated reads from all the fastq files available
 def get_info(args):
     fastq_files = {}
     class_mapping = {}
-    with open(args.input + '/Species.tsv', 'r') as info:
-        for class_num, line in enumerate(info):
-            line = line.strip('\n')
-            columns = line.split('\t')
-            species = columns[0]
-            genomeID = columns[2]
+    with open(os.path.join(args.input, 'Species.tsv')) as info:
+        reader = csv.reader(info, delimiter='\t')
+        for class_num, row in enumerate(reader):
+            species, genomeID = row[0], row[2]
             # Add Class to class_mapping dictionary
             class_mapping[class_num] = species
-            fastq_files[class_num] = path_to_fq_file(genomeID, args)
+            fastq_files[class_num] = path_to_fq_file(genomeID, args.input)
 
-    with open(os.path.join(args.output, 'reads.txt'), 'a+') as f:
+    with open(os.path.join(args.output, 'reads.txt'), 'w+') as f:
         f.write('Dictionary mapping Classes to integers: {}\n'.format(class_mapping))
 
     # Create json file of class_mapping
@@ -111,9 +108,7 @@ def multiprocesses(fastq_files, args):
 # Function that creates npy files
 def create_npy(dict, set_type, args):
     data = np.asarray(dict[0])
-    numberReads = len(dict[0])
     for i in range(1, len(dict)):
-        numberReads += len(dict[i])
         data = np.concatenate((data, np.asarray(dict[i])), axis=0)
 
     # save data
@@ -126,10 +121,10 @@ def create_npy(dict, set_type, args):
             f.write('Number of reads in whole training dataset: {}\n'.format(len(data)))
             f.write('Number of reads in training set: {}\n'.format(len(traindata)))
             f.write('Number of reads in validation set: {}\n'.format(len(valdata)))
-        np.save(args.output + '/train_data.npy', traindata)
-        np.save(args.output + '/val_data.npy', valdata)
+        np.save(os.path.join(args.output,'train_data.npy'), traindata)
+        np.save(os.path.join(args.output, 'val_data.npy'), valdata)
 
     elif set_type == 'test':
         with open(os.path.join(args.output, 'reads.txt'), 'a+') as f:
             f.write('Number of reads in testing set: {}'.format(len(data)))
-        np.save(args.output + '/test_data.npy', data)
+        np.save(os.path.join(args.output, 'test_data.npy'), data)

@@ -1,4 +1,4 @@
-from . import model, AbstractLSTM
+from . import model, AbstractNN
 
 import os
 import tensorflow as tf
@@ -7,7 +7,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
 
 @model('gru')
-class GRU(AbstractLSTM):
+class GRU(AbstractNN):
     def __init__(self, hparams):
         super(GRU, self).__init__(hparams)
         hparams = self.check_hparams(hparams)

@@ -1,6 +1,6 @@
 from . import models
 from .loader import read_dataset
-from .models.LSTM import AbstractLSTM
+from .models.NN import AbstractNN
 from .utils import check_argv, process_folder, process_model
 
 import argparse
@@ -29,6 +29,7 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-b', '--batch_size', type=int, help='batch size', default=32)
     parser.add_argument('-e', '--epochs', type=int, help='number of epochs to use', default=10)
     parser.add_argument('-d', '--dropout_rate', type=float, help='dropout rate to use', default=0.5)
+    parser.add_argument('-lr', '--learning_rate', type=float, help='learning rate to use', default=0.01)
     parser.add_argument('-emb', '--embedding_size', type=int, help='embedding size to use', default=60)
     parser.add_argument('-hs', '--hidden_size', type=int, help='#LSTM memory units to use', default=40)
 
@@ -36,10 +37,10 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-k', '--kvalue', type=int, help="size of kmers",
                         required=(model in sys.argv for model in req_k))
     # Base embedding model requirements
-    parser.add_argument("-l", "--length", type=int, help="sequence length", required='base-emb' in sys.argv)
+    parser.add_argument("-l", "--length", type=int, help="sequence length", default=150)
     # CNN model requirements
-    parser.add_argument("-f", "--filter", type=int, help="filter number", required='cnn' in sys.argv, default=10)
-    parser.add_argument("-kernel", type=int, help="kernel size", required='cnn' in sys.argv, default=5)
+    parser.add_argument("-f", "--filter", type=int, help="filter number", default=10)
+    parser.add_argument("-kernel", type=int, help="kernel size", default=5)
     # CNN and GRU support paired and unpaired reads
     parser.add_argument("-reads", help="Specify if unpaired or paired reads",
                         required=('cnn' in sys.argv or 'gru' in sys.argv),
@@ -59,20 +60,17 @@ def process_args(args=None):
     """
     Process arguments for training
     """
-    unpaired = ['kmer', 'base-emb']
-
     if not isinstance(args, argparse.Namespace):
         args = parse_args(args)
     args.input, args.output = process_folder(args)
     args.class_mapping = read_dataset(args.input)
-    if args.model != 'base-emb':
+    if args.kvalue is not None:
         args.num_kmers = 4**args.kvalue
         args.vector_size = 150 - args.kvalue + 1
         del args.kvalue
-
     # Set read type if not using CNN or GRU
     if args.reads is None:
-        args.reads = 'unpaired' if args.model in ('kmer', 'baseemb') else 'paired'
+        args.reads = 'unpaired' if (args.model in ['kmer', 'base-emb']) else 'paired'
 
     model = process_model(args)
     return model, args
@@ -96,7 +94,6 @@ def run_model():
         minutes, seconds = divmod(seconds, 60)
         with open(os.path.join(args.output, 'metrics.txt'), 'a+') as f:
             f.write("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-
 
 if __name__ == "__main__":
     run_model()

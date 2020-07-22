@@ -23,6 +23,7 @@ class Objective:
     def get_hparams(self, trial):
         ret = dict()
         ret['dropout_rate'] = trial.suggest_uniform('dropout_rate', 0.0, 1.0, 0.1)
+        ret['learning_rate'] = trial.suggest_uniform('learning_rate', 0.0, 1.0, 0.01)
         ret['batch_size'] = trial.suggest_int('batch_size', 0, 100, 10)
         ret['hidden_size'] = trial.suggest_int('hidden_size', 0, 100, 10)
         ret['embedding_size'] = trial.suggest_int('embedding_size', 0, 100, 10)
@@ -48,7 +49,7 @@ def parse_args(argv=None):
     desc = "Run network hyperparameter optimization"
     parser = argparse.ArgumentParser(description=desc)
 
-    parser.add_argument('storage', help='Optuna storage database')
+    parser.add_argument('storage', help='Optuna storage database, ex: sqlite:///example.db')
     parser.add_argument('study_name', help='the study to run trials for')
     parser.add_argument('output', type=str, help='file to write checkpoints to')
     parser.add_argument('-t', '--n_trials', type=int, default=100, help='number of trials to run')

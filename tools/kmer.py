@@ -1,6 +1,7 @@
 from .utils import get_args, process_folder
 from .prepare_data import *
 
+import sys
 import numpy as np
 import itertools
 
@@ -34,14 +35,14 @@ def parse_seq(sequence, args):
 
 def parse_args():
     #### SET MODEL PARAMETERS #####
-    models = ['kmer', 'bidirectional', 'multilstm', 'CNN', 'GRU']
+    models = ['kmer', 'bidirectional', 'multilstm', 'cnn', 'gru']
     parser = get_args('Processing reads for models that use kmers')
     parser.add_argument('model', help='Model type that will be trained', choices=models)
     parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
 
     # CNN and GRU support paired and unpaired reads
     parser.add_argument("-reads", help="Specify if unpaired or paired reads",
-                        required=('CNN' in sys.argv or 'GRU' in sys.argv),
+                        required=('cnn' in sys.argv or 'gru' in sys.argv),
                         choices=['paired', 'unpaired'])
 
 
@@ -52,7 +53,7 @@ def parse_args():
     # Set read type if not using CNN or GRU
     if args.reads is None:
         args.reads = 'unpaired' if args.model == 'kmer' else 'paired'
-
+    print(f'Processing {args.reads} reads for {args.model}')
     return args
 
 if __name__ == "__main__":

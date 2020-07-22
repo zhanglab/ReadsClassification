@@ -1,4 +1,4 @@
-from . import model, AbstractLSTM
+from . import model, AbstractNN
 
 import os
 import tensorflow as tf
@@ -7,7 +7,7 @@ from tensorflow.keras import layers, models
 from tensorflow.keras.utils import plot_model
 
 @model('multilstm')
-class MultiLSTM(AbstractLSTM):
+class MultiLSTM(AbstractNN):
     def __init__(self, hparams):
         super(MultiLSTM, self).__init__(hparams)
         hparams = self.check_hparams(hparams)
