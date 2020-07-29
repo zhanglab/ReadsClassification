@@ -26,7 +26,7 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-output', type=str, help='directory to save model outputs to', default=os.getcwd())
 
     parser.add_argument('-c', '--checkpoint', type=str, help='resume training from file')
-    parser.add_argument('-b', '--batch_size', type=int, help='batch size', default=32)
+    parser.add_argument('-b', '--batch_size', type=int, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, help='number of epochs to use', default=10)
     parser.add_argument('-d', '--dropout_rate', type=float, help='dropout rate to use', default=0.5)
     parser.add_argument('-lr', '--learning_rate', type=float, help='learning rate to use', default=0.01)
@@ -56,7 +56,7 @@ def parse_args(*addl_args, argv=None):
     args = parser.parse_args(argv)
     return args
 
-def process_args(args=None):
+def process_args(num_gpus, args=None):
     """
     Process arguments for training
     """
@@ -64,6 +64,7 @@ def process_args(args=None):
         args = parse_args(args)
     args.input, args.output = process_folder(args)
     args.class_mapping = read_dataset(args.input)
+
     if args.kvalue is not None:
         args.num_kmers = 4**args.kvalue
         args.vector_size = 150 - args.kvalue + 1
@@ -71,6 +72,10 @@ def process_args(args=None):
     # Set read type if not using CNN or GRU
     if args.reads is None:
         args.reads = 'unpaired' if (args.model in ['kmer', 'base-emb']) else 'paired'
+
+    # Set batch size
+    if args.batch_size is None:
+        args.batch_size = 32 * num_gpus
 
     model = process_model(args)
     return model, args
@@ -84,7 +89,8 @@ def run_model():
 
     with strategy.scope():
         # Build model
-        model, args = process_args(parse_args())
+        model, args = process_args(strategy.num_replicas_in_sync, parse_args())
+
         # Train model
         start = datetime.now()
         model.call(strategy)

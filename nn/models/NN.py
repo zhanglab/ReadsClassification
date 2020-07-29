@@ -1,7 +1,8 @@
 import os
 import sys
-import tensorflow as tf
 import argparse
+import numpy as np
+import tensorflow as tf
 from sklearn import metrics
 
 from .train import distributed_train_epoch
@@ -22,8 +23,14 @@ class AbstractNN(tf.keras.Model):
         self.test_loss = tf.keras.metrics.Mean(name='test_loss')
 
         self.val_loss_before = -1
+        self.lowest_val_loss = 1
         self.patience = 0
+        self.wait = 0
+        self.best_weights = None
+        self.stopped_epoch = 0
+        self.best = np.Inf
         self.stop_training = False
+        self.found_min = False
 
         self.true_classes = list()
         self.predicted_classes = list()
@@ -54,13 +61,6 @@ class AbstractNN(tf.keras.Model):
         if not hasattr(self, 'loaders'):
             self.set_dataset(strategy)
 
-    def decay(self, epoch):
-        if epoch >= 100:
-            return 0.00001
-        elif epoch >= 50:
-            return 0.0001
-        return 0.01
-
     def running_loop(self, strategy):
         train_epoch_loss = []
         train_epoch_accuracy = []
@@ -71,8 +71,6 @@ class AbstractNN(tf.keras.Model):
 
         with open(os.path.join(self.hparams.output, 'epochs.txt'), 'a+') as f:
             for epoch in range(self.hparams.epochs):
-                self.optimizer.learning_rate = self.decay(epoch)
-                print('Learning rate at epoch {0}: {1}'.format(epoch, self.optimizer.learning_rate))
                 f.write('Learning rate at epoch {0}: {1}'.format(epoch, self.optimizer.learning_rate))
 
                 # Train
@@ -88,26 +86,15 @@ class AbstractNN(tf.keras.Model):
                 test_epoch_accuracy.append(self.test_accuracy.result())
                 test_epoch_loss.append(self.test_loss.result())
 
-                template1 = ('Epoch: {}, Train Loss: {}, Train Accuracy: {}, Test Loss: {}, Test Accuracy: {}')
-                template2 = ('Epoch: {}, Total Train Loss: {}, Train batches: {}, Train Accuracy: {}, '
-                             'Test Loss: {}, Test Accuracy: {}')
+                template1 = ('Epoch: {}, Train Loss: {}, Total Train Loss: {}, Train batches: {}, Train Accuracy: {}, '
+                             '\nTest Loss: {}, Test Accuracy: {}\n')
                 f.write(template1.format(epoch + 1, train_loss,
-                                       self.train_accuracy.result() * 100,
-                                       self.test_loss.result(),
-                                       self.test_accuracy.result() * 100))
-                f.write(template2.format(epoch + 1, train_total_loss, num_train_batches,
-                                       self.train_accuracy.result() * 100,
-                                       self.test_loss.result(),
-                                       self.test_accuracy.result() * 100))
+                                         train_total_loss, num_train_batches,
+                                         self.train_accuracy.result() * 100,
+                                         self.test_loss.result(),
+                                         self.test_accuracy.result() * 100))
 
-                val_loss = self.test_loss.result()
-                if val_loss == self.val_loss_before:
-                    self.patience += 1
-                    if self.patience == 3:
-                        self.stop_training = True
-                else:
-                    self.patience = 0
-                self.val_loss_before = val_loss
+                self.on_epoch_end()
 
                 # Get filtered results, learning curves, ROC and recall precision curves after last epoch
                 if epoch == self.hparams.epochs - 1 or self.stop_training == True:
@@ -119,16 +106,13 @@ class AbstractNN(tf.keras.Model):
                         out.write('\nConfusion matrix:\n {}'.format(
                             metrics.confusion_matrix(self.true_classes, self.predicted_classes)))
 
-                    # Plot precision-recall curves
-                    print(metrics.classification_report(self.true_classes, self.predicted_classes,
-                                                        target_names=self.hparams.class_mapping.values(),
-                                                        zero_division=0, output_dict=True))
-
                     # GetFilteredResults(self)
                     LearningCurvesPlot(self, train_epoch_loss, train_epoch_accuracy,
                                        test_epoch_loss, test_epoch_accuracy, epoch + 1)
-                    self._model.save_weights(
-                        self.checkpoint_path + 'V2epoch-{0}-batch-{1}.ckpt'.format(epoch + 10, num_train_batches))
+                    self._model.save_weights(self.checkpoint_path +
+                                                          'V2epoch-{0}-batch-{1}.ckpt'.format(epoch + 10, num_train_batches))
+                    self._model.set_weights(self.best_weights)
+                    self._model.save_weights(self.checkpoint_path + 'minloss.ckpt')
                     break
 
                 # Resets all of the metric (train + test accuracies + test loss) state variables.
@@ -138,3 +122,28 @@ class AbstractNN(tf.keras.Model):
                 self.true_classes = list()
                 self.predicted_classes = list()
                 self.val_loss = test_epoch_loss
+
+    # Custom callback implementation
+    def on_epoch_end(self):
+        # Early stopping
+        val_loss = self.test_loss.result()
+        # Calculate percent difference
+        if abs(100 * (val_loss - self.val_loss_before)/self.val_loss_before) < 5 and self.found_min == True:
+            self.patience += 1
+            if self.patience == 3:
+                self.stop_training = True
+        else:
+            self.patience = 0
+
+        self.val_loss_before = val_loss
+
+        # ModelCheckpoint
+        if val_loss < self.best and not self.found_min:
+            self.best = val_loss
+            self.lowest_val_loss = val_loss
+            self.best_weights = self._model.get_weights()
+            self.wait = 0
+        else:
+            self.wait += 1
+            if self.wait == 3:
+                self.found_min = True
