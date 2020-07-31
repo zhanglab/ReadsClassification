@@ -31,6 +31,9 @@ class AbstractNN(tf.keras.Model):
         self.best = np.Inf
         self.stop_training = False
         self.found_min = False
+        self.min_true_class = 0
+        self.min_pred_class = 0
+        self.min_epoch = 0
 
         self.true_classes = list()
         self.predicted_classes = list()
@@ -94,10 +97,10 @@ class AbstractNN(tf.keras.Model):
                                          self.test_loss.result(),
                                          self.test_accuracy.result() * 100))
 
-                self.on_epoch_end()
+                self.on_epoch_end(epoch)
 
                 # Get filtered results, learning curves, ROC and recall precision curves after last epoch
-                if epoch == self.hparams.epochs - 1 or self.stop_training == True:
+                if epoch == self.hparams.epochs - 1 or self.stop_training:
                     with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
                         # Print report on precision, recall, f1-score
                         out.write(metrics.classification_report(self.true_classes, self.predicted_classes,
@@ -111,8 +114,19 @@ class AbstractNN(tf.keras.Model):
                                        test_epoch_loss, test_epoch_accuracy, epoch + 1)
                     self._model.save_weights(self.checkpoint_path +
                                                           'V2epoch-{0}-batch-{1}.ckpt'.format(epoch + 10, num_train_batches))
-                    self._model.set_weights(self.best_weights)
-                    self._model.save_weights(self.checkpoint_path + 'minloss.ckpt')
+                    if self.found_min:
+                        self._model.set_weights(self.best_weights)
+                        self._model.save_weights(self.checkpoint_path + 'minloss.ckpt')
+                        with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
+                            out.write('\nLowest validation loss epoch: {}\n'.format(self.min_epoch))
+                            out.write('Test loss: {}\tTest accuracy: {}\n'.format(
+                                test_epoch_loss[self.min_epoch], test_epoch_accuracy[self.min_epoch]))
+                            # Print report on precision, recall, f1-score of lowest validation loss
+                            out.write(metrics.classification_report(self.min_true_class, self.min_pred_class,
+                                                                    target_names=self.hparams.class_mapping.values(),
+                                                                    digits=3, zero_division=0))
+                            out.write('\nConfusion matrix for lowest validation loss:\n {}'.format(
+                                metrics.confusion_matrix(self.min_true_class, self.min_pred_class)))
                     break
 
                 # Resets all of the metric (train + test accuracies + test loss) state variables.
@@ -124,13 +138,13 @@ class AbstractNN(tf.keras.Model):
                 self.val_loss = test_epoch_loss
 
     # Custom callback implementation
-    def on_epoch_end(self):
+    def on_epoch_end(self, epoch):
         # Early stopping
         val_loss = self.test_loss.result()
         # Calculate percent difference
         if abs(100 * (val_loss - self.val_loss_before)/self.val_loss_before) < 5 and self.found_min == True:
             self.patience += 1
-            if self.patience == 3:
+            if self.patience == 5:
                 self.stop_training = True
         else:
             self.patience = 0
@@ -143,7 +157,10 @@ class AbstractNN(tf.keras.Model):
             self.lowest_val_loss = val_loss
             self.best_weights = self._model.get_weights()
             self.wait = 0
+            self.min_true_class = self.true_classes
+            self.min_pred_class = self.predicted_classes
+            self.min_epoch = epoch + 1
         else:
             self.wait += 1
-            if self.wait == 3:
+            if self.wait == 5:
                 self.found_min = True

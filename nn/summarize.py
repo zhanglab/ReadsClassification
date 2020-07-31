@@ -13,10 +13,11 @@ def LearningCurvesPlot(self, train_epoch_loss, train_epoch_accuracy, test_epoch_
     # Add some extra space for the second axis at the bottom
     fig.subplots_adjust(bottom=0.2)
     fig.set_size_inches(7, 7)
-    # Set range of y axis to 0.0 - max loss
-    max_loss = max(max(train_epoch_loss), max(test_epoch_loss))
-    ax2.set_ylim(0, max_loss)
-    ax1.set_ylim(0, max_loss)
+    # Set range of y axis to 0.0 - max of the four lists
+    combined_lists = train_epoch_loss + train_epoch_accuracy + test_epoch_loss + test_epoch_accuracy
+    max_range = max(combined_lists)
+    ax2.set_ylim(0, max_range)
+    ax1.set_ylim(0, max_range)
     # Get x-axis values
     list_num_epochs = list(range(1, epochs + 1, 1))
     x_coords = [i for i in range(1, epochs + 1)]
