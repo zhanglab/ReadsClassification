@@ -32,6 +32,10 @@ class Bidirectional(AbstractNN):
         # Create the model
         self._model = models.Model(inputs=[input1, input2], outputs=out)
 
+        # Output model summary to a file
+        with open(os.path.join(hparams.output, 'metrics.txt'), 'w+') as f:
+            self._model.summary(print_fn=lambda x: f.write(x + '\n'))
+
         plot_model(self._model, to_file=os.path.join(hparams.output, 'bidirectional-model.png'),
                    show_shapes=True, show_layer_names=True)
 

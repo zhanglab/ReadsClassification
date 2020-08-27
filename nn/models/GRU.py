@@ -22,7 +22,9 @@ class GRU(AbstractNN):
                 layers.Dense(num_classes, activation='softmax')
             ]
         )
-
+        # Output model summary to a file
+        with open(os.path.join(hparams.output, 'metrics.txt'), 'w+') as f:
+            self._model.summary(print_fn=lambda x: f.write(x + '\n'))
         plot_model(self._model, to_file=os.path.join(hparams.output, 'gru-model.png'),
                    show_shapes=True, show_layer_names=True)
 

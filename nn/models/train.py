@@ -6,6 +6,7 @@ def compute_loss(self, label, predictions):
                 1.0 / (self.hparams.global_batch_size))
     return loss
 
+@tf.function
 # Define one train step
 def train_step(self, inputs):
     reads, labels = inputs
