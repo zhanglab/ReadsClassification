@@ -1,4 +1,4 @@
-from .utils import get_args, process_folder
+from .utils import get_args, process_folder, check_h5_ext
 from .prepare_data import *
 
 import sys
@@ -28,7 +28,7 @@ def parse_seq(sequence, args):
         list_kmers.append(kmer_integer)
 
     # transform list into numpy array
-    array_int = np.asarray(list_kmers)
+    array_int = np.asarray(list_kmers, dtype=np.int32)
     # Flip array
     array_int = np.flip(array_int, axis=0)
     return array_int
@@ -49,6 +49,7 @@ def parse_args():
     args = parser.parse_args()
     args.length = 150 - args.kvalue + 1
     args.input, args.output = process_folder(args)
+    args.hdf5 = check_h5_ext(args.hdf5)
 
     # Set read type if not using CNN or GRU
     if args.reads is None:
@@ -58,6 +59,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    fastq_files = get_info(args)
+    fastq_files, args.class_num = get_info(args)
     args.kmers_dict = kmer_dictionary(args.kvalue)
     multiprocesses(fastq_files, args)

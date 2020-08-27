@@ -1,4 +1,4 @@
-from .utils import get_args, process_folder
+from .utils import get_args, process_folder, check_h5_ext
 from .prepare_data import *
 
 base_dict = {'A':0, 'C':1, 'T':2, 'G':3}
@@ -14,11 +14,12 @@ def parse_args():
     parser.add_argument("-l", "--length", type=int, help="sequence length", default=150)
     args = parser.parse_args()
     args.input, args.output = process_folder(args)
+    args.hdf5 = check_h5_ext(args.hdf5)
     args.reads = 'unpaired'
     args.model = 'baseemb'
     return args
 
 if __name__ == '__main__':
     args = parse_args()
-    fastq_files = get_info(args)
+    fastq_files, args.class_num = get_info(args)
     multiprocesses(fastq_files, args)

@@ -1,5 +1,4 @@
 from . import models
-from .loader import read_dataset
 from .models.NN import AbstractNN
 from .utils import check_argv, process_folder, process_model
 
@@ -29,20 +28,22 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-b', '--batch_size', type=int, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, help='number of epochs to use', default=10)
     parser.add_argument('-d', '--dropout_rate', type=float, help='dropout rate to use', default=0.5)
-    parser.add_argument('-lr', '--learning_rate', type=float, help='learning rate to use', default=0.01)
+    parser.add_argument('-lr', '--learning_rate', type=float, help='learning rate to use', default=0.0001)
     parser.add_argument('-emb', '--embedding_size', type=int, help='embedding size to use', default=60)
     parser.add_argument('-hs', '--hidden_size', type=int, help='#LSTM memory units to use', default=40)
+    # Specify a specific HDF5 file
+    parser.add_argument('--hdf5', type=str, help='the HDF5 file containing the dataset')
 
     # Kmer/Bidirectional model requirements
     parser.add_argument('-k', '--kvalue', type=int, help="size of kmers",
                         required=(model in sys.argv for model in req_k))
     # Base embedding model requirements
-    parser.add_argument("-l", "--length", type=int, help="sequence length", default=150)
+    parser.add_argument('-l', '--length', type=int, help="sequence length", default=150)
     # CNN model requirements
-    parser.add_argument("-f", "--filter", type=int, help="filter number", default=10)
-    parser.add_argument("-kernel", type=int, help="kernel size", default=5)
+    parser.add_argument('-f', '--filter', type=int, help="filter number", default=10)
+    parser.add_argument('-kernel', type=int, help="kernel size", default=5)
     # CNN and GRU support paired and unpaired reads
-    parser.add_argument("-reads", help="Specify if unpaired or paired reads",
+    parser.add_argument('-reads', help="Specify if unpaired or paired reads",
                         required=('cnn' in sys.argv or 'gru' in sys.argv),
                         choices=['paired', 'unpaired'])
 
@@ -62,13 +63,13 @@ def process_args(num_gpus, args=None):
     """
     if not isinstance(args, argparse.Namespace):
         args = parse_args(args)
-    args.input, args.output = process_folder(args)
-    args.class_mapping = read_dataset(args.input)
 
     if args.kvalue is not None:
         args.num_kmers = 4**args.kvalue
         args.vector_size = 150 - args.kvalue + 1
-        del args.kvalue
+
+    args.hdf5, args.class_mapping = process_folder(args)
+
     # Set read type if not using CNN or GRU
     if args.reads is None:
         args.reads = 'unpaired' if (args.model in ['kmer', 'base-emb']) else 'paired'

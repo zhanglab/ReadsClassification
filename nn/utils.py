@@ -1,3 +1,4 @@
+import glob
 import sys
 import os
 
@@ -12,30 +13,35 @@ def check_argv(argv=None):
 
 def process_folder(args):
     """
-    Check the input folder to see if it has the necessary files
+    Check the input folder to see if it has the necessary hdf5 file
     Check the output folder to see if it exists
     """
     def check_input():
-        req_files = ['class_mapping.json', 'test_data.npy', 'train_data.npy', 'val_data.npy']
-        for file in req_files:
-            if not os.path.exists(os.path.join(args.input, file)):
-                print(f'{args.input} does not contain a {file} file. Input a valid directory', file=sys.stderr)
-                sys.exit(1)
-        return args.input
+        # Check for h5 file if not specified
+        if not args.hdf5:
+            args.hdf5 = glob.glob(os.path.join(args.input, "*.h5"))
+            if len(args.hdf5) > 1:
+                sys.exit(f'{args.input} contains multiple .h5 files. '
+                         f'Input a specific file using --hdf5.')
+            args.hdf5 = args.hdf5[0]
+
+        if not os.path.exists(args.hdf5):
+            sys.exit(f'{args.hdf5} does not exist. Input a valid h5 file')
+        return args.hdf5
 
     def check_output():
         if not os.path.isdir(args.output):
             os.makedirs(args.output)
-        return args.output
 
-    return check_input(), check_output()
+    check_output()
+    return check_input(), class_mapping
 
-def process_checkpoint(args):
-    """
-    Check if checkpoint exists
-    """
-    if not os.path.exists(f'{args.checkpoint}'):
-        raise ValueError(f'{args.checkpoint} does not exist.')
+# def process_checkpoint(args):
+#     """
+#     Check if checkpoint exists
+#     """
+#     if not os.path.exists(f'{args.checkpoint}'):
+#         raise ValueError(f'{args.checkpoint} does not exist.')
 
 def process_model(args):
     """
@@ -43,7 +49,7 @@ def process_model(args):
     """
     model = models._models[args.model]
     if args.checkpoint is not None:
-        process_checkpoint(args)
+        #process_checkpoint(args)
         model = model.load_weights(args.checkpoint)
     else:
         model = model(args)
