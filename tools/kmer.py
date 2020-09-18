@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('model', help='Model type that will be trained', choices=models)
     parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
     parser.add_argument("-r", "--rank", type=str, help="taxonomic rank", choices=ranks, default='species')
-    parser.add_argument("-rn", "--readsnum", type=int, help="desired number of reads per label", required=True)
+    parser.add_argument("-rn", "--readsnum", type=int, help="desired number of reads per label", required=200000)
     parser.add_argument("-s", "--simulator", type=str, help=" type of read simulator", choices=simulators, required=True)
 
     # CNN and GRU support paired and unpaired reads
