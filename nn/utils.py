@@ -13,13 +13,13 @@ def check_argv(argv=None):
 
 def process_folder(args):
     """
-    Check the input folder to see if it has the necessary hdf5 file
+    Check the input folder to see if it has the necessary hdf5 file or TFRecords
     Check the output folder to see if it exists
     """
     def check_input():
-        # Check for h5 file if not specified
-        if not args.hdf5:
-            args.hdf5 = glob.glob(os.path.join(args.input, "*.h5"))
+        # Check for h5 file and tfrecords
+        if args.format == 'hdf5':
+            hdf5_files = glob.glob(os.path.join(args.input, "*.h5"))
             if len(args.hdf5) > 1:
                 sys.exit(f'{args.input} contains multiple .h5 files. '
                          f'Input a specific file using --hdf5.')
@@ -28,6 +28,16 @@ def process_folder(args):
         if not os.path.exists(args.hdf5):
             sys.exit(f'{args.hdf5} does not exist. Input a valid h5 file')
         return args.hdf5
+        
+        elif args.format == 'tfrecords':
+            tfrecords = glob.glob(os.path.join(args.input, "tfrecords-*"))
+                        if len(tfrecords) > 1:
+                sys.exit(f'{args.input} contains multiple tfrecords. '
+                         f'Input a specific directory using --tfrecords.')
+
+            if not os.path.exists(args.tfrecords):
+                sys.exit(f'Directory {args.tfrecords} does not exist. Input a directory with data stored as TFRecords.')
+            return args.tfrecords
 
     def check_output():
         if not os.path.isdir(args.output):
@@ -48,9 +58,9 @@ def process_model(args):
     Build model object
     """
     model = models._models[args.model]
-    if args.checkpoint is not None:
-        #process_checkpoint(args)
-        model = model.load_weights(args.checkpoint)
-    else:
-        model = model(args)
+#    if args.checkpoint is not None:
+#        #process_checkpoint(args)
+#        model = model.load_weights(args.checkpoint)
+#    else:
+    model = model(args)
     return model

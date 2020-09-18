@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import json
 
 def get_args(desc):
     parser = argparse.ArgumentParser(description=desc)
@@ -29,3 +30,8 @@ def check_h5_ext(h5):
     if h5.endswith('.h5'):
         return h5
     return h5 + ".h5"
+
+def load_json_dictionary(input_file, dir):
+    with open(os.path.join(dir, input_file)) as f:
+        json_dict = json.load(f)
+        return json_dict
