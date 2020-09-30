@@ -5,46 +5,16 @@ from collections import defaultdict
 class Graph:
 
     def __init__(self):
-        self.graph = {}
-        self.track = 0
+        self.graph = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
         self.ranks = {0: 'class', 1: 'order', 2: 'family', 3: 'genus', 4: 'species'}
         self.records = {0: defaultdict(list), 1: defaultdict(list), 2: defaultdict(list),
                         3: defaultdict(list), 4: defaultdict(list)}
 
-    def AddSpecies(self, lineage, genome):
-        branch = {}
-        for i in range(len(lineage)):
-            if i == 0:
-                # initialize with a dictionary mapping the species to an empty list of genomes
-                branch = {lineage[i]: genome}
-            # progressively add the highest level taxonomic ranks
-            elif i >= 1:  # if i == 2 to 5
-                branch = {lineage[i]: branch}
-        self.track += 1
-        return branch
-
-    def CountGenomes(self, lineage, genome):
-        iteration = 0
-        for i in range(len(lineage)):
-            self.records[iteration][lineage[i]].append(genome)
-            iteration += 1
-
-    def BuildGraph(self, lineage, genome):
-        dictionary = self.graph
-        # add count of genomes to records
-        self.CountGenomes(lineage, genome)
-        for i in range(len(lineage)):
-            if lineage[i] not in dictionary:
-                # create a branch
-                taxa_to_add = lineage[i:len(lineage)]
-                taxa_to_add.reverse()
-                branch = self.AddSpecies(taxa_to_add, genome)
-                # add the branch to the rank
-                dictionary[lineage[i]] = branch[lineage[i]]
-                break
-            else:
-                # update dictionary variable and lookup for taxa in lower taxonomic levels
-                dictionary = dictionary[lineage[i]]
+    def add_species(self, lineage, genome):
+        s_class, order, family, genus, species = lineage
+        self.graph[s_class][order][family][genus][species] = genome
+        for rank in range(len(lineage)):
+            self.records[rank][lineage[rank]].append(genome)
 
     def GetLabelWeights(self, args):
         # function to retrieve the weights to apply to each label during training for the class
@@ -71,6 +41,3 @@ class Graph:
 
             with open(os.path.join(args.output, '{}-records.json'.format(value)), 'w', encoding='utf-8') as f:
                 json.dump(self.records, f, ensure_ascii=False, indent=4)
-
-
-

@@ -1,12 +1,9 @@
-import sys
 import os
 import re
 import json
 import pandas as pd
 from collections import defaultdict
-from datetime import datetime
 from .TaxonomyGraph import *
-
 
 class Dataset:
     def __init__(self):
@@ -31,21 +28,20 @@ class Dataset:
         return None if row.empty else row.iloc[0]
 
     def get_rep_genome(self, target_taxid):
-        representative_genome = str()
-        taxonomy = str()
+        representative_genome=ncbi_assembly_name=taxonomy=str()
         # Get all rows that contain the taxid
         contain_taxid = self.df[(self.df['ncbi_taxid'] == target_taxid) |
                                 (self.df['ncbi_species_taxid'] == target_taxid)]
         # Drop duplicates
         unique_genomes = contain_taxid.drop_duplicates(subset='gtdb_genome_representative')
         if unique_genomes.empty:
-            return representative_genome, taxonomy
+            return representative_genome, ncbi_assembly_name,taxonomy
         # Choose a random genome if there are more than one representative
         taxid_row = unique_genomes.sample()
         representative_genome = taxid_row.gtdb_genome_representative.item()
         taxonomy = taxid_row.gtdb_taxonomy.item()
         ncbi_assembly_name = re.sub(r'\s+', '_', self.all_genomes[representative_genome])
-        return '_'.join([representative_genome, ncbi_assembly_name]), taxonomy
+        return representative_genome, ncbi_assembly_name, taxonomy
 
     def clean_taxonomy(self, lineage):
         ranks = {0: 'species', 1: 'genus', 2: 'family', 3: 'order', 4: 'class'}
@@ -71,7 +67,6 @@ class Dataset:
     def CreateDataset(self, args):
         # Get all genomes available in a dictionary
         set_fasta_avail = self.GetFastaFiles()
-        print(len(set_fasta_avail))
         graph = Graph()
 
         dataset_absent_species = open(os.path.join(args.output, 'Dataset-absent'), 'w')
@@ -83,24 +78,17 @@ class Dataset:
                 taxid = self.get_ncbi_taxid(line)
                 if not taxid:
                     continue
-                representative_genome, taxonomy = self.get_rep_genome(taxid)
+                representative_genome, ncbi_assembly_name, taxonomy = self.get_rep_genome(taxid)
                 # Only consider species with genomes that have a representative genome
                 if representative_genome and taxonomy:
                     # verify that fasta file exists
-                    if '_'.join([representative_genome[3:],'genomic.fna.gz']) in set_fasta_avail:
+                    if '_'.join([representative_genome[3:], ncbi_assembly_name, 'genomic.fna.gz']) in set_fasta_avail:
                         lineage = self.clean_taxonomy(taxonomy)
                         if representative_genome not in self.dict_genomes:
-                            # initialize graph with first lineage
                             dataset_present_species.write(
                                 '{}\t{}\t{}\t{}\n'.format(line, taxid, lineage[0], representative_genome))
-                            if graph.track == 0:
-                                graph.graph = graph.AddSpecies(lineage, representative_genome)
-                                lineage.reverse()
-                                graph.CountGenomes(lineage, representative_genome)
-                            else:
-                                # build up graph with next species
-                                lineage.reverse()
-                                graph.BuildGraph(lineage, representative_genome)
+                            lineage.reverse()
+                            graph.add_species(lineage, representative_genome)
                             self.dict_genomes[representative_genome] = line
                         else:
                             dataset_duplicate_species.write(
