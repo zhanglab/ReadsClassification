@@ -44,8 +44,9 @@ def parse_args():
     parser = get_args('Processing reads for models that use kmers')
     parser.add_argument('model', help='Model type that will be trained', choices=models)
     parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
+
     parser.add_argument("-r", "--rank", type=str, help="taxonomic rank", choices=ranks, default='species')
-    parser.add_argument("-rn", "--readsnum", type=int, help="desired number of reads per label", required=200000)
+    parser.add_argument("-rn", "--readsnum", type=int, help="desired number of reads per label", default=200000)
     parser.add_argument("-s", "--simulator", type=str, help=" type of read simulator", choices=simulators, required=True)
 
     # CNN and GRU support paired and unpaired reads
@@ -58,13 +59,6 @@ def parse_args():
     args.length = 150 - args.kvalue + 1
     args.input, args.output = process_folder(args)
     args.hdf5 = check_h5_ext(args.hdf5)
-
-    # create tfrecords directory
-    if not os.path.isdir(os.path.join(args.output, 'tfrecords-{}'.format(args.rn))):
-        os.makedirs(os.path.join(args.output, 'tfrecords-{}'.format(args.rn)))
-        os.makedirs(os.path.join(args.output, 'tfrecords-{}/train'.format(args.rn)))
-        os.makedirs(os.path.join(args.output, 'tfrecords-{}/test'.format(args.rn)))
-        os.makedirs(os.path.join(args.output, 'tfrecords-{}/val'.format(args.rn)))
 
     # Set read type if not using CNN or GRU
     if args.reads is None:
@@ -79,6 +73,7 @@ if __name__ == "__main__":
     if args.simulator == 'standard':
         fastq_files, args.class_num = get_info(args)
         multiprocesses(fastq_files, args)
+
     # use in-house read simulator
     elif args.simulator == 'in-house':
         # create a new instance of dataset

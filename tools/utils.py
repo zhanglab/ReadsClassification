@@ -20,8 +20,18 @@ def process_folder(args):
         return args.input
 
     def check_output():
+        folders = [os.path.join(args.output, 'tfrecords-{}'.format(args.rn)),
+                   os.path.join(args.output, 'tfrecords-{}/train'.format(args.rn)),
+                   os.path.join(args.output, 'tfrecords-{}/test'.format(args.rn)),
+                   os.path.join(args.output, 'tfrecords-{}/val'.format(args.rn))]
+
         if not os.path.isdir(args.output):
             os.makedirs(args.output)
+
+        if not os.path.isdir(os.path.join(args.output, 'tfrecords-{}'.format(args.rn))):
+            for folder in folders:
+                os.makedirs(folder)
+
         return args.output
 
     return check_input(), check_output()

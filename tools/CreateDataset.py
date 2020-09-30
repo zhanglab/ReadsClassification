@@ -1,51 +1,56 @@
 import sys
 import os
+import re
 import json
+import pandas as pd
 from collections import defaultdict
 from datetime import datetime
 from .TaxonomyGraph import *
 
 
 class Dataset:
-
     def __init__(self):
         self.dict_genomes = dict()
+        self.df = pd.read_csv(os.path.join(os.getcwd(), 'ReadsClassification/tools/bac120_metadata_r95.tsv'),
+                              delimiter='\t', usecols=['accession', 'ncbi_assembly_name', 'ncbi_species_taxid',
+                                                       'ncbi_taxid', 'gtdb_genome_representative', 'gtdb_taxonomy',
+                                                       'gtdb_representative'])
+        # Drop rows where there is not a representative genome
+        self.df = self.df[self.df.gtdb_representative == 't']
+        self.all_genomes = dict(zip(self.df.accession, self.df.ncbi_assembly_name))
 
-    def GetNCBITaxID(self, target_species):
-        with open(os.path.join(os.getcwd(), 'ReadsClassification/tools/rankedlineage.dmp'), 'r') as f:
-            for line in f:
-                line = line.strip('\n')
-                fields = line.split('|')
-                taxid = fields[0].strip('\t')
-                species = fields[1].strip('\t')
-                if species == target_species:
-                    return taxid
+        # Dataframe to hold rankedlineage.dmp data
+        self.ranked_lineage = pd.read_csv(os.path.join(os.getcwd(), 'ReadsClassification/tools/rankedlineage.dmp'),
+                                          delimiter='|',
+                                          usecols=['1\t', '\troot\t'])
+        self.ranked_lineage = self.ranked_lineage.replace(r'\t', '', regex=True)
 
-    def GetRepresentativeGenome(self, target_taxid):
+    def get_ncbi_taxid(self, target_species):
+        # Get the tax_id. Return None if the species is not in the file
+        row = self.ranked_lineage.loc[self.ranked_lineage['\troot\t'] == target_species, '1\t']
+        return None if row.empty else row.iloc[0]
+
+    def get_rep_genome(self, target_taxid):
         representative_genome = str()
         taxonomy = str()
-        all_genomes = {}  # key = genome id in gtdb and value = ncbi_assembly_name
-        with open(os.path.join(os.getcwd(), 'ReadsClassification/tools/bac120_metadata_r89.tsv'),
-                  'r') as f:
-            lines = f.readlines()[1:]
-            for line in lines:
-                line = line.strip('\n')
-                fields = line.split('\t')
-                all_genomes[fields[0]] = fields[46]
-                if fields[73] == target_taxid or fields[72] == target_taxid:
-                    representative_genome = fields[14]
-                    taxonomy = fields[16]
-        if representative_genome != '':
-            ncbi_assembly_name = all_genomes[representative_genome]
-            # verify that genome
-            return '_'.join([representative_genome, ncbi_assembly_name]), taxonomy
-        else:
+        # Get all rows that contain the taxid
+        contain_taxid = self.df[(self.df['ncbi_taxid'] == target_taxid) |
+                                (self.df['ncbi_species_taxid'] == target_taxid)]
+        # Drop duplicates
+        unique_genomes = contain_taxid.drop_duplicates(subset='gtdb_genome_representative')
+        if unique_genomes.empty:
             return representative_genome, taxonomy
+        # Choose a random genome if there are more than one representative
+        taxid_row = unique_genomes.sample()
+        representative_genome = taxid_row.gtdb_genome_representative.item()
+        taxonomy = taxid_row.gtdb_taxonomy.item()
+        ncbi_assembly_name = re.sub(r'\s+', '_', self.all_genomes[representative_genome])
+        return '_'.join([representative_genome, ncbi_assembly_name]), taxonomy
 
-    def CleanTaxonomy(self, lineage):
+    def clean_taxonomy(self, lineage):
         ranks = {0: 'species', 1: 'genus', 2: 'family', 3: 'order', 4: 'class'}
         new_lineage = []
-        # remove tabs and replace unknown taxa by a specific name
+        # Remove tabs and replace unknown taxa by a specific name
         lineage = lineage.split(';')
         lineage.reverse()
         for i in range(len(lineage) - 2):
@@ -64,7 +69,7 @@ class Dataset:
         return set_fasta_avail
 
     def CreateDataset(self, args):
-        # get all genomes available in a dictionary
+        # Get all genomes available in a dictionary
         set_fasta_avail = self.GetFastaFiles()
         print(len(set_fasta_avail))
         graph = Graph()
@@ -75,18 +80,19 @@ class Dataset:
         with open(os.path.join(args.input, 'Species')) as f:
             for line in f:
                 line = line.strip('\n')
-                taxid = self.GetNCBITaxID(line)
-                representative_genome, taxonomy = self.GetRepresentativeGenome(taxid)
-                # only consider species with genomes that have a representative genome
-                if representative_genome != '' and taxonomy != '':
+                taxid = self.get_ncbi_taxid(line)
+                if not taxid:
+                    continue
+                representative_genome, taxonomy = self.get_rep_genome(taxid)
+                # Only consider species with genomes that have a representative genome
+                if representative_genome and taxonomy:
                     # verify that fasta file exists
-                    if '_'.join([representative_genome[3:],'genomic.fna.gz'])  in set_fasta_avail:
-                        # if target_file != None:
-                        lineage = self.CleanTaxonomy(taxonomy)
+                    if '_'.join([representative_genome[3:],'genomic.fna.gz']) in set_fasta_avail:
+                        lineage = self.clean_taxonomy(taxonomy)
                         if representative_genome not in self.dict_genomes:
                             # initialize graph with first lineage
                             dataset_present_species.write(
-                                '{0}\t{1}\t{2}\t{3}\n'.format(line, taxid, lineage[0], representative_genome))
+                                '{}\t{}\t{}\t{}\n'.format(line, taxid, lineage[0], representative_genome))
                             if graph.track == 0:
                                 graph.graph = graph.AddSpecies(lineage, representative_genome)
                                 lineage.reverse()
@@ -98,14 +104,14 @@ class Dataset:
                             self.dict_genomes[representative_genome] = line
                         else:
                             dataset_duplicate_species.write(
-                                '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(line, taxid, lineage[0], representative_genome,
+                                '{}\t{}\t{}\t{}\t{}\n'.format(line, taxid, lineage[0], representative_genome,
                                                                    self.dict_genomes[representative_genome]))
                     # consider as absent genomes without fasta file in records
                     else:
-                        dataset_absent_species.write('{0}\t{1}\n'.format(line, taxid))
+                        dataset_absent_species.write('{}\t{}\n'.format(line, taxid))
                 # consider as absent genomes without any representative genomes
                 else:
-                    dataset_absent_species.write('{0}\t{1}\n'.format(line, taxid))
+                    dataset_absent_species.write('{}\t{}\n'.format(line, taxid))
 
         with open(os.path.join(args.output, 'graph.json'), 'w', encoding='utf-8') as f:
             json.dump(graph.graph, f, ensure_ascii=False, indent=4)
