@@ -1,7 +1,6 @@
 from .utils import get_args, process_folder, check_h5_ext
 from .prepare_data import *
-from .CreateDataset import *
-from .TaxonomyGraph import GetLabelWeights
+from .CreateDataset import Dataset
 from .ReadSimulator import MP_DistributeGenomes
 
 import sys
@@ -79,9 +78,9 @@ if __name__ == "__main__":
         # create a new instance of dataset
         dataset = Dataset()
         # create graph with taxonomic lineages
-        graph = dataset.CreateDataset(args)
+        graph = dataset.create_dataset(args.output)
         # Get label_weights and class_mapping dictionaries for each taxonomic rank
-        graph.GetLabelWeights(args)
+        graph.get_label_weights(args.output)
         # get dictionary of genomes with desired taxonomic rank
         tax_rank_integer = [key for (key, value) in graph.ranks.items() if value == args.rank][0]
         # get class_mapping dictionary

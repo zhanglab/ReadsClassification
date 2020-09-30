@@ -45,3 +45,7 @@ def load_json_dictionary(input_file, dir):
     with open(os.path.join(dir, input_file)) as f:
         json_dict = json.load(f)
         return json_dict
+
+def create_json(output, name, dict):
+    with open(os.path.join(output, name), 'w', encoding='utf-8') as f:
+        json.dump(dict, f, ensure_ascii=False, indent=4)

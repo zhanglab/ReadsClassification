@@ -3,7 +3,9 @@ import re
 import json
 import pandas as pd
 from collections import defaultdict
-from .TaxonomyGraph import *
+
+from .utils import create_json
+from .TaxonomyGraph import Graph
 
 class Dataset:
     def __init__(self):
@@ -56,7 +58,7 @@ class Dataset:
             new_lineage.append(taxon)
         return new_lineage
 
-    def GetFastaFiles(self):
+    def get_fasta_files(self):
         set_fasta_avail = set()
         for root, dirs, files in os.walk('/project/projectdirs/m3513/srp/ncbi/genomes/all/'):
             for file in files:
@@ -64,9 +66,9 @@ class Dataset:
                     set_fasta_avail.add(file)
         return set_fasta_avail
 
-    def CreateDataset(self, args):
+    def create_dataset(self, args):
         # Get all genomes available in a dictionary
-        set_fasta_avail = self.GetFastaFiles()
+        set_fasta_avail = self.get_fasta_files()
         graph = Graph()
 
         dataset_absent_species = open(os.path.join(args.output, 'Dataset-absent'), 'w')
@@ -94,14 +96,9 @@ class Dataset:
                             dataset_duplicate_species.write(
                                 '{}\t{}\t{}\t{}\t{}\n'.format(line, taxid, lineage[0], representative_genome,
                                                                    self.dict_genomes[representative_genome]))
-                    # consider as absent genomes without fasta file in records
-                    else:
-                        dataset_absent_species.write('{}\t{}\n'.format(line, taxid))
-                # consider as absent genomes without any representative genomes
-                else:
-                    dataset_absent_species.write('{}\t{}\n'.format(line, taxid))
+                        continue
+                # Consider as absent genomes without any representative genomes or fasta file in records
+                dataset_absent_species.write('{}\t{}\n'.format(line, taxid))
 
-        with open(os.path.join(args.output, 'graph.json'), 'w', encoding='utf-8') as f:
-            json.dump(graph.graph, f, ensure_ascii=False, indent=4)
-
+        create_json(args.output, 'graph.json', graph.graph)
         return graph
