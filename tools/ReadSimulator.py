@@ -1,6 +1,4 @@
 import os
-import sys
-import argparse
 import gzip
 from .TaxonomyGraph import *
 import multiprocess as mp
@@ -8,9 +6,8 @@ import json
 import re
 import random
 import numpy as np
-import math
-import datetime
 import tensorflow as tf
+from Bio import SeqIO
 from .utils import load_json_dictionary
 from .kmer import parse_seq
 from .TFRecords import write_TFRecord
@@ -20,16 +17,11 @@ CODONS = load_json_dictionary('CodonsDict.json', '/'.join([os.getcwd(), 'ReadsCl
 AAS = load_json_dictionary('AasDict.json', '/'.join([os.getcwd(), 'ReadsClassification/tools']))
 
 def GetAntisenseStrand(DNAsequence):
-    ntPairs = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G'}
-    # reverse DNA sequence
-    revDNA = DNAsequence[len(DNAsequence)::-1]
-    antisensestrand = ''
-    for i in range(len(revDNA)):
-        if revDNA[i] in ntPairs.keys():
-            antisensestrand += ntPairs[revDNA[i]]
-        else:
-            antisensestrand += revDNA[i]
-    return antisensestrand
+    # Reverse string
+    antisense = DNAsequence[::-1]
+    # Make a mapping table for complementary bases
+    complement = str.maketrans('ATCG', 'TAGC')
+    return antisense.translate(complement)
 
 
 def ModifyDNA(DNAsequence, start, end):
@@ -63,25 +55,24 @@ def FindORFs(DNAsequence):
     for i in range(0, len(DNAsequence) - 3, 3):
         codon = DNAsequence[i:i + 3]
         # check codon for other characters than a, c, t or g
-        if not bool(re.match('^[ACTG]+$', codon)):
+        if bool(re.match('^[ACTG]+$', codon)):
             continue
-        else:
-            # check if codon is start codon
-            if CODONS[codon] == 'Met' and len(orf) == 0:
-                start = i
-                orf += codon
-            # modify any orf in DNA sequence
-            elif CODONS[codon] == 'Stop' and len(orf) >= 3:
-                end = i
-                orf += codon
-                new_DNA = ModifyDNA(new_DNA, start, end)
-                orf = str()
-                start = int()
-                # start reading after the stop codon
-                i += 3
-            # add next codons to orf
-            if len(orf) >= 3:
-                orf += codon
+        # check if codon is start codon
+        if CODONS[codon] == 'Met' and len(orf) == 0:
+            start = i
+            orf += codon
+        # modify any orf in DNA sequence
+        elif CODONS[codon] == 'Stop' and len(orf) >= 3:
+            end = i
+            orf += codon
+            new_DNA = ModifyDNA(new_DNA, start, end)
+            orf = str()
+            start = int()
+            # start reading after the stop codon
+            i += 3
+        # add next codons to orf
+        if len(orf) >= 3:
+            orf += codon
     return new_DNA
 
 def GetPathToFastqFile(genomeID):
@@ -93,22 +84,10 @@ def GetPathToFastqFile(genomeID):
 
 
 def ParseFastaFile(fasta_file):
-    sequence = ''
-    plasmid = 'no'
     with gzip.open(fasta_file, 'rt') as f:
-        for line in f.readlines():
-            line = line.strip('\n')
-            if line[0] != '>' and plasmid == 'no':
-               sequence += line
-            if line[0] == '>':
-                # split line
-                line = line.replace(',', '')
-                words = line.split(' ')
-                if 'plasmid' in words or 'Plasmid' in words:
-                    plasmid = 'yes'
-                else:
-                    plasmid == 'no'
-    return sequence
+        for record in SeqIO.parse(f, 'fasta'):
+            if 'plasmid' not in str(record.id) or 'Plasmid' not in str(record.id):
+                return str(record.seq)
 
 
 def ProcessDNAseq(data_dict_train, data_dict_val, data_dict_test, class_mapping, label, dict_genomes, args):
@@ -127,12 +106,12 @@ def ProcessDNAseq(data_dict_train, data_dict_val, data_dict_test, class_mapping,
     #templates = [sense_strand, antisense_strand]
 
     # Calculate the number of copies of genomes to get in order to have a number of reads >= tio the number of reads desired
-    num_reads_estimated = int((len(sense_strand) / 150))
+    num_reads_estimated = len(sense_strand) // 150
     while num_reads_estimated <= args.readsnum:
         # generate data if not enough reads
         newDNA = FindORFs(sense_strand)
         templates.append(newDNA)
-        num_reads_estimated += int((len(sense_strand) / 150))
+        num_reads_estimated += len(sense_strand) // 150
 
     # simulate reads
     for seq in templates:
@@ -183,8 +162,8 @@ def combine_data(dict_data, set_type):
         f.write('Set: {}'.format(set_type))
         for label in dict_data.keys():
             dataset += dict_data[label]
-            f.write('Label: {0} - number of reads: {1}'.format(len(dict_data[label])))
-        f.write('Total number of reads: {1}'.format(len(dataset)))
+            f.write('Label: {} - number of reads: {}'.format(label, len(dict_data[label])))
+        f.write('Total number of reads: {}'.format(len(dataset)))
     # separate reads and labels
     random.shuffle(dataset)
     reads = np.asarray([i[0] for i in dataset], dtype=np.int32)
