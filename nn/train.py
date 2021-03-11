@@ -53,7 +53,7 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-hs', '--hidden_size', type=int, help='#LSTM memory units to use', default=40)
     parser.add_argument("-rl", "--readlength", type=int, help="length of reads", default=150)
     parser.add_argument("-m", "--mode", type=str, help="mode of running",
-                        choices=['training', 'evaluation', 'testing', 'inference'], required=True)
+                        choices=['training', 'testing', 'inference'], required=True)
     parser.add_argument("-r", "--rank", type=str, help="taxonomic rank at which we classify the reads", default='species')
 
     # Specify a specific HDF5 file
