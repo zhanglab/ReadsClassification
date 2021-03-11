@@ -7,9 +7,9 @@ from tensorflow.keras import layers, regularizers
 from tensorflow.keras.utils import plot_model
 
 @model('cnn-1D')
-class CNN1D(AbstractNN):
+class ALEXNET(AbstractNN):
     def __init__(self, hparams):
-        super(CNN1D, self).__init__(hparams)
+        super(ALEXNET, self).__init__(hparams)
         hparams = self.check_hparams(hparams)
         num_classes = len(hparams.class_mapping)
         #if hparams.mode == 'training':
