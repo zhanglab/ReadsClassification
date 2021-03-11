@@ -23,6 +23,7 @@ def train_step(self, inputs):
     self.train_accuracy.update_state(labels, predictions)
     return loss
 
+tf.config.run_functions_eagerly(False)
 @tf.function
 def distributed_train_epoch(self, strategy):
     total_loss = 0.0

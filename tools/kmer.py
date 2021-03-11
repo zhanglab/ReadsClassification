@@ -1,5 +1,7 @@
 from .utils import get_args, process_folder, check_h5_ext
 from .prepare_data import *
+from .CreateDataset import Dataset
+from .ReadSimulator import MP_DistributeGenomes
 
 import sys
 import numpy as np
@@ -36,9 +38,15 @@ def parse_seq(sequence, args):
 def parse_args():
     #### SET MODEL PARAMETERS #####
     models = ['kmer', 'bidirectional', 'multilstm', 'cnn', 'gru']
+    ranks = ['species', 'genus', 'family', 'order', 'class']
+    simulators = ['in-house', 'standard']
     parser = get_args('Processing reads for models that use kmers')
     parser.add_argument('model', help='Model type that will be trained', choices=models)
     parser.add_argument("-k", "--kvalue", type=int, help="size of kmer", required=True)
+
+    parser.add_argument("-r", "--rank", type=str, help="taxonomic rank", choices=ranks, default='species')
+    parser.add_argument("-rn", "--readsnum", type=int, help="desired number of reads per label", default=200000)
+    parser.add_argument("-s", "--simulator", type=str, help=" type of read simulator", choices=simulators, required=True)
 
     # CNN and GRU support paired and unpaired reads
     parser.add_argument("-reads", help="Specify if unpaired or paired reads",
@@ -59,6 +67,23 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    fastq_files, args.class_num = get_info(args)
     args.kmers_dict = kmer_dictionary(args.kvalue)
-    multiprocesses(fastq_files, args)
+    # process reads generated with standard tools
+    if args.simulator == 'standard':
+        fastq_files, args.class_num = get_info(args)
+        multiprocesses(fastq_files, args)
+
+    # use in-house read simulator
+    elif args.simulator == 'in-house':
+        # create a new instance of dataset
+        dataset = Dataset()
+        # create graph with taxonomic lineages
+        graph = dataset.create_dataset(args.output)
+        # Get label_weights and class_mapping dictionaries for each taxonomic rank
+        graph.get_label_weights(args.output)
+        # get dictionary of genomes with desired taxonomic rank
+        tax_rank_integer = [key for (key, value) in graph.ranks.items() if value == args.rank][0]
+        # get class_mapping dictionary
+        class_mapping = load_json_dictionary('{}-integers.json'.format(args.rank), args.output)
+        # Launch simulation
+        MP_DistributeGenomes(class_mapping, graph.records[tax_rank_integer], args)

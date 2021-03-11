@@ -4,10 +4,11 @@ import argparse
 import numpy as np
 import tensorflow as tf
 from sklearn import metrics
+import datetime
 
 from .train import distributed_train_epoch
 from .test import distributed_test_epoch
-from ..loader import train_test_loaders
+from ..loader-TFRecords import train_test_loaders
 from ..summarize import LearningCurvesPlot
 
 class AbstractNN(tf.keras.Model):
@@ -35,8 +36,18 @@ class AbstractNN(tf.keras.Model):
         self.min_epoch = 0
         self.found_min = False
 
-        self.true_classes = list()
-        self.predicted_classes = list()
+        #self.true_classes = list()
+        #self.predicted_classes = list()
+
+        # create log directories
+        current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        train_log_dir = os.path.join(self.hparams.output, current_time, 'train')
+        test_log_dir = os.path.join(self.hparams.output, current_time, 'test')
+        learning_rate_log_dir = os.path.join(self.hparams.output, current_time, 'learning_rate')
+        self.train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+        self.test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+        self.learning_rate_summary_writer = tf.summary.create_file_writer(learning_rate_log_dir)
+
 
     @staticmethod
     def check_hparams(hparams):
@@ -49,13 +60,11 @@ class AbstractNN(tf.keras.Model):
         Process the dataset
         """
         self.hparams.global_batch_size = (self.hparams.batch_size * strategy.num_replicas_in_sync)
-        train_dataset, test_dataset, class_mapping = train_test_loaders(self.hparams)
+        dataset = train_test_loaders(self.hparams, set_type)
 
         # Distribute train and test datasets
-        train_dataset = strategy.experimental_distribute_dataset(train_dataset)
-        test_dataset = strategy.experimental_distribute_dataset(test_dataset)
-
-        self.loaders = {'class_mapping': class_mapping,'train': train_dataset, 'test': test_dataset}
+        dataset_distr = strategy.experimental_distribute_dataset(dataset)
+        self.loaders = {'{}'.format(set_type): dataset_distr}
 
     def check_loaders(self, strategy):
         """
@@ -70,24 +79,41 @@ class AbstractNN(tf.keras.Model):
         test_epoch_loss = []
         test_epoch_accuracy = []
 
-        self.check_loaders(strategy)
+        # load last checkpoint if submitted
+        if self.hparams.checkpoint is not None:
+            self._model.load_weights(self.hparams.checkpoint)
 
         with open(os.path.join(self.hparams.output, 'epochs.txt'), 'a+') as f:
             for epoch in range(self.hparams.epochs):
                 f.write('Learning rate at epoch {0}: {1}'.format(epoch, self.optimizer.learning_rate))
-
-                # Train
+                with self.learning_rate_summary_writer.as_default():
+                    tf.summary.scalar('learning_rate', self.optimizer.learning_rate, step=epoch)
+                # load training data
+                self.set_dataset(strategy, 'train')
+                # train model
                 train_total_loss, num_train_batches = distributed_train_epoch(self, strategy)
                 train_loss = train_total_loss / num_train_batches
                 # Insert train loss and train accuracy after one epoch in corresponding lists
                 train_epoch_loss.append(train_loss)
                 train_epoch_accuracy.append(self.train_accuracy.result())
 
-                # use validation set to get performance
+                # save loss and accuracies to logs
+                with self.train_summary_writer.as_default():
+                    tf.summary.scalar('loss', train_loss, step=epoch)
+                    tf.summary.scalar('accuracy', self.train_accuracy.result(), step=epoch)
+
+                # load validation data
+                self.set_dataset(strategy, 'val')
+                # test model
                 distributed_test_epoch(self, strategy)
                 # insert test loss and test accuracy after one epoch in corresponding lists
                 test_epoch_accuracy.append(self.test_accuracy.result())
                 test_epoch_loss.append(self.test_loss.result())
+
+                # save test loss and test accuracy to logs
+                with self.test_summary_writer.as_default():
+                    tf.summary.scalar('loss', self.test_loss.result(), step=epoch)
+                    tf.summary.scalar('accuracy', self.test_accuracy.result(), step=epoch)
 
                 template1 = ('Epoch: {}, Train Loss: {}, Total Train Loss: {}, Train batches: {}, Train Accuracy: {}, '
                              '\nTest Loss: {}, Test Accuracy: {}\n')
@@ -101,13 +127,13 @@ class AbstractNN(tf.keras.Model):
 
                 # Get filtered results, learning curves, ROC and recall precision curves after last epoch
                 if epoch == self.hparams.epochs - 1 or self.stop_training:
-                    with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
-                        # Print report on precision, recall, f1-score
-                        out.write(metrics.classification_report(self.true_classes, self.predicted_classes,
-                                                                target_names=self.loaders.class_mapping.values(),
-                                                                digits=3, zero_division=0))
-                        out.write('\nConfusion matrix:\n {}\n'.format(
-                            metrics.confusion_matrix(self.true_classes, self.predicted_classes)))
+                    #with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
+                    #    # Print report on precision, recall, f1-score
+                    #    out.write(metrics.classification_report(self.true_classes, self.predicted_classes,
+                    #                                            target_names=self.loaders.class_mapping.values(),
+                    #                                            digits=3, zero_division=0))
+                    #    out.write('\nConfusion matrix:\n {}\n'.format(
+                    #        metrics.confusion_matrix(self.true_classes, self.predicted_classes)))
 
                     # GetFilteredResults(self)
                     LearningCurvesPlot(self, train_epoch_loss, train_epoch_accuracy,
@@ -117,24 +143,24 @@ class AbstractNN(tf.keras.Model):
                     if self.found_min:
                         self._model.set_weights(self.best_weights)
                         self._model.save_weights(self.checkpoint_path + 'minloss.ckpt')
-                        with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
-                            out.write('\nLowest validation loss epoch: {}\n'.format(self.min_epoch + 1))
-                            out.write('Test loss: {}\tTest accuracy: {}\n'.format(
-                                test_epoch_loss[self.min_epoch], test_epoch_accuracy[self.min_epoch]))
-                            # Print report on precision, recall, f1-score of lowest validation loss
-                            out.write(metrics.classification_report(self.min_true_class, self.min_pred_class,
-                                                                    target_names=self.loaders.class_mapping.values(),
-                                                                    digits=3, zero_division=0))
-                            out.write('\nConfusion matrix for lowest validation loss:\n {}'.format(
-                                metrics.confusion_matrix(self.min_true_class, self.min_pred_class)))
+                        #with open(os.path.join(self.hparams.output, 'metrics.txt'), 'a+') as out:
+                        #    out.write('\nLowest validation loss epoch: {}\n'.format(self.min_epoch + 1))
+                        #    out.write('Test loss: {}\tTest accuracy: {}\n'.format(
+                        #        test_epoch_loss[self.min_epoch], test_epoch_accuracy[self.min_epoch]))
+                        #    # Print report on precision, recall, f1-score of lowest validation loss
+                        #    out.write(metrics.classification_report(self.min_true_class, self.min_pred_class,
+                        #                                            target_names=self.loaders.class_mapping.values(),
+                        #                                            digits=3, zero_division=0))
+                        #    out.write('\nConfusion matrix for lowest validation loss:\n {}'.format(
+                        #        metrics.confusion_matrix(self.min_true_class, self.min_pred_class)))
                     break
 
                 # Resets all of the metric (train + test accuracies + test loss) state variables.
                 self.train_accuracy.reset_states()
                 self.test_accuracy.reset_states()
                 self.test_loss.reset_states()
-                self.true_classes = list()
-                self.predicted_classes = list()
+                #self.true_classes = list()
+                #self.predicted_classes = list()
                 self.val_loss = test_epoch_loss
 
     # Custom callback implementation
@@ -154,8 +180,8 @@ class AbstractNN(tf.keras.Model):
             self.lowest_val_loss = val_loss
             self.best_weights = self._model.get_weights()
             self.wait = 0
-            self.min_true_class = self.true_classes
-            self.min_pred_class = self.predicted_classes
+           # self.min_true_class = self.true_classes
+           # self.min_pred_class = self.predicted_classes
             self.min_epoch = epoch
         else:
             self.wait += 1

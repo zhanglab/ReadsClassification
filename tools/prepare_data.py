@@ -79,7 +79,7 @@ def path_to_fq_file(genomeID, currentdir):
 def get_info(args):
     fastq_files = {}
     class_mapping = {}
-    with open(os.path.join(args.input, 'Species.tsv')) as info:
+    with open(os.path.join(args.input, 'Species')) as info:
         reader = csv.reader(info, delimiter='\t')
         for class_num, row in enumerate(reader):
             species, genomeID = row[0], row[2]

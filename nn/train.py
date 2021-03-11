@@ -16,6 +16,7 @@ def parse_args(*addl_args, argv=None):
     Get parameters for the model
     """
     req_k = ['bidirectional', 'bidirectional-3', 'multilstm', 'multilstm-3', 'kmer', 'cnn', 'gru']
+    format = ['hdf5', 'tfrecords']
 
     argv = check_argv(argv)
     parser = argparse.ArgumentParser(description="Run network training")
@@ -31,8 +32,15 @@ def parse_args(*addl_args, argv=None):
     parser.add_argument('-lr', '--learning_rate', type=float, help='learning rate to use', default=0.0001)
     parser.add_argument('-emb', '--embedding_size', type=int, help='embedding size to use', default=60)
     parser.add_argument('-hs', '--hidden_size', type=int, help='#LSTM memory units to use', default=40)
+
     # Specify a specific HDF5 file
     parser.add_argument('--hdf5', type=str, help='the HDF5 file containing the dataset')
+
+    # Specify a specific TFRecords folder
+    parser.add_argument('--tfrecords', type=str, help='the TFRecords containing the dataset')
+
+    # Specify the dataset format
+    parser.add_argument('--format', type=str, help='the format of the dataset', choices=format, required=True)
 
     # Kmer/Bidirectional model requirements
     parser.add_argument('-k', '--kvalue', type=int, help="size of kmers",
@@ -68,7 +76,7 @@ def process_args(num_gpus, args=None):
         args.num_kmers = 4**args.kvalue
         args.vector_size = 150 - args.kvalue + 1
 
-    args.hdf5, args.class_mapping = process_folder(args)
+    args.dataset = process_folder(args)
 
     # Set read type if not using CNN or GRU
     if args.reads is None:
@@ -77,6 +85,10 @@ def process_args(num_gpus, args=None):
     # Set batch size
     if args.batch_size is None:
         args.batch_size = 32 * num_gpus
+
+    # Load class_mapping
+    f = open(os.path.join(args.input, 'species-integers.json'))
+    args.class_mapping = json.load(f)
 
     model = process_model(args)
     return model, args

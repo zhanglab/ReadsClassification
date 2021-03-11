@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import json
 
 def get_args(desc):
     parser = argparse.ArgumentParser(description=desc)
@@ -19,8 +20,18 @@ def process_folder(args):
         return args.input
 
     def check_output():
+        folders = [os.path.join(args.output, 'tfrecords-{}'.format(args.rn)),
+                   os.path.join(args.output, 'tfrecords-{}/train'.format(args.rn)),
+                   os.path.join(args.output, 'tfrecords-{}/test'.format(args.rn)),
+                   os.path.join(args.output, 'tfrecords-{}/val'.format(args.rn))]
+
         if not os.path.isdir(args.output):
             os.makedirs(args.output)
+
+        if not os.path.isdir(os.path.join(args.output, 'tfrecords-{}'.format(args.rn))):
+            for folder in folders:
+                os.makedirs(folder)
+
         return args.output
 
     return check_input(), check_output()
@@ -29,3 +40,12 @@ def check_h5_ext(h5):
     if h5.endswith('.h5'):
         return h5
     return h5 + ".h5"
+
+def load_json_dictionary(input_file, dir):
+    with open(os.path.join(dir, input_file)) as f:
+        json_dict = json.load(f)
+        return json_dict
+
+def create_json(output, name, dict):
+    with open(os.path.join(output, name), 'w', encoding='utf-8') as f:
+        json.dump(dict, f, ensure_ascii=False, indent=4)
