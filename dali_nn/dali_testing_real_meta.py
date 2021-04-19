@@ -154,6 +154,7 @@ def main():
     parser.add_argument('--sample', type=str, help="Sample to test")
     parser.add_argument('--num_reads_tested', type=int, help="Number of reads in testing set")
     parser.add_argument('--threshold', type=float, help="Threshold for confidence score", default=0.5)
+    args = parser.parse_args()
 
     model_num = int(args.model.split('/')[-1].split('-')[2]) + 1
 
