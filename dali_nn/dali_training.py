@@ -299,6 +299,7 @@ def main():
     parser.add_argument('--model', type=str, help="path to model to load")
     parser.add_argument('--gpus', type=int, help="number of gpus", default=4)
 
+
     args = parser.parse_args()
 
     f = open(os.path.join(args.input_path, 'class_mapping.json'))
