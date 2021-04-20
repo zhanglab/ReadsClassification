@@ -305,6 +305,7 @@ def main():
     parser.add_argument('--validation_size', type=int, help="number of reads in validation set", required=True)
     parser.add_argument('--batch_size', type=int, help="batch size per gpu", default=250)
 
+
     args = parser.parse_args()
 
     f = open(os.path.join(args.input_path, 'class_mapping.json'))
