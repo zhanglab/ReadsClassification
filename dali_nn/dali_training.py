@@ -6,10 +6,13 @@ import nvidia.dali.plugin.tf as dali_tf
 import nvidia.dali.tfrecord as tfrec
 
 import tensorflow as tf
-from tensorflow import keras
+#from tensorflow import keras
+#from tf.keras.callbacks import TensorBoard
+
 import numpy as np
 import json
 from collections import defaultdict
+from glob import glob
 import os
 import sys
 import io
@@ -33,7 +36,7 @@ os.environ["NCCL_DEBUG"] = "WARN"
 
 
 def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATION_STEPS, train_tfrecord, train_tfrecord_idx,
-                 val_tfrecord, val_tfrecord_idx, LR_LOGS_DIR, CKPTS_DIR, LC_FILENAME, BP_FILENAME, LAST_EPOCH, VECTOR_SIZE, EMBEDDING_SIZE, VOCAB_SIZE):
+                 val_tfrecord, val_tfrecord_idx, LR_LOGS_DIR, CKPTS_DIR, LC_FILENAME, BP_FILENAME, LAST_EPOCH, VECTOR_SIZE, EMBEDDING_SIZE, DROPOUT_RATE, VOCAB_SIZE, NUM_CLASSES, full_input_path):
 
     # reset tensorflow graph
     tf.compat.v1.reset_default_graph()
@@ -64,7 +67,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
     #
     #     return options
 
-    class LRTensorBoard(TensorBoard):
+    class LRTensorBoard(tf.keras.callbacks.TensorBoard):
         """ save learning rate at the end of every epoch """
         def __init__(self, log_dir, **kwargs):  # add other arguments to __init__ if you need
             super().__init__(log_dir=log_dir, **kwargs)
@@ -77,7 +80,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
                 f'Learning rate at end of epoch {epoch} is: {self.model.optimizer._decayed_lr("float32").numpy()} - {lr.numpy()}')
             super().on_epoch_end(epoch, logs)
 
-    class CreateCheckpoints(keras.callbacks.Callback):
+    class CreateCheckpoints(tf.keras.callbacks.Callback):
         """ save model at the end of every epoch """
         def __init__(self):
             super(CreateCheckpoints, self).__init__()
@@ -86,7 +89,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
             if epoch % 10 == 0 or epoch + 1 == EPOCHS:
                 self.model.save(CKPTS_DIR + f'epoch-{epoch + LAST_EPOCH}')
 
-    class EarlyStoppingAtMinLoss(keras.callbacks.Callback):
+    class EarlyStoppingAtMinLoss(tf.keras.callbacks.Callback):
         """Stop training when the validation loss stops decreasing for 5 consecutive epochs.
           patience: Number of epochs to wait until
         """
@@ -149,8 +152,8 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
             return (reads, labels)
 
     # create an instance of strategy to perform synchronous training across multiple gpus
-    strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-
+    #strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
+    strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
     with strategy.scope():
         # Define model to train: AlexNet
         if args.model is not None:
@@ -205,7 +208,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
            metrics=['accuracy'])
 
         # only write down summary of model once
-        with open(os.path.join(args.input_path, 'model'), 'w+') as model_file:
+        with open(os.path.join(full_input_path, 'model'), 'w+') as model_file:
             model.summary(print_fn=lambda x: model_file.write(x + '\n'))
 
         # distribute dataset
@@ -263,7 +266,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
         for inputs in train_dataset:
             num_steps += 1
             strategy.run(get_labels, args=(inputs, 'train',))
-            if num_steps == STEPS_PER_EPOCH:
+            if num_steps == TRAINING_STEPS:
                 break
 
         print(f'train: {len(train_true_classes)}')
@@ -298,6 +301,9 @@ def main():
     parser.add_argument('--early_stopping', type=str, help="implement early stopping or not", choices=['true', 'false'], default='false')
     parser.add_argument('--model', type=str, help="path to model to load")
     parser.add_argument('--gpus', type=int, help="number of gpus", default=4)
+    parser.add_argument('--training_size', type=int, help="number of reads in training set", required=True)
+    parser.add_argument('--validation_size', type=int, help="number of reads in validation set", required=True)
+    parser.add_argument('--batch_size', type=int, help="batch size per gpu", default=250)
 
     args = parser.parse_args()
 
@@ -308,33 +314,41 @@ def main():
     READ_LENGTH = 250
     NUM_CLASSES = len(class_mapping)
     NUM_DEVICES = args.gpus  # number of GPUs
-    BATCH_SIZE = 250  # batch size per GPU
+    BATCH_SIZE = args.batch_size  # batch size per GPU
     GLOBAL_BATCH_SIZE = NUM_DEVICES * BATCH_SIZE
     VOCAB_SIZE = 8390658
     EPOCHS = args.epochs
     EMBEDDING_SIZE = 60
     DROPOUT_RATE = 0.5
     VECTOR_SIZE = READ_LENGTH - K_VALUE + 1
-    TRAINING_SIZE = 4832000
-    VALIDATION_SIZE = 1208000
+    TRAINING_SIZE = args.training_size
+    VALIDATION_SIZE = args.validation_size
     TRAINING_STEPS = math.ceil(TRAINING_SIZE / GLOBAL_BATCH_SIZE)
     VALIDATION_STEPS = math.ceil(VALIDATION_SIZE / GLOBAL_BATCH_SIZE)
 
-    LR_LOGS_DIR = os.path.join(args.input_path, 'logs-lr')
-    CKPTS_DIR = os.path.join(args.input_path, 'ckpts')
-    LC_FILENAME = os.path.join(args.input_path, f'LearningCurves.png')
-    BP_FILENAME = os.path.join(args.input_path, f'data-barplots.png')
+    # get number of model
+    model_num = 1 + len(glob(os.path.join(args.input_path, '/model*')))    
+    print(model_num)
+    full_input_path = os.path.join(args.input_path, f'model{model_num}')
+    if not os.path.exists(full_input_path):
+        os.makedirs(full_input_path)
+    print(full_input_path)
+
+    LR_LOGS_DIR = os.path.join(full_input_path, 'logs-lr')
+    CKPTS_DIR = os.path.join(full_input_path, 'ckpts')
+    LC_FILENAME = os.path.join(full_input_path, f'LearningCurves.png')
+    BP_FILENAME = os.path.join(full_input_path, f'data-barplots.png')
     train_filename = 'training_data'
     val_filename = 'val_data'
     summary_filename = 'training_info'
 
     if args.type == 'cv':
-        train_filename = train_filename + f'_fold{FOLD}'
-        val_filename = val_filename + f'_fold{FOLD}'
-        summary_filename = summary_filename + f'_cv_fold{FOLD}'
-        LR_LOGS_DIR = LR_LOGS_DIR + f'-fold{FOLD}'
-        LC_FILENAME = os.path.join(args.input_path, f'LearningCurves-fold-{FOLD}.png')
-        BP_FILENAME = os.path.join(args.input_path, f'data-barplots-fold-{FOLD}.png')
+        train_filename = train_filename + f'_fold{args.fold}'
+        val_filename = val_filename + f'_fold{args.fold}'
+        summary_filename = summary_filename + f'_cv_fold{args.fold}'
+        LR_LOGS_DIR = LR_LOGS_DIR + f'-fold{args.fold}'
+        LC_FILENAME = os.path.join(full_input_path, f'LearningCurves-fold-{args.fold}.png')
+        BP_FILENAME = os.path.join(full_input_path, f'data-barplots-fold-{args.fold}.png')
 
     if args.mode == 'start':
         LAST_EPOCH = 0
@@ -347,7 +361,7 @@ def main():
     val_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/{val_filename}.tfrec.idx')
 
     # write down settings for training
-    f = open(os.path.join(args.input_path, summary_filename), 'w')
+    f = open(os.path.join(full_input_path, summary_filename), 'w')
     f.write(f'batch size: {BATCH_SIZE}\n'
             f'global batch size: {GLOBAL_BATCH_SIZE}\ntraining steps: {TRAINING_STEPS}\nvalidation steps: {VALIDATION_STEPS}\n'
             f'reads in training set: {TRAINING_SIZE}\nreads in validation set: {VALIDATION_SIZE}\n'
@@ -357,7 +371,7 @@ def main():
     start = datetime.datetime.now()
 
     run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATION_STEPS, train_tfrecord, train_tfrecord_idx,
-                 val_tfrecord, val_tfrecord_idx, LR_LOGS_DIR, CKPTS_DIR, LC_FILENAME, BP_FILENAME, LAST_EPOCH, VECTOR_SIZE, EMBEDDING_SIZE, VOCAB_SIZE)
+                 val_tfrecord, val_tfrecord_idx, LR_LOGS_DIR, CKPTS_DIR, LC_FILENAME, BP_FILENAME, LAST_EPOCH, VECTOR_SIZE, EMBEDDING_SIZE, DROPOUT_RATE, VOCAB_SIZE, NUM_CLASSES, full_input_path)
 
     end = datetime.datetime.now()
     total_time = end - start
