@@ -30,8 +30,8 @@ print(f'CUDA version: {cuda_version}')
 cudnn_version = sys_details["cudnn_version"]
 print(f'CUDNN version: {cudnn_version}')
 print(sys_details)
-print("NCCL DEBUG SET")
-os.environ["NCCL_DEBUG"] = "WARN"
+#print("NCCL DEBUG SET")
+#os.environ["NCCL_DEBUG"] = "WARN"
 
 tf.compat.v1.reset_default_graph()
 
@@ -55,7 +55,7 @@ NUM_DEVICES = 4      # number of GPUs
 BATCH_SIZE = 250  # batch size per GPU
 GLOBAL_BATCH_SIZE = NUM_DEVICES*BATCH_SIZE
 VOCAB_SIZE = 8390658
-EPOCHS = 200
+EPOCHS = 1
 EMBEDDING_SIZE = 60
 DROPOUT_RATE = 0.5
 #NUM_NS = 4
@@ -203,8 +203,8 @@ class TFRecordPipeline(Pipeline):
 
 
 # create an instance of strategy to perform synchronous training across multiple gpus
-strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-
+#strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
+strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
 with strategy.scope():
     # Define model to train: AlexNet
     # load model
@@ -279,12 +279,15 @@ with strategy.scope():
                 batch_size=BATCH_SIZE, output_shapes=shapes, output_dtypes=dtypes, device_id=device_id)
 
     input_options = tf.distribute.InputOptions(
-            experimental_place_dataset_on_device=True,
             experimental_prefetch_to_device=False,
-            experimental_replication_mode=tf.distribute.InputReplicationMode.PER_REPLICA)
+            experimental_replication_mode=tf.distribute.InputReplicationMode.PER_REPLICA,
+            experimental_place_dataset_on_device=True)
 
     train_dataset = strategy.distribute_datasets_from_function(train_dataset_fn, input_options)
     val_dataset = strategy.distribute_datasets_from_function(val_dataset_fn, input_options)
+
+    #train_dataset = strategy.experimental_distribute_dataset(train_dataset_fn, input_options)
+    #val_dataset = strategy.experimental_distribute_dataset(val_dataset_fn, input_options)
 
     print("Fit model on training data")
     start = datetime.datetime.now()
