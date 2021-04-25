@@ -44,6 +44,7 @@ parser.add_argument('--tfrecords', type=str, help="Path to tfrecords of metageno
 parser.add_argument('--k_value', type=int, help="k value", default=12)
 parser.add_argument('--read_length', type=int, help="read length", default=250)
 parser.add_argument('--read_id_ms', type=int, help="read ids max size")
+parser.add_argument('--gpus', type=int, help="number of gpus", default=2)
 args = parser.parse_args()
 
 args.model_num = int(args.model.split('/')[-2][-1])
@@ -54,7 +55,7 @@ f = open(os.path.join(args.input_path, 'class_mapping.json'))
 args.class_mapping = json.load(f)
 
 NUM_CLASSES = len(args.class_mapping)
-NUM_DEVICES = 4  # number of GPUs
+NUM_DEVICES = args.gpus  # number of GPUs
 BATCH_SIZE = 500  # batch size per GPU
 GLOBAL_BATCH_SIZE = NUM_DEVICES * BATCH_SIZE
 TESTING_SIZE = args.num_reads_tested
@@ -219,20 +220,26 @@ with strategy.scope():
     # get predicted classes
     fw_predicted_classes = []  # predicted classes as integers
     fw_dict_conf_scores = {}  # confidence score
+    list_reads_already_in = []
     for i in range(len(fw_predictions)):
         pred_class = np.argmax(fw_predictions[i])
         fw_predicted_classes.append(pred_class)
+        if fw_read_ids[i] in fw_dict_conf_scores:
+            print()
+            list_reads_already_in.append(fw_read_ids[i])
         fw_dict_conf_scores[fw_read_ids[i]] = fw_predictions[i][pred_class]
-        print(i, fw_read_ids[i], fw_predictions[i][pred_class])
-    
+        
     print(f'size set/list fw_read_ids: {len(set(fw_read_ids))}, {len(fw_read_ids)}')
     rv_predicted_classes = []  # predicted classes as integers
     rv_dict_conf_scores = {}  # confidence score
     for i in range(len(rv_predictions)):
         pred_class = np.argmax(rv_predictions[i])
         rv_predicted_classes.append(pred_class)
+        if rv_read_ids[i] in rv_dict_conf_scores:
+            list_reads_already_in.append(rv_read_ids[i])
         rv_dict_conf_scores[rv_read_ids[i]] = rv_predictions[i][pred_class]
-
+    print(list_reads_already_in)
+    print(len(list_reads_already_in))
     # create directory to store bins
     if not os.path.isdir(os.path.join(args.output_path, f'sample-{args.sample}-bins')):
         os.makedirs(os.path.join(args.output_path, f'sample-{args.sample}-bins'))
