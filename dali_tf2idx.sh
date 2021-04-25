@@ -4,7 +4,9 @@ conda activate tf-env
 
 echo "START at $(date)"
 
-DATA_SET_DIR=/home/uri/data/species-data/imbalanced/tfrecords
+#DATA_SET_DIR=/home/uri/data/species-data/imbalanced/tfrecords
+DATA_SET_DIR=$1
+PATH_TO_SCRIPTS=$2
 
 cd $DATA_SET_DIR
 
@@ -23,7 +25,7 @@ fi
 for file in $TFRECORDS;
 do
 	echo ${file}
-	python /home/uri/scripts/tfrecord2idx.py $DATA_SET_DIR/${file} \
+	python $2/tfrecord2idx.py $DATA_SET_DIR/${file} \
 		$DATA_SET_DIR/idx_files/${file}.idx;
 done
 
