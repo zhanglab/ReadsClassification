@@ -36,7 +36,7 @@ tf.compat.v1.reset_default_graph()
 
 input_path = str(sys.argv[1])
 model = str(sys.argv[2])
-epoch = int(model.split('/')[-1].split('-')[2]) + 1
+epoch = int(model.split('/')[-1].split('-')[1]) + 1
 print(f'TEST MODEL SAVED AT EPOCH: {epoch}')
 tfrecords_path = str(sys.argv[3])
 path_to_data = str(sys.argv[4])
@@ -132,7 +132,8 @@ class TFRecordPipeline(Pipeline):
 
 
 # create an instance of strategy to perform synchronous training across multiple gpus
-strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
+#strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
+strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
 
 with strategy.scope():
     # load model
