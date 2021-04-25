@@ -6,6 +6,7 @@ import nvidia.dali.plugin.tf as dali_tf
 import nvidia.dali.tfrecord as tfrec
 
 import tensorflow as tf
+#from tensorflow_addons.optimizers import CyclicalLearningRate
 #from tensorflow import keras
 #from tf.keras.callbacks import TensorBoard
 
@@ -86,8 +87,8 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
             super(CreateCheckpoints, self).__init__()
 
         def on_epoch_end(self, epoch, logs=None):
-            if epoch % 10 == 0 or epoch + 1 == EPOCHS:
-                self.model.save(CKPTS_DIR + f'epoch-{epoch + LAST_EPOCH}')
+            #if epoch % 5 == 0 or epoch + 1 == EPOCHS:
+            self.model.save(CKPTS_DIR + f'epoch-{epoch + LAST_EPOCH}')
 
     class EarlyStoppingAtMinLoss(tf.keras.callbacks.Callback):
         """Stop training when the validation loss stops decreasing for 5 consecutive epochs.
@@ -132,9 +133,12 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
 
     def scheduler(epoch, lr):
         """ learning rate scheduler """
-        if epoch % 5 == 0:
+        if epoch % 10 == 0 and epoch != 0:
             print(f'epoch when changing lr: {epoch}')
-            return lr * tf.math.exp(-0.05)
+            lr = lr / 2
+            return lr
+        else:
+            return lr
 
     class TFRecordPipeline(Pipeline):
         def __init__(self, batch_size, tfrecord, tfrecord_idx, device_id=0, shard_id=0, num_shards=1, num_threads=4, seed=0):
@@ -201,6 +205,28 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
                     tf.keras.layers.Activation('softmax'),
                 ]
             )
+        # initial lr =  lowest learning rate and the learning rate at the start of each cycle of training
+        # maximal learning rate =  highest learning rate and the learning rate at the middle of the first cycle of training
+        # step size = half of a cycle = number of iterations used for each step (iterations within each epoch multiplied by a factor between 2 and 10)
+        # 1 cycle = 2 steps with 1 step  in which the lr increases and the other step in which it decreases.
+        # scale function =  fn controlling the changefrom the initial lr to the maximal lr and back to the initial lr.
+        # the function can be one of triangular, triangular 2 or exponential range:
+        # triangular cycle with no amplitude scaling: lambda x:1.0
+        # triangular 2 that scales initial amplitude by half with each cycle: lambda x:1 / (2.0 ** (x - 1))
+        # exponential range that scales initial amplitude by gamma to the power of the cycle iterations with each cycle: lambda x: gamma ** x
+
+#        cyclical_learning_rate = CyclicalLearningRate(
+#                initial_learning_rate=1e-7,
+#                maximal_learning_rate=1e-3,
+#                step_size=TRAINING_STEPS*2,
+#                scale_fn=lambda x:1 / (2.0 ** (x - 1)),
+#                scale_mode='cycle')
+        
+#        model.compile(
+#           optimizer=tf.keras.optimizers.Adam(learning_rate=cyclical_learning_rate),
+#           loss='sparse_categorical_crossentropy',
+#           metrics=['accuracy'])
+
 
         model.compile(
            optimizer='adam',
@@ -237,58 +263,57 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
         print("Fit model on training data")
         if args.early_stopping == 'true':
             history = model.fit(train_dataset, epochs=EPOCHS, steps_per_epoch=TRAINING_STEPS,
-                                validation_data=val_dataset, validation_steps=VALIDATION_STEPS,
+                                validation_data=val_dataset, validation_steps=VALIDATION_STEPS, verbose=2,
                                 callbacks=[tf.keras.callbacks.LearningRateScheduler(scheduler), CreateCheckpoints(),
                                            LRTensorBoard(log_dir=LR_LOGS_DIR), EarlyStoppingAtMinLoss()])
         elif args.early_stopping == 'false':
             history = model.fit(train_dataset, epochs=EPOCHS, steps_per_epoch=TRAINING_STEPS,
-                                validation_data=val_dataset, validation_steps=VALIDATION_STEPS,
-                                callbacks=[tf.keras.callbacks.LearningRateScheduler(scheduler), CreateCheckpoints(),
-                                           LRTensorBoard(log_dir=LR_LOGS_DIR)])
+                                validation_data=val_dataset, validation_steps=VALIDATION_STEPS, verbose=2,
+                                callbacks=[CreateCheckpoints()])
 
         # create learning curves
         learning_curves(history, LC_FILENAME)
 
-        train_true_classes = []
-        val_true_classes = []
-        def get_labels(inputs, type_set):
-            global train_true_classes
-            global val_true_classes
-            reads, labels = inputs
-            print(reads, labels)
-            t_classes = labels.numpy()
-            if type_set == 'train':
-                train_true_classes += t_classes.tolist()
-            elif type_set == 'val':
-                val_true_classes += t_classes.tolist()
+#        train_true_classes = []
+#        val_true_classes = []
+#        def get_labels(inputs, type_set):
+#            global train_true_classes
+#            global val_true_classes
+#            reads, labels = inputs
+#            print(reads, labels)
+#            t_classes = labels.numpy()
+#            if type_set == 'train':
+#                train_true_classes += t_classes.tolist()
+#            elif type_set == 'val':
+#                val_true_classes += t_classes.tolist()
 
-        num_steps = 0
-        for inputs in train_dataset:
-            num_steps += 1
-            strategy.run(get_labels, args=(inputs, 'train',))
-            if num_steps == TRAINING_STEPS:
-                break
+#        num_steps = 0
+#        for inputs in train_dataset:
+#            num_steps += 1
+#            strategy.run(get_labels, args=(inputs, 'train',))
+#            if num_steps == TRAINING_STEPS:
+#                break
 
-        print(f'train: {len(train_true_classes)}')
+#        print(f'train: {len(train_true_classes)}')
 
-        num_steps = 0
-        for inputs in val_dataset:
-            num_steps += 1
-            strategy.run(get_labels, args=(inputs, 'val',))
-            if num_steps == VALIDATION_STEPS:
-                break
+#        num_steps = 0
+#        for inputs in val_dataset:
+#            num_steps += 1
+#            strategy.run(get_labels, args=(inputs, 'val',))
+#            if num_steps == VALIDATION_STEPS:
+#                break
 
-        print(f'val: {len(val_true_classes)}')
+#        print(f'val: {len(val_true_classes)}')
 
-        train_dict_classes = defaultdict(int)
-        for j in range(len(train_true_classes)):
-            train_dict_classes[train_true_classes[j]] += 1
+#        train_dict_classes = defaultdict(int)
+#        for j in range(len(train_true_classes)):
+#            train_dict_classes[train_true_classes[j]] += 1
 
-        val_dict_classes = defaultdict(int)
-        for j in range(len(val_true_classes)):
-            val_dict_classes[val_true_classes[j]] += 1
+#        val_dict_classes = defaultdict(int)
+#        for j in range(len(val_true_classes)):
+#            val_dict_classes[val_true_classes[j]] += 1
 
-        create_barplot_training(train_dict_classes, val_dict_classes, BP_FILENAME, class_mapping)
+#        create_barplot_training(train_dict_classes, val_dict_classes, BP_FILENAME, class_mapping)
 
 def main():
 
@@ -326,21 +351,21 @@ def main():
     VALIDATION_SIZE = args.validation_size
     TRAINING_STEPS = math.ceil(TRAINING_SIZE / GLOBAL_BATCH_SIZE)
     VALIDATION_STEPS = math.ceil(VALIDATION_SIZE / GLOBAL_BATCH_SIZE)
-
+    
     # get number of model
-    model_num = 1 + len(glob(os.path.join(args.input_path, '/model*')))    
+    model_num = 1 + len(glob(os.path.join(args.input_path, 'model*')))    
     print(model_num)
     full_input_path = os.path.join(args.input_path, f'model{model_num}')
     if not os.path.exists(full_input_path):
         os.makedirs(full_input_path)
     print(full_input_path)
-
+    
     LR_LOGS_DIR = os.path.join(full_input_path, 'logs-lr')
     CKPTS_DIR = os.path.join(full_input_path, 'ckpts')
     LC_FILENAME = os.path.join(full_input_path, f'LearningCurves.png')
     BP_FILENAME = os.path.join(full_input_path, f'data-barplots.png')
     train_filename = 'training_data'
-    val_filename = 'val_data'
+    val_filename = 'validation_data'
     summary_filename = 'training_info'
 
     if args.type == 'cv':
