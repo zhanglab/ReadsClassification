@@ -70,27 +70,28 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
     print(len(fw_read_ids), len(fw_predicted_classes), len(fw_dict_conf_scores), len(rv_read_ids), len(rv_predicted_classes), len(rv_dict_conf_scores))
     assert len(fw_read_ids) == len(fw_predicted_classes) == len(fw_dict_conf_scores) == len(rv_read_ids) == len(rv_predicted_classes) == len(rv_dict_conf_scores)
 
-    dict_reads_R1 = default_dict(list)   # {predicted class: list read ids forward reads}
-    dict_reads_R2 = default_dict(list)   # {predicted class: list read ids reverse reads}
+    dict_reads_R1 = defaultdict(list)   # {predicted class: list read ids forward reads}
+    dict_reads_R2 = defaultdict(list)   # {predicted class: list read ids reverse reads}
 
     # retrieve records
     records_R1 = {record.id.split(' ')[0]: record for record in
-                  SeqIO.parse(os.path.join(args.input_path, 'fastq', f'{args.sample}_R1.fq'), 'fastq')}
+                  SeqIO.parse(os.path.join(args.path_to_sample, 'fastq', f'{args.sample}_R1.fq'), 'fastq')}
     records_R2 = {record.id.split(' ')[0]: record for record in
-                  SeqIO.parse(os.path.join(args.input_path, 'fastq', f'{args.sample}_R2.fq'), 'fastq')}
+                  SeqIO.parse(os.path.join(args.path_to_sample, 'fastq', f'{args.sample}_R2.fq'), 'fastq')}
 
     # sort reads based on the class they were assigned to
     for i in range(len(fw_predicted_classes)):
-        if fw_dict_conf_scores[i] >= args.threshold:
-            read_id = fw_read_ids[i]
-            dict_reads_R1[fw_predicted_classes[i]].append(read_id.split(' ')[0])
+        read_id = fw_read_ids[i]
+        print(read_id, fw_dict_conf_scores[read_id])
+        if fw_dict_conf_scores[read_id] >= args.threshold:
+            dict_reads_R1[fw_predicted_classes[i]].append(read_id)
             
 
     for i in range(len(rv_predicted_classes)):
-        if rv_dict_conf_scores[i] >= args.threshold:
-            read_id = rv_read_ids[i]
-            dict_reads_R2[rv_predicted_classes[i]].append(read_id.split(' ')[0])
-
+        read_id = rv_read_ids[i]
+        if rv_dict_conf_scores[read_id] >= args.threshold:
+            dict_reads_R2[rv_predicted_classes[i]].append(read_id)
+    
     class_conf_scores_R1 = {}    # {class id: list of confidence scores of forward reads}
     class_conf_scores_R2 = {}  # {class id: list of confidence scores of reverse reads}
     conf_scores_R1 = []     # confidence scores of all forward reads regardless of class
@@ -99,17 +100,19 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
     num_classified_fw_unpaired_reads = 0
     num_classified_rv_unpaired_reads = 0
     for class_id, class_name in args.class_mapping.items():
+        print(class_id, class_name, len(dict_reads_R1[class_id]), len(dict_reads_R2[class_id]))
         # filter reads in pairs that are not assigned to the same class
         set_reads_R1 = set(dict_reads_R1[class_id])
         set_reads_R2 = set(dict_reads_R2[class_id])
+        print(len(set_reads_R1), len(set_reads_R2))
         # take the intersection of both sets (reads in pairs)
         reads_in_pairs = list(set_reads_R1.intersection(set_reads_R2))
         num_classified_paired_reads += len(reads_in_pairs)
         # get records for reads in pairs
         list_records_paired_reads = [records_R1[read_id] for read_id in reads_in_pairs] + [records_R2[read_id] for read_id in reads_in_pairs]
         # get list of confidence scores
-        class_conf_scores_R1[class_id] = [fw_dict_conf_scores[read_id + '1:N:0:AGATCC'] for read_id in reads_in_pairs]
-        class_conf_scores_R2[class_id] = [rv_dict_conf_scores[read_id + '2:N:0:AGATCC'] for read_id in reads_in_pairs]
+        class_conf_scores_R1[class_id] = [fw_dict_conf_scores[read_id] for read_id in reads_in_pairs]
+        class_conf_scores_R2[class_id] = [rv_dict_conf_scores[read_id] for read_id in reads_in_pairs]
         conf_scores_R1 += class_conf_scores_R1[class_id]
         conf_scores_R2 += class_conf_scores_R2[class_id]
         # create fastq files
@@ -118,14 +121,14 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
         fw_reads = list(set_reads_R1.difference(set_reads_R2))
         num_classified_fw_unpaired_reads += len(fw_reads)
         list_records_fw_unpaired_reads = [records_R1[read_id] for read_id in fw_reads]
-        conf_scores_R1 += [fw_dict_conf_scores[read_id + '1:N:0:AGATCC'] for read_id in fw_reads]
+        conf_scores_R1 += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
         # create fastq files
         generate_fastq_files(args, class_id, list_records_fw_unpaired_reads, 'fw_unpaired')
         # get classified forward unpaired reads
         rv_reads = list(set_reads_R2.difference(set_reads_R1))
         num_classified_rv_unpaired_reads += len(rv_reads)
-        list_records_fw_unpaired_reads = [records_R2[read_id] for read_id in rv_reads] 
-        conf_scores_R2 += [rv_dict_conf_scores[read_id + '2:N:0:AGATCC'] for read_id in rv_reads]
+        list_records_rv_unpaired_reads = [records_R2[read_id] for read_id in rv_reads] 
+        conf_scores_R2 += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
         # create fastq files
         generate_fastq_files(args, class_id, list_records_rv_unpaired_reads, 'rv_unpaired')
         # summarize results
