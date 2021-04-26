@@ -40,11 +40,11 @@ parser.add_argument('--model',  type=str, help="Path to model")
 parser.add_argument('--sample', type=str, help="Sample to test")
 parser.add_argument('--num_reads_tested', type=int, help="Number of reads in testing set")
 parser.add_argument('--threshold', type=float, help="Threshold for confidence score", default=0.5)
-parser.add_argument('--tfrecords', type=str, help="Path to tfrecords of metagenomic data")
+parser.add_argument('--path_to_sample', type=str, help="Path to tfrecords of metagenomic data")
 parser.add_argument('--k_value', type=int, help="k value", default=12)
 parser.add_argument('--read_length', type=int, help="read length", default=250)
 parser.add_argument('--read_id_ms', type=int, help="read ids max size")
-parser.add_argument('--gpus', type=int, help="number of gpus", default=2)
+parser.add_argument('--gpus', type=int, help="number of gpus", default=1)
 args = parser.parse_args()
 
 args.model_num = int(args.model.split('/')[-2][-1])
@@ -62,10 +62,10 @@ TESTING_SIZE = args.num_reads_tested
 TESTING_STEPS = math.ceil(TESTING_SIZE / GLOBAL_BATCH_SIZE)
 VECTOR_SIZE = args.read_length - args.k_value + 1
 
-fw_tfrecord = os.path.join(args.tfrecords, 'tfrecords', f'{args.sample}_R1.tfrec')
-fw_tfrecord_idx = os.path.join(args.tfrecords, 'tfrecords', f'idx_files/{args.sample}_R1.tfrec.idx')
-rv_tfrecord = os.path.join(args.tfrecords, 'tfrecords', f'{args.sample}_R2.tfrec')
-rv_tfrecord_idx = os.path.join(args.tfrecords, 'tfrecords', f'idx_files/{args.sample}_R2.tfrec.idx')
+fw_tfrecord = os.path.join(args.path_to_sample, 'tfrecords', f'{args.sample}_R1.tfrec')
+fw_tfrecord_idx = os.path.join(args.path_to_sample, 'tfrecords', f'idx_files/{args.sample}_R1.tfrec.idx')
+rv_tfrecord = os.path.join(args.path_to_sample, 'tfrecords', f'{args.sample}_R2.tfrec')
+rv_tfrecord_idx = os.path.join(args.path_to_sample, 'tfrecords', f'idx_files/{args.sample}_R2.tfrec.idx')
 
 # write down settings for training
 f = open(os.path.join(args.output_path, f'sample-{args.sample}-classification-model{args.model_num}-epoch{args.epoch_num}'), 'w')
@@ -114,7 +114,7 @@ class TFRecordPipeline(Pipeline):
     def __init__(self, batch_size, tfrecord, tfrecord_idx, device_id=0, shard_id=0, num_shards=1, num_threads=4,
                      seed=0):
         super(TFRecordPipeline, self).__init__(batch_size, num_threads, device_id, seed)
-        self.input = ops.TFRecordReader(path=tfrecord, random_shuffle=True, shard_id=shard_id, num_shards=num_shards,
+        self.input = ops.TFRecordReader(path=tfrecord, random_shuffle=False, shard_id=shard_id, num_shards=num_shards,
                                             index_path=tfrecord_idx,
                                             features={"read": tfrec.VarLenFeature([], tfrec.int64, 0),
                                                       "read_id": tfrec.VarLenFeature([], tfrec.int64, 64)})
@@ -129,7 +129,7 @@ class TFRecordPipeline(Pipeline):
 
 # create an instance of strategy to perform synchronous training across multiple gpus
 #strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
+strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0'])
 with strategy.scope():
     # load model
     model = tf.keras.models.load_model(args.model)
@@ -184,19 +184,20 @@ with strategy.scope():
         read_ids_arr = read_ids.numpy()
         read_ids_list = read_ids_arr.tolist()
         read_ids_str = []
-        for r in read_ids_list:
+        for i in range(len(read_ids_list)):
+            r = read_ids_list[i]
             rl = r[args.read_id_ms]
             new_r = ''.join([chr(j) for j in r[0:rl]])
             read_ids_str.append(new_r)
         fw_read_ids += read_ids_str
-
+    
     num_steps = 0
     for inputs in fw_dataset:
         num_steps += 1
         strategy.run(get_fw_read_ids, args=(inputs,))
         if num_steps == TESTING_STEPS:
             break
-
+    print(f'fw num steps: {num_steps} - {TESTING_STEPS}')
     rv_read_ids = []
     def get_rv_read_ids(inputs):
         global rv_read_ids
@@ -216,30 +217,30 @@ with strategy.scope():
         strategy.run(get_rv_read_ids, args=(inputs,))
         if num_steps == TESTING_STEPS:
             break
-
+    print(f'rv num steps: {num_steps} - {TESTING_STEPS}')
+    print(f'first fw reads in 2 consecutive rounds: {fw_read_ids[0]} - {fw_read_ids[args.num_reads_tested]}')
+    print(f'first rv reads in 2 consecutive rounds: {rv_read_ids[0]} - {rv_read_ids[args.num_reads_tested]}')
+    # adjust list of read ids
+    fw_read_ids = fw_read_ids[0:args.num_reads_tested]
+    rv_read_ids = rv_read_ids[0:args.num_reads_tested]
     # get predicted classes
     fw_predicted_classes = []  # predicted classes as integers
     fw_dict_conf_scores = {}  # confidence score
-    list_reads_already_in = []
-    for i in range(len(fw_predictions)):
+    for i in range(args.num_reads_tested):
         pred_class = np.argmax(fw_predictions[i])
         fw_predicted_classes.append(pred_class)
-        if fw_read_ids[i] in fw_dict_conf_scores:
-            print()
-            list_reads_already_in.append(fw_read_ids[i])
-        fw_dict_conf_scores[fw_read_ids[i]] = fw_predictions[i][pred_class]
+        fw_dict_conf_scores[fw_read_ids[i]] = float(fw_predictions[i][pred_class])
+        print(fw_read_ids[i], pred_class, fw_predictions[i][pred_class])
         
     print(f'size set/list fw_read_ids: {len(set(fw_read_ids))}, {len(fw_read_ids)}')
     rv_predicted_classes = []  # predicted classes as integers
     rv_dict_conf_scores = {}  # confidence score
-    for i in range(len(rv_predictions)):
+    for i in range(args.num_reads_tested):
         pred_class = np.argmax(rv_predictions[i])
         rv_predicted_classes.append(pred_class)
-        if rv_read_ids[i] in rv_dict_conf_scores:
-            list_reads_already_in.append(rv_read_ids[i])
-        rv_dict_conf_scores[rv_read_ids[i]] = rv_predictions[i][pred_class]
-    print(list_reads_already_in)
-    print(len(list_reads_already_in))
+        rv_dict_conf_scores[rv_read_ids[i]] = float(rv_predictions[i][pred_class])
+        print(rv_read_ids[i], pred_class, rv_predictions[i][pred_class])
+
     # create directory to store bins
     if not os.path.isdir(os.path.join(args.output_path, f'sample-{args.sample}-bins')):
         os.makedirs(os.path.join(args.output_path, f'sample-{args.sample}-bins'))
