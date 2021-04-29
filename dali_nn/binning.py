@@ -14,20 +14,26 @@ import matplotlib.pyplot as plt
 plt.ioff()
 
 def summarize_cs(args, class_conf_scores_R1, class_conf_scores_R2):
-    for class_id, class_name in class_mapping.items():
+    for class_id, class_name in args.class_mapping.items():
         with open(os.path.join(args.output_path, f'{args.sample}_model{args.model_num}_epoch{args.epoch_num}_cs_stats_per_class_{args.threshold}.txt'), 'a') as f:
-            f.write(f'{class_id}\t{class_name}\n'
-                    f'max fw/rv: {max(class_conf_scores_R1[class_id])}\t{max(class_conf_scores_R2[class_id])}\t'
-                    f'min fw/rv: {min(class_conf_scores_R1[class_id])}\t{min(class_conf_scores_R2[class_id])}\t'
-                    f'mean fw/rv: {statistics.mean(class_conf_scores_R1[class_id])}\t{statistics.mean(class_conf_scores_R2[class_id])}\t'
-                    f'median fw/rv: {statistics.median(class_conf_scores_R1[class_id])}\t{statistics.median(class_conf_scores_R2[class_id])}\t'
-                    f'standard deviation fw/rv: {statistics.stdev(class_conf_scores_R1[class_id])}\t{statistics.stdev(class_conf_scores_R2[class_id])}\n'
-                    )
+            f.write(f'{class_id}\t{class_name}\n')
+            if len(class_conf_scores_R1[class_id]) != 0:
+                f.write(f'max fw: {max(class_conf_scores_R1[class_id])}\t'
+                f'min fw: {min(class_conf_scores_R1[class_id])}\t'
+                f'mean fw: {statistics.mean(class_conf_scores_R1[class_id])}\t'
+                f'median fw: {statistics.median(class_conf_scores_R1[class_id])}\t'
+                f'standard deviation fw: {np.std(class_conf_scores_R1[class_id])}\n')
+            if len(class_conf_scores_R2[class_id]) != 0:
+                f.write(f'max rv: {max(class_conf_scores_R2[class_id])}\t'
+                f'min rv: {min(class_conf_scores_R2[class_id])}\t'
+                f'mean rv: {statistics.mean(class_conf_scores_R2[class_id])}\t'
+                f'median rv: {statistics.median(class_conf_scores_R2[class_id])}\t'
+                f'standard deviation rv: {np.std(class_conf_scores_R2[class_id])}\n')
 
     taxa = [args.class_mapping[str(i)] for i in range(len(args.class_mapping))]
-    conf_scores_R1 = [statistics.mean(class_conf_scores_R1[str(i)]) for i in range(len(args.class_mapping))]
-    conf_scores_R2 = [statistics.mean(class_conf_scores_R2[str(i)]) for i in range(len(args.class_mapping))]
-    x_pos = np.arange(len(axa))
+    conf_scores_R1 = [np.mean(class_conf_scores_R1[str(i)]) for i in range(len(args.class_mapping)) if len(class_conf_scores_R1[str(i)]) != 0]
+    conf_scores_R2 = [np.mean(class_conf_scores_R2[str(i)]) for i in range(len(args.class_mapping)) if len(class_conf_scores_R2[str(i)]) != 0]
+    x_pos = np.arange(len(taxa))
     width = 0.35
     print(x_pos)
     print(taxa)
@@ -47,12 +53,12 @@ def histogram(args, conf_scores_R1, conf_scores_R2):
     n, _, _ = ax.hist(x=[conf_scores_R1, conf_scores_R2], label=['forward reads', 'reverse reads'])
     print(f'max frequence: {n.max()}')
 
-    with open(os.path.join(args.input_path, f'{args.sample}_cs_stats_{args.threshold}.txt'), 'w') as f:
+    with open(os.path.join(args.output_path, f'{args.sample}_cs_stats_{args.threshold}.txt'), 'w') as f:
         f.write(f'max fw/rv: {max(conf_scores_R1)}\t{max(conf_scores_R2)}\n'
                 f'min fw/rv: {min(conf_scores_R1)}\t{min(conf_scores_R2)}\n'
                 f'mean fw/rv: {statistics.mean(conf_scores_R1)}\t{statistics.mean(conf_scores_R2)}\n'
                 f'median fw/rv: {statistics.median(conf_scores_R1)}\t{statistics.median(conf_scores_R2)}\n'
-                f'standard deviation fw/rv: {statistics.stdev(conf_scores_R1)}\t{statistics.stdev(conf_scores_R2)}'
+                f'standard deviation fw/rv: {np.std(conf_scores_R1)}\t{np.std(conf_scores_R2)}'
                 )
 
     ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useMathText=True, useOffset=False))
@@ -72,25 +78,23 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
 
     dict_reads_R1 = defaultdict(list)   # {predicted class: list read ids forward reads}
     dict_reads_R2 = defaultdict(list)   # {predicted class: list read ids reverse reads}
-
+    print(f'threshold: {args.threshold}')
     # retrieve records
     records_R1 = {record.id.split(' ')[0]: record for record in
                   SeqIO.parse(os.path.join(args.path_to_sample, 'fastq', f'{args.sample}_R1.fq'), 'fastq')}
     records_R2 = {record.id.split(' ')[0]: record for record in
                   SeqIO.parse(os.path.join(args.path_to_sample, 'fastq', f'{args.sample}_R2.fq'), 'fastq')}
-
+    
     # sort reads based on the class they were assigned to
     for i in range(len(fw_predicted_classes)):
         read_id = fw_read_ids[i]
-        print(read_id, fw_dict_conf_scores[read_id])
-        if fw_dict_conf_scores[read_id] >= args.threshold:
-            dict_reads_R1[fw_predicted_classes[i]].append(read_id)
+        if fw_dict_conf_scores[read_id] >= float(args.threshold):
+            dict_reads_R1[str(fw_predicted_classes[i])].append(read_id)
             
-
     for i in range(len(rv_predicted_classes)):
         read_id = rv_read_ids[i]
-        if rv_dict_conf_scores[read_id] >= args.threshold:
-            dict_reads_R2[rv_predicted_classes[i]].append(read_id)
+        if rv_dict_conf_scores[read_id] >= float(args.threshold):
+            dict_reads_R2[str(rv_predicted_classes[i])].append(read_id)
     
     class_conf_scores_R1 = {}    # {class id: list of confidence scores of forward reads}
     class_conf_scores_R2 = {}  # {class id: list of confidence scores of reverse reads}
@@ -104,33 +108,34 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
         # filter reads in pairs that are not assigned to the same class
         set_reads_R1 = set(dict_reads_R1[class_id])
         set_reads_R2 = set(dict_reads_R2[class_id])
-        print(len(set_reads_R1), len(set_reads_R2))
         # take the intersection of both sets (reads in pairs)
         reads_in_pairs = list(set_reads_R1.intersection(set_reads_R2))
         num_classified_paired_reads += len(reads_in_pairs)
         # get records for reads in pairs
-        list_records_paired_reads = [records_R1[read_id] for read_id in reads_in_pairs] + [records_R2[read_id] for read_id in reads_in_pairs]
+        list_records_paired_reads_fw = [records_R1[read_id] for read_id in reads_in_pairs]
+        list_records_paired_reads_rv = [records_R2[read_id] for read_id in reads_in_pairs]
         # get list of confidence scores
         class_conf_scores_R1[class_id] = [fw_dict_conf_scores[read_id] for read_id in reads_in_pairs]
         class_conf_scores_R2[class_id] = [rv_dict_conf_scores[read_id] for read_id in reads_in_pairs]
         conf_scores_R1 += class_conf_scores_R1[class_id]
         conf_scores_R2 += class_conf_scores_R2[class_id]
         # create fastq files
-        generate_fastq_files(args, class_id, list_records_paired_reads, 'paired')
+        generate_fastq_files(args, class_id, list_records_paired_reads_fw, 'fw_paired')
+        generate_fastq_files(args, class_id, list_records_paired_reads_rv, 'rv_paired')
         # get classified forward unpaired reads
         fw_reads = list(set_reads_R1.difference(set_reads_R2))
         num_classified_fw_unpaired_reads += len(fw_reads)
-        list_records_fw_unpaired_reads = [records_R1[read_id] for read_id in fw_reads]
+        list_records_unpaired_reads = [records_R1[read_id] for read_id in fw_reads]
+        class_conf_scores_R1[class_id] += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
         conf_scores_R1 += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
-        # create fastq files
-        generate_fastq_files(args, class_id, list_records_fw_unpaired_reads, 'fw_unpaired')
         # get classified forward unpaired reads
         rv_reads = list(set_reads_R2.difference(set_reads_R1))
         num_classified_rv_unpaired_reads += len(rv_reads)
-        list_records_rv_unpaired_reads = [records_R2[read_id] for read_id in rv_reads] 
+        list_records_unpaired_reads += [records_R2[read_id] for read_id in rv_reads]
+        class_conf_scores_R2[class_id] += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
         conf_scores_R2 += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
         # create fastq files
-        generate_fastq_files(args, class_id, list_records_rv_unpaired_reads, 'rv_unpaired')
+        generate_fastq_files(args, class_id, list_records_unpaired_reads, 'unpaired')
         # summarize results
         with open(os.path.join(args.output_path, f'sample_{args.sample}_model{args.model_num}_epoch{args.epoch_num}_classification_summary'), 'a') as f:
             f.write(f'{class_id}\t{class_name}\tpairs: {len(reads_in_pairs)}\tfw unpaired: {len(fw_reads)}\trv unpaired: {len(rv_reads)}\t{len(dict_reads_R1[class_id])+len(dict_reads_R2[class_id])}\n')
