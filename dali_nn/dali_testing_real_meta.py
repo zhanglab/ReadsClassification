@@ -126,10 +126,10 @@ class TFRecordPipeline(Pipeline):
         read_id = read_id.gpu()
         return (reads, read_id)
 
-
+dict_gpus = {'1': '/gpu:0', '2': '/gpu:0, /gpu:1', '3': '/gpu:0, /gpu:1, /gpu:2', '4': '/gpu:0, /gpu:1, /gpu:2, /gpu:3'}
 # create an instance of strategy to perform synchronous training across multiple gpus
-#strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0'])
+strategy = tf.distribute.MirroredStrategy(devices=[dict_gpus[str(NUM_DEVICES)]])
+
 with strategy.scope():
     # load model
     model = tf.keras.models.load_model(args.model)
@@ -230,7 +230,6 @@ with strategy.scope():
         pred_class = np.argmax(fw_predictions[i])
         fw_predicted_classes.append(pred_class)
         fw_dict_conf_scores[fw_read_ids[i]] = float(fw_predictions[i][pred_class])
-        print(fw_read_ids[i], pred_class, fw_predictions[i][pred_class])
         
     print(f'size set/list fw_read_ids: {len(set(fw_read_ids))}, {len(fw_read_ids)}')
     rv_predicted_classes = []  # predicted classes as integers
@@ -239,7 +238,6 @@ with strategy.scope():
         pred_class = np.argmax(rv_predictions[i])
         rv_predicted_classes.append(pred_class)
         rv_dict_conf_scores[rv_read_ids[i]] = float(rv_predictions[i][pred_class])
-        print(rv_read_ids[i], pred_class, rv_predictions[i][pred_class])
 
     # create directory to store bins
     if not os.path.isdir(os.path.join(args.output_path, f'sample-{args.sample}-bins')):
