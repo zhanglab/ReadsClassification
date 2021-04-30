@@ -35,12 +35,16 @@ os.environ["NCCL_DEBUG"] = "WARN"
 tf.compat.v1.reset_default_graph()
 
 input_path = str(sys.argv[1])
-model = str(sys.argv[2])
-epoch = int(model.split('/')[-1].split('-')[1]) + 1
-print(f'TEST MODEL SAVED AT EPOCH: {epoch}')
+model_path = str(sys.argv[2])
+model_name = str(model_path.split('/')[-2])
+epoch = int(model_path.split('/')[-1].split('-')[1]) + 1
 tfrecords_path = str(sys.argv[3])
 path_to_data = str(sys.argv[4])
+num_gpus = int(sys.argv[5])
 
+output_path = os.path.join(input_path, model_name, f'testing-epoch{epoch}')
+if not os.path.isdir(output_path):
+    os.makedirs(output_path)
 
 f = open(os.path.join(input_path, 'class_mapping.json'))
 class_mapping = json.load(f)
@@ -66,7 +70,7 @@ print(colors)
 K_VALUE = 12
 READ_LENGTH = 250
 NUM_CLASSES = len(class_mapping)
-NUM_DEVICES = 4  # number of GPUs
+NUM_DEVICES = num_gpus  # number of GPUs
 BATCH_SIZE = 250  # batch size per GPU
 GLOBAL_BATCH_SIZE = NUM_DEVICES * BATCH_SIZE
 VOCAB_SIZE = 8390658
@@ -80,7 +84,7 @@ test_tfrecord = os.path.join(tfrecords_path, f'testing_data.tfrec')
 test_tfrecord_idx = os.path.join(tfrecords_path, f'idx_files/testing_data.tfrec.idx')
 
 # write down settings for training
-f = open(os.path.join(input_path, f'testing-info-epoch{epoch}'), 'w')
+f = open(os.path.join(output_path, f'testing-info-epoch{epoch}'), 'w')
 f.write(f'batch size: {BATCH_SIZE}\n'
         f'global batch size: {GLOBAL_BATCH_SIZE}\n'
         f'reads in testing set: {TESTING_SIZE}\ntesting steps: {TESTING_STEPS}\n'
@@ -131,9 +135,9 @@ class TFRecordPipeline(Pipeline):
         return (reads, labels)
 
 
+dict_gpus = {'1': '/gpu:0', '2': '/gpu:0, /gpu:1', '3': '/gpu:0, /gpu:1, /gpu:2', '4': '/gpu:0, /gpu:1, /gpu:2, /gpu:3'}
 # create an instance of strategy to perform synchronous training across multiple gpus
-#strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
+strategy = tf.distribute.MirroredStrategy(devices=[dict_gpus[str(NUM_DEVICES)]])
 
 with strategy.scope():
     # load model
@@ -161,7 +165,7 @@ with strategy.scope():
 
     #    model.evaluate(test_dataset, batch_size=BATCH_SIZE, steps=TESTING_STEPS)
     predictions = model.predict(test_dataset, batch_size=BATCH_SIZE, steps=TESTING_STEPS)
-    print(predictions.shape)
+    predictions = predictions[:TESTING_SIZE]
     end = datetime.datetime.now()
     total_time = end - start
     hours, seconds = divmod(total_time.seconds, 3600)
@@ -193,6 +197,7 @@ with strategy.scope():
             break
     
     # convert integers to one hot vectors
+    test_true_classes_int = test_true_classes_int[:TESTING_SIZE]
     test_true_classes_vec = to_categorical(test_true_classes_int, num_classes=NUM_CLASSES)
     print(f'test: {len(test_true_classes_int)} - {len(test_true_classes_vec)} - {len(predictions)} - {len(predicted_classes)}')
 
@@ -200,10 +205,10 @@ with strategy.scope():
     for j in range(len(test_true_classes_int)):
         test_dict_classes[test_true_classes_int[j]] += 1
 
-    create_barplot_testing(test_dict_classes, os.path.join(input_path, f'data-barplots-testing'), class_mapping)
+    create_barplot_testing(test_dict_classes, os.path.join(output_path, f'data-barplots-testing'), class_mapping)
  
     list_labels = [class_mapping[str(i)] for i in range(len(class_mapping))]
     # get precision and recall for each class
-    metrics_report(test_true_classes_int, predicted_classes, list_labels, input_path, class_mapping, epoch, path_to_data)
+    metrics_report(test_true_classes_int, predicted_classes, list_labels, output_path, class_mapping, epoch, path_to_data)
     # create ROC curves
-    ROCcurve(test_true_classes_vec, predictions, class_mapping, input_path, epoch, colors)
+    ROCcurve(test_dict_classes, test_true_classes_vec, predictions, class_mapping, output_path, epoch, colors)
