@@ -82,12 +82,9 @@ def learning_curves(history, filename):
         plt.axvline(x=xcoord, color='gray', linestyle='--')
     plt.savefig(f'{filename}', bbox_inches='tight')
 
-def ROCcurve(trueclasses, predictions, class_mapping, input_path, epoch, colors):
+def ROCcurve(test_dict_classes, trueclasses, predictions, class_mapping, output_path, epoch, colors):
     true_arr = np.asarray(trueclasses)
     pred_arr = np.asarray(predictions)
-    print(true_arr.shape, pred_arr.shape)
-    print(true_arr)
-    print(pred_arr)
     fpr = {}
     tpr = {}
     roc_auc = {}
@@ -98,12 +95,17 @@ def ROCcurve(trueclasses, predictions, class_mapping, input_path, epoch, colors)
 
     J_stats = [None] * len(class_mapping)
     opt_thresholds = [None] * len(class_mapping)
+    f = open(os.path.join(output_path, f'decision_thresholds_epoch{epoch}'), 'w')
     # Compute Youden's J statistics for each species
     for i in range(len(class_mapping)):
-        J_stats[i] = tpr[i] - fpr[i]
-        opt_thresholds[i] = thresholds[i][np.argmax(J_stats[i])]
-        # print('Optimum threshold for class {0}: {1}'.format(class_mapping[str(i)], opt_thresholds[i]))
-
+        if i in test_dict_classes:
+            J_stats[i] = tpr[i] - fpr[i]
+            jstat_max_index = np.argmax(J_stats[i])
+            opt_thresholds[i] = thresholds[i][jstat_max_index]
+            jstat_decision_threshold = round(J_stats[i][jstat_max_index], 2)
+            f.write(f'{i}\t{class_mapping[str(i)]}\t{jstat_decision_threshold}\n')
+        else:
+            f.write(f'{i}\t{class_mapping[str(i)]}\t0.5\n')
     # Compute micro-average ROC curve and ROC area
     fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
@@ -141,13 +143,13 @@ def ROCcurve(trueclasses, predictions, class_mapping, input_path, epoch, colors)
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     #plt.legend(loc=(0, -.6), prop=dict(size=9))
-    plt.savefig(os.path.join(input_path, f'ROCcurves_epoch_{epoch}.png'),bbox_inches='tight')
+    plt.savefig(os.path.join(output_path, f'ROCcurves_epoch_{epoch}.png'),bbox_inches='tight')
     figlegend = plt.figure()
     plt.figlegend(*ax.get_legend_handles_labels())
-    figlegend.savefig(os.path.join(input_path, f'ROCcurves_Legend_epoch_{epoch}.png'), bbox_inches='tight')
+    figlegend.savefig(os.path.join(output_path, f'ROCcurves_Legend_epoch_{epoch}.png'), bbox_inches='tight')
 
 
-def confusion_matrix(test_true_classes_int, predicted_classes, list_labels, input_path, class_mapping, epoch):
+def confusion_matrix(test_true_classes_int, predicted_classes, list_labels, output_path, class_mapping, epoch):
     num_classes = len(list_labels)
     # create empty confusion matrix with rows = true classes and columns = predicted classes
     cm = np.zeros((num_classes, num_classes))
@@ -161,7 +163,7 @@ def confusion_matrix(test_true_classes_int, predicted_classes, list_labels, inpu
         else:
             num_incorrect_pred += 1
 
-    with open(os.path.join(input_path, f'confusion_matrix_epoch{epoch}'), 'w') as f:
+    with open(os.path.join(output_path, f'confusion_matrix_epoch{epoch}'), 'w') as f:
         for i in range(num_classes):
             f.write(f'\t{class_mapping[str(i)]}')
         f.write('\n')
@@ -175,9 +177,9 @@ def confusion_matrix(test_true_classes_int, predicted_classes, list_labels, inpu
     return cm, accuracy
 
 
-def create_summary_report(dict_results, class_mapping, input_path, epoch, metric, train_records, val_records):
+def create_summary_report(dict_results, class_mapping, output_path, epoch, metric, train_records, val_records):
     # create file to store the report
-    f = open(os.path.join(input_path, f'summary_report_{metric}_epoch_{epoch}'), 'w')
+    f = open(os.path.join(output_path, f'summary_report_{metric}_epoch_{epoch}'), 'w')
     # sort dictionary based on values
     sorted_dict = {k: v for k, v in sorted(dict_results.items(), key=lambda item: item[1])}
     print(sorted_dict)
@@ -188,13 +190,13 @@ def create_summary_report(dict_results, class_mapping, input_path, epoch, metric
         f.write(f'{class_mapping[str(key)]}\t{value}\t{train_num_reads}\t{val_num_reads}\n')
     f.close()
 
-def metrics_report(test_true_classes_int, predicted_classes, list_labels, input_path, class_mapping, epoch, path_to_data):
+def metrics_report(test_true_classes_int, predicted_classes, list_labels, output_path, class_mapping, epoch, path_to_data):
     """ precision = True Positives / (True Positives + False Positives) """
     """ recall = True Positives / (True Positives + False Negatives) """
     list_all_labels = list(range(len(list_labels)))
     # get confusion matrix
     cm, accuracy = confusion_matrix(test_true_classes_int, predicted_classes, list_labels, input_path, class_mapping, epoch)
-    f = open(os.path.join(input_path, f'classification_report_epoch{epoch}'), 'w') 
+    f = open(os.path.join(output_path, f'classification_report_epoch{epoch}'), 'w') 
     f.write('species\tprecision\trecall\tnumber\n')
     dict_precision = {}
     dict_recall = {}
@@ -220,5 +222,5 @@ def metrics_report(test_true_classes_int, predicted_classes, list_labels, input_
     train_records = [record.id.split('|')[1] for record in SeqIO.parse(os.path.join(path_to_data, 'training_data_fold0.fq'), 'fastq')]
     val_records = [record.id.split('|')[1] for record in SeqIO.parse(os.path.join(path_to_data, 'validation_data_fold0.fq'), 'fastq')]
     # sort species according to precision and recall and report number of reads in training set
-    create_summary_report(dict_recall, class_mapping, input_path, epoch, 'recall', train_records, val_records)
-    create_summary_report(dict_precision, class_mapping, input_path, epoch, 'precision', train_records, val_records)
+    create_summary_report(dict_recall, class_mapping, output_path, epoch, 'recall', train_records, val_records)
+    create_summary_report(dict_precision, class_mapping, output_path, epoch, 'precision', train_records, val_records)
