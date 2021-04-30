@@ -31,12 +31,14 @@ def summarize_cs(args, class_conf_scores_R1, class_conf_scores_R2):
                 f'standard deviation rv: {np.std(class_conf_scores_R2[class_id])}\n')
 
     taxa = [args.class_mapping[str(i)] for i in range(len(args.class_mapping))]
-    conf_scores_R1 = [np.mean(class_conf_scores_R1[str(i)]) for i in range(len(args.class_mapping)) if len(class_conf_scores_R1[str(i)]) != 0]
-    conf_scores_R2 = [np.mean(class_conf_scores_R2[str(i)]) for i in range(len(args.class_mapping)) if len(class_conf_scores_R2[str(i)]) != 0]
+    conf_scores_R1 = [np.mean(class_conf_scores_R1[str(i)]) if len(class_conf_scores_R1[str(i)]) != 0 else 0 for i in range(len(args.class_mapping))]
+    conf_scores_R2 = [np.mean(class_conf_scores_R2[str(i)]) if len(class_conf_scores_R2[str(i)]) != 0 else 0 for i in range(len(args.class_mapping))]
     x_pos = np.arange(len(taxa))
     width = 0.35
-    print(x_pos)
-    print(taxa)
+    print(f'size x_pos: {len(x_pos)}')
+    print(f'size taxa: {len(taxa)}')
+    print(f'size r1: {len(conf_scores_R1)}')
+    print(f'size r2: {len(conf_scores_R2)}')
     plt.clf()
     fig, ax = plt.subplots(figsize=(18, 15))
     ax.bar(x_pos - width/2, conf_scores_R1, width, color='lightcoral', label='forward')
@@ -97,14 +99,12 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
         read_id = fw_read_ids[i]
         fw_pred_class = str(fw_predicted_classes[i])
         if fw_dict_conf_scores[read_id] >= decision_thresholds[fw_pred_class]:
-            print(fw_pred_class, decision_thresholds[fw_pred_class], fw_dict_conf_scores[read_id])
             dict_reads_R1[fw_pred_class].append(read_id)
             
     for i in range(len(rv_predicted_classes)):
         read_id = rv_read_ids[i]
         rv_pred_class = str(rv_predicted_classes[i])
         if rv_dict_conf_scores[read_id] >= decision_thresholds[rv_pred_class]:
-            print(rv_pred_class, decision_thresholds[rv_pred_class], rv_dict_conf_scores[read_id])
             dict_reads_R2[rv_pred_class].append(read_id)
     
     class_conf_scores_R1 = {}    # {class id: list of confidence scores of forward reads}
@@ -147,9 +147,14 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
         conf_scores_R2 += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
         # create fastq files
         generate_fastq_files(args, class_id, list_records_unpaired_reads, 'unpaired')
+        # compute relative abundance
+        ra = round((len(fw_reads)+len(rv_reads)+len(reads_in_pairs))/(len(fw_read_ids) + len(rv_read_ids)), 3)
         # summarize results
         with open(os.path.join(args.output_path, f'sample_{args.sample}_model{args.model_num}_epoch{args.epoch_num}_classification_summary'), 'a') as f:
-            f.write(f'{class_id}\t{class_name}\tpairs: {len(reads_in_pairs)}\tfw unpaired: {len(fw_reads)}\trv unpaired: {len(rv_reads)}\t{len(dict_reads_R1[class_id])+len(dict_reads_R2[class_id])}\n')
+            f.write(f'{class_id}\t{class_name}\tpairs: {len(reads_in_pairs)}\tfw unpaired: {len(fw_reads)}\trv unpaired: {len(rv_reads)}\treads classified: {len(dict_reads_R1[class_id])+len(dict_reads_R2[class_id])}\trelative abundance: {ra}\n')
+        if len(dict_reads_R1[class_id]) + len(dict_reads_R2[class_id]) >= args.min_num_reads:
+            with open(os.path.join(args.output_path, f'list_bins'), 'a') as f:
+                f.write(f'{class_id}\n')
 
     # create histogram for confidence scores
     histogram(args, conf_scores_R1, conf_scores_R2)
@@ -163,4 +168,4 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
     print(f'total unclassified: {len(fw_read_ids) + len(rv_read_ids) - len(conf_scores_R1) - len(conf_scores_R2)}')
 
     with open(os.path.join(args.output_path, f'sample_{args.sample}_model{args.model_num}_epoch{args.epoch_num}_classification_summary'), 'a') as f:
-        f.write(f'total reads: {len(fw_read_ids) + len(rv_read_ids)}\tunclassified reads: {len(fw_read_ids) + len(rv_read_ids) - 2*num_classified_reads - num_classified_fw_unpaired_reads - num_classified_rv_unpaired_reads}\tclassified fw unpaired: {num_classified_fw_unpaired_reads}\tclassified rv unpaired: {num_classified_rv_unpaired_reads}\tclassified pairs of reads: {num_classified_reads}')
+        f.write(f'total reads: {len(fw_read_ids) + len(rv_read_ids)}\tunclassified reads: {len(fw_read_ids) + len(rv_read_ids) - 2*num_classified_paired_reads - num_classified_fw_unpaired_reads - num_classified_rv_unpaired_reads}\tclassified fw unpaired: {num_classified_fw_unpaired_reads}\tclassified rv unpaired: {num_classified_rv_unpaired_reads}\tclassified pairs of reads: {num_classified_paired_reads}')
