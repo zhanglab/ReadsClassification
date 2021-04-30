@@ -44,6 +44,7 @@ parser.add_argument('--path_to_sample', type=str, help="Path to tfrecords of met
 parser.add_argument('--k_value', type=int, help="k value", default=12)
 parser.add_argument('--read_length', type=int, help="read length", default=250)
 parser.add_argument('--read_id_ms', type=int, help="read ids max size")
+parser.add_argument('--decision_thresholds', type=str, help="path to filename containing list of decision thresholds per class")
 parser.add_argument('--gpus', type=int, help="number of gpus", default=1)
 args = parser.parse_args()
 
