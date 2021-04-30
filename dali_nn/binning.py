@@ -78,23 +78,34 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
 
     dict_reads_R1 = defaultdict(list)   # {predicted class: list read ids forward reads}
     dict_reads_R2 = defaultdict(list)   # {predicted class: list read ids reverse reads}
-    print(f'threshold: {args.threshold}')
+    
     # retrieve records
     records_R1 = {record.id.split(' ')[0]: record for record in
                   SeqIO.parse(os.path.join(args.path_to_sample, 'fastq', f'{args.sample}_R1.fq'), 'fastq')}
     records_R2 = {record.id.split(' ')[0]: record for record in
                   SeqIO.parse(os.path.join(args.path_to_sample, 'fastq', f'{args.sample}_R2.fq'), 'fastq')}
     
-    # sort reads based on the class they were assigned to
+    # load decision thresholds
+    decision_thresholds = {}
+    with open(args.decision_thresholds, 'r') as f:
+        for line in f:
+            line = line.rstrip().split('\t')
+            decision_thresholds[line[0]] = float(line[2])
+
+    # sort reads based on their predicted class
     for i in range(len(fw_predicted_classes)):
         read_id = fw_read_ids[i]
-        if fw_dict_conf_scores[read_id] >= float(args.threshold):
-            dict_reads_R1[str(fw_predicted_classes[i])].append(read_id)
+        fw_pred_class = str(fw_predicted_classes[i])
+        if fw_dict_conf_scores[read_id] >= decision_thresholds[fw_pred_class]:
+            print(fw_pred_class, decision_thresholds[fw_pred_class], fw_dict_conf_scores[read_id])
+            dict_reads_R1[fw_pred_class].append(read_id)
             
     for i in range(len(rv_predicted_classes)):
         read_id = rv_read_ids[i]
-        if rv_dict_conf_scores[read_id] >= float(args.threshold):
-            dict_reads_R2[str(rv_predicted_classes[i])].append(read_id)
+        rv_pred_class = str(rv_predicted_classes[i])
+        if rv_dict_conf_scores[read_id] >= decision_thresholds[rv_pred_class]:
+            print(rv_pred_class, decision_thresholds[rv_pred_class], rv_dict_conf_scores[read_id])
+            dict_reads_R2[rv_pred_class].append(read_id)
     
     class_conf_scores_R1 = {}    # {class id: list of confidence scores of forward reads}
     class_conf_scores_R2 = {}  # {class id: list of confidence scores of reverse reads}
