@@ -141,7 +141,7 @@ strategy = tf.distribute.MirroredStrategy(devices=[dict_gpus[str(NUM_DEVICES)]])
 
 with strategy.scope():
     # load model
-    model = tf.keras.models.load_model(model)
+    model = tf.keras.models.load_model(model_path)
     print('model loaded')
 
     def test_dataset_fn(input_context):
