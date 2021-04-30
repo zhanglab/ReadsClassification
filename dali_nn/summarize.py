@@ -32,7 +32,7 @@ def create_barplot_training(train_data, val_data, filename, class_mapping):
 
 def create_barplot_testing(test_data, filename, class_mapping):
     list_taxa = [class_mapping[str(i)] for i in range(len(class_mapping))]
-    new_test_data = [test_data[i] for i in range(len(list_taxa))]
+    new_test_data = [test_data[i] if i in test_data else 0 for i in range(len(list_taxa))]
     x_pos = np.arange(0, len(list_taxa) * 2, 2)
     width = 0.5
 
@@ -195,7 +195,7 @@ def metrics_report(test_true_classes_int, predicted_classes, list_labels, output
     """ recall = True Positives / (True Positives + False Negatives) """
     list_all_labels = list(range(len(list_labels)))
     # get confusion matrix
-    cm, accuracy = confusion_matrix(test_true_classes_int, predicted_classes, list_labels, input_path, class_mapping, epoch)
+    cm, accuracy = confusion_matrix(test_true_classes_int, predicted_classes, list_labels, output_path, class_mapping, epoch)
     f = open(os.path.join(output_path, f'classification_report_epoch{epoch}'), 'w') 
     f.write('species\tprecision\trecall\tnumber\n')
     dict_precision = {}
