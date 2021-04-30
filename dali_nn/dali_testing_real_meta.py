@@ -46,11 +46,15 @@ parser.add_argument('--read_length', type=int, help="read length", default=250)
 parser.add_argument('--read_id_ms', type=int, help="read ids max size")
 parser.add_argument('--decision_thresholds', type=str, help="path to filename containing list of decision thresholds per class")
 parser.add_argument('--gpus', type=int, help="number of gpus", default=1)
+parser.add_argument('--min_num_reads', type=int, help="minimum number of reads in a bin to send it for analysis", default=500)
 args = parser.parse_args()
 
 args.model_num = int(args.model.split('/')[-2][-1])
 args.epoch_num = int(args.model.split('/')[-1].split('-')[1]) + 1
-args.output_path = os.path.join(args.input_path, f'model{args.model_num}')
+args.output_path = os.path.join(args.input_path, f'model{args.model_num}', f'{sample}_classification_model{args.model_num}')
+
+if not os.path.isdir(output_path):
+    os.makedirs(output_path)
 
 f = open(os.path.join(args.input_path, 'class_mapping.json'))
 args.class_mapping = json.load(f)
