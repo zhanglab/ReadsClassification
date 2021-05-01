@@ -6,7 +6,7 @@ import nvidia.dali.plugin.tf as dali_tf
 import nvidia.dali.tfrecord as tfrec
 
 import tensorflow as tf
-#from tensorflow_addons.optimizers import CyclicalLearningRate
+from tensorflow_addons.optimizers import CyclicalLearningRate
 #from tensorflow import keras
 #from tf.keras.callbacks import TensorBoard
 
@@ -215,23 +215,23 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
         # triangular 2 that scales initial amplitude by half with each cycle: lambda x:1 / (2.0 ** (x - 1))
         # exponential range that scales initial amplitude by gamma to the power of the cycle iterations with each cycle: lambda x: gamma ** x
 
-#        cyclical_learning_rate = CyclicalLearningRate(
-#                initial_learning_rate=1e-7,
-#                maximal_learning_rate=1e-3,
-#                step_size=TRAINING_STEPS*2,
-#                scale_fn=lambda x:1 / (2.0 ** (x - 1)),
-#                scale_mode='cycle')
+        cyclical_learning_rate = CyclicalLearningRate(
+                initial_learning_rate=1e-7,
+                maximal_learning_rate=1e-3,
+                step_size=TRAINING_STEPS*2,
+                scale_fn=lambda x:1 / (2.0 ** (x - 1)),
+                scale_mode='cycle')
         
-#        model.compile(
-#           optimizer=tf.keras.optimizers.Adam(learning_rate=cyclical_learning_rate),
-#           loss='sparse_categorical_crossentropy',
-#           metrics=['accuracy'])
-
-
         model.compile(
-           optimizer='adam',
+           optimizer=tf.keras.optimizers.Adam(learning_rate=cyclical_learning_rate),
            loss='sparse_categorical_crossentropy',
            metrics=['accuracy'])
+
+
+#        model.compile(
+#           optimizer='adam',
+#           loss='sparse_categorical_crossentropy',
+#           metrics=['accuracy'])
 
         # only write down summary of model once
         with open(os.path.join(full_input_path, 'model'), 'w+') as model_file:
