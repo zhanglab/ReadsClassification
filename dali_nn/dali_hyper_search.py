@@ -8,7 +8,10 @@ import nvidia.dali.tfrecord as tfrec
 import tensorflow as tf
 from tensorflow import keras
 from tensorboard.plugins.hparams import api as hp
+from keras.callbacks import TensorBoard
 
+from glob import glob
+import argparse
 import numpy as np
 import json
 from collections import defaultdict
@@ -17,6 +20,8 @@ import sys
 import io
 import math
 import datetime
+
+from summarize import learning_curves
 
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 print(f'TF version: {tf.__version__}')
@@ -30,57 +35,13 @@ print(sys_details)
 print("NCCL DEBUG SET")
 os.environ["NCCL_DEBUG"] = "WARN"
 
-
-
-FOLD = int(sys.argv[1])
-input_path = str(sys.argv[2])
-tfrecords_path = str(sys.argv[3])
-
-f = open(os.path.join(input_path, 'class_mapping.json'))
-class_mapping = json.load(f)
-
-K_VALUE = 12
-READ_LENGTH = 250
-NUM_CLASSES = len(class_mapping)
-NUM_DEVICES = 4  # number of GPUs
-#BATCH_SIZE = 256  # batch size per GPU
-#GLOBAL_BATCH_SIZE = NUM_DEVICES*BATCH_SIZE
-VOCAB_SIZE = 8390658
-EPOCHS = 50
-EMBEDDING_SIZE = 60
-VECTOR_SIZE = READ_LENGTH - K_VALUE + 1
-TRAINING_SIZE = 5725889
-VALIDATION_SIZE = 1431327
-STEPS_PER_EPOCH = math.ceil(TRAINING_SIZE / GLOBAL_BATCH_SIZE)
-VALIDATION_STEPS = math.ceil(VALIDATION_SIZE / GLOBAL_BATCH_SIZE)
-
 # setup hyperparameters to experiment
 HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([32, 64, 128, 256]))
-HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.4, 0.5, 0.6))
-HP_OPTIMIZER = hp.HParam('optimizer', hp.Discrete(['adam', 'sgd', 'rmsprop']))
+HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.5, 0.6))
+HP_EMBEDDING_SIZE = hp.HParam('embedding_size', hp.Discrete([20, 60, 100]))
+#HP_OPTIMIZER = hp.HParam('optimizer', hp.Discrete(['adam', 'sgd', 'rmsprop']))
 
 METRIC_ACCURACY = 'accuracy'
-
-with tf.summary.create_file_writer(os.path.join(input_path, 'logs/hparam_tuning')).as_default():
-    hp.hparams_config(
-        hparams=[HP_DROPOUT, HP_OPTIMIZER, HP_BATCH_SIZE],
-        metrics=[hp.Metric(METRIC_ACCURACY, display_name='Accuracy')],
-    )
-
-train_tfrecord = os.path.join(tfrecords_path, f'training_data_fold{FOLD}.tfrec')
-train_tfrecord_idx = os.path.join(tfrecords_path, f'idx_files/training_data_fold{FOLD}.tfrec.idx')
-val_tfrecord = os.path.join(tfrecords_path, f'validation_data_fold{FOLD}.tfrec')
-val_tfrecord_idx = os.path.join(tfrecords_path, f'idx_files/validation_data_fold{FOLD}.tfrec.idx')
-
-# write down settings for training
-f = open(os.path.join(input_path, f'cross-validation-info-fold{FOLD}'), 'w')
-f.write(f'Training of model with fold # {FOLD}\n'
-        f'batch size: {BATCH_SIZE}\n'
-        f'global batch size: {GLOBAL_BATCH_SIZE}\nsteps per epoch: {STEPS_PER_EPOCH}\nvalidation steps: {VALIDATION_STEPS}\n'
-        f'reads in training set: {TRAINING_SIZE}\nreads in validation set: {VALIDATION_SIZE}\n'
-        f'read length: {READ_LENGTH}\nk value: {K_VALUE}\nnumber of devices: {NUM_DEVICES}\nnumber of classes: {NUM_CLASSES}\n'
-        f'embedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nnumber of kmers: {VOCAB_SIZE}\ninput size: {VECTOR_SIZE}\n')
-
 
 # get list of all visible GPUs
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -110,6 +71,17 @@ class LRTensorBoard(TensorBoard):
         logs = logs or {}
         logs.update({'lr': K.eval(self.model.optimizer.lr)})
         super().on_epoch_end(epoch, logs)
+
+
+class CreateCheckpoints(tf.keras.callbacks.Callback):
+    """ save model at the end of every epoch """
+    def __init__(self, ckpts_dir):
+        super(CreateCheckpoints, self).__init__()
+        self.ckpts_dir = ckpts_dir
+
+    def on_epoch_end(self, epoch, logs=None):
+        #if epoch % 5 == 0 or epoch + 1 == EPOCHS:
+        self.model.save(self.ckpts_dir + f'epoch-{epoch}')
 
 class EarlyStoppingAtMinLoss(keras.callbacks.Callback):
     """Stop training when the validation loss is at its min, i.e. the validation loss stops decreasing.
@@ -155,6 +127,14 @@ class EarlyStoppingAtMinLoss(keras.callbacks.Callback):
         if self.stopped_epoch > 0:
             print("Epoch %05d: early stopping" % (self.stopped_epoch + 1))
 
+def scheduler(epoch, lr):
+    """ learning rate scheduler """
+    if epoch % 10 == 0 and epoch != 0:
+        print(f'epoch when changing lr: {epoch}')
+        lr = lr / 2
+        return lr
+    else:
+        return lr
 
 class TFRecordPipeline(Pipeline):
     def __init__(self, batch_size, tfrecord, tfrecord_idx, device_id=0, shard_id=0, num_shards=1, num_threads=4,
@@ -173,14 +153,14 @@ class TFRecordPipeline(Pipeline):
         return (reads, labels)
 
 
-def train_test_model(hparams, strategy):
+def train_test_model(args, ckpts_dir, lc_filename, hparams, strategy):
     # Define model to train: AlexNet
     model = tf.keras.models.Sequential(
         [
-            tf.keras.layers.Input(shape=(VECTOR_SIZE), dtype='int32'),
-            tf.keras.layers.Embedding(input_dim=VOCAB_SIZE + 1, output_dim=EMBEDDING_SIZE,
-                                      input_length=VECTOR_SIZE, mask_zero=True, trainable=True),
-            tf.keras.layers.Reshape((VECTOR_SIZE, EMBEDDING_SIZE, 1)),
+            tf.keras.layers.Input(shape=(args.vector_size), dtype='int32'),
+            tf.keras.layers.Embedding(input_dim=args.vocab_size + 1, output_dim=hparams[HP_EMBEDDING_SIZE],
+                                      input_length=args.vector_size, mask_zero=True, trainable=True),
+            tf.keras.layers.Reshape((args.vector_size, hparams[HP_EMBEDDING_SIZE], 1)),
             tf.keras.layers.Conv2D(96, kernel_size=(11, 11), strides=(4, 4), padding='same'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Activation('relu'),
@@ -212,18 +192,18 @@ def train_test_model(hparams, strategy):
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Activation('relu'),
             tf.keras.layers.Dropout(hparams[HP_DROPOUT]),
-            tf.keras.layers.Dense(NUM_CLASSES),
+            tf.keras.layers.Dense(args.num_classes),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Activation('softmax'),
         ]
     )
 
     model.compile(loss='sparse_categorical_crossentropy', metrics=['accuracy'],
-                  optimizer=hparams[HP_OPTIMIZER])
+                  optimizer='adam')
 
     # define shapes and types of data and labels
     shapes = (
-        (hparams[HP_BATCH_SIZE], VECTOR_SIZE),
+        (hparams[HP_BATCH_SIZE], args.vector_size),
         (hparams[HP_BATCH_SIZE]))
     dtypes = (
         tf.int64,
@@ -234,9 +214,9 @@ def train_test_model(hparams, strategy):
         with tf.device("/gpu:{}".format(input_context.input_pipeline_id)):
             device_id = input_context.input_pipeline_id
             return dali_tf.DALIDataset(fail_on_device_mismatch=False,
-                                       pipeline=TFRecordPipeline(hparams[HP_BATCH_SIZE], train_tfrecord, train_tfrecord_idx,
+                                       pipeline=TFRecordPipeline(hparams[HP_BATCH_SIZE], args.train_tfrecord, args.train_tfrecord_idx,
                                                                  device_id=device_id, shard_id=device_id,
-                                                                 num_shards=NUM_DEVICES),
+                                                                 num_shards=args.gpus),
                                        batch_size=hparams[HP_BATCH_SIZE], output_shapes=shapes, output_dtypes=dtypes,
                                        device_id=device_id)
 
@@ -244,9 +224,9 @@ def train_test_model(hparams, strategy):
         with tf.device("/gpu:{}".format(input_context.input_pipeline_id)):
             device_id = input_context.input_pipeline_id
             return dali_tf.DALIDataset(fail_on_device_mismatch=False,
-                                       pipeline=TFRecordPipeline(hparams[HP_BATCH_SIZE], val_tfrecord, val_tfrecord_idx,
+                                       pipeline=TFRecordPipeline(hparams[HP_BATCH_SIZE], args.val_tfrecord, args.val_tfrecord_idx,
                                                                  device_id=device_id, shard_id=device_id,
-                                                                 num_shards=NUM_DEVICES),
+                                                                 num_shards=args.gpus),
                                        batch_size=hparams[HP_BATCH_SIZE], output_shapes=shapes, output_dtypes=dtypes,
                                        device_id=device_id)
 
@@ -259,45 +239,118 @@ def train_test_model(hparams, strategy):
     train_dataset = strategy.distribute_datasets_from_function(train_dataset_fn, input_options)
     val_dataset = strategy.distribute_datasets_from_function(val_dataset_fn, input_options)
 
-    model.fit(train_dataset, epochs=EPOCHS, steps_per_epoch=STEPS_PER_EPOCH,
-                       callbacks=[EarlyStoppingAtMinLoss(), LRTensorBoard(log_dir=os.path.join(input_path, f'logs-fold{FOLD}')),
-                                  hp.KerasCallback(os.path.join(input_path, f'logs-fold{FOLD}-hparams'), hparams)])
-    _, accuracy = model.evaluate(val_dataset, validation_steps=VALIDATION_STEPS)
+    if args.early_stopping == 'true':
+        history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.validation_steps, verbose=2,
+                                callbacks=[tf.keras.callbacks.LearningRateScheduler(scheduler), CreateCheckpoints(ckpts_dir),
+                                           hp.KerasCallback(os.path.join(args.full_input_path, f'logs-fold{args.fold}-hparams'), hparams), EarlyStoppingAtMinLoss()])
+
+    elif args.early_stopping == 'false':
+        history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.training_steps, verbose=2,
+                                callbacks=[CreateCheckpoints(ckpts_dir),tf.keras.callbacks.LearningRateScheduler(scheduler),
+                                  hp.KerasCallback(os.path.join(args.full_input_path, f'logs-fold{args.fold}-hparams'), hparams)])
+
+    _, accuracy = model.evaluate(val_dataset, validation_steps=args.validation_steps)
+
+    # create learning curves
+    learning_curves(history, lc_filename)
+
     return accuracy
 
-def run(run_dir, hparams, strategy):
+
+def run(args, run_dir, ckpts_dir, lc_filename, hparams, strategy):
     with tf.summary.create_file_writer(run_dir).as_default():
         hp.hparams(hparams)  # record the values used in this trial
-        accuracy = train_test_model(hparams, strategy)
+        accuracy = train_test_model(args, ckpts_dir, lc_filename, hparams, strategy)
         tf.summary.scalar(METRIC_ACCURACY, accuracy, step=1)
 
 if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_path', type=str, help="Path to input directory to store results", required=True)
+    parser.add_argument('--type', type=str, help="cross-validation or training with complete data", choices=['cv', 'standard'], default='standard')
+    parser.add_argument('--fold', type=int, help="fold of dataset if in cross validation mode", required=('cv' in sys.argv))
+    parser.add_argument('--epochs', type=int, help="number of epochs of training", default=50)
+    parser.add_argument('--early_stopping', type=str, help="implement early stopping or not", choices=['true', 'false'], default='false')
+    parser.add_argument('--gpus', type=int, help="number of gpus", default=2)
+    parser.add_argument('--training_size', type=int, help="number of reads in training set", required=True)
+    parser.add_argument('--validation_size', type=int, help="number of reads in validation set", required=True)
+
+    args = parser.parse_args()
+
+    #get number of hyperparameters search runs
+    model_num = 1 + len(glob(os.path.join(args.input_path, 'hp*')))
+    args.full_input_path = os.path.join(args.input_path, f'hp{model_num}')
+    if not os.path.exists(args.full_input_path):
+        os.makedirs(args.full_input_path)
+
+    f = open(os.path.join(args.input_path, 'class_mapping.json'))
+    class_mapping = json.load(f)
+
+    K_VALUE = 12
+    READ_LENGTH = 250
+    args.num_classes = len(class_mapping)
+    NUM_DEVICES = args.gpus  # number of GPUs
+    args.vocab_size = 8390658
+    args.vector_size = READ_LENGTH - K_VALUE + 1
+
+    args.train_tfrecord = os.path.join(args.input_path, 'tfrecords', f'training_data_fold{args.fold}.tfrec')
+    args.train_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/training_data_fold{args.fold}.tfrec.idx')
+    args.val_tfrecord = os.path.join(args.input_path, 'tfrecords', f'validation_data_fold{args.fold}.tfrec')
+    args.val_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/validation_data_fold{args.fold}.tfrec.idx')
+
+    # write down settings for training
+    f = open(os.path.join(args.full_input_path, f'HP-info-cv-fold{args.fold}'), 'w')
+    f.write(f'reads in training set: {args.training_size}\nreads in validation set: {args.validation_size}\n'
+        f'read length: {READ_LENGTH}\nk value: {K_VALUE}\nnumber of devices: {NUM_DEVICES}\nnumber of classes: {args.num_classes}\n'
+        f'number of kmers: {args.vocab_size}\ninput size: {args.vector_size}\n')
+
+    with tf.summary.create_file_writer(os.path.join(args.full_input_path, 'logs/hparam_tuning')).as_default():
+        hp.hparams_config(
+            hparams=[HP_DROPOUT, HP_EMBEDDING_SIZE, HP_BATCH_SIZE],
+            metrics=[hp.Metric(METRIC_ACCURACY, display_name='Accuracy')],
+        )   
+
     print("Fit model on training data")
-    start = datetime.datetime.now()
     # create an instance of strategy to perform synchronous training across multiple gpus
-    strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
+    strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
+    #strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
     session_num = 0
     with strategy.scope():
         for batch_size in HP_BATCH_SIZE.domain.values:
             for dropout_rate in (HP_DROPOUT.domain.min_value, HP_DROPOUT.domain.max_value):
-                for optimizer in HP_OPTIMIZER.domain.values:
+                for optimizer in HP_EMBEDDING_SIZE.domain.values:
                     hparams  = {
                         HP_BATCH_SIZE: batch_size,
                         HP_DROPOUT: dropout_rate,
-                        HP_OPTIMIZER: optimizer
+                        HP_EMBEDDING_SIZE: optimizer
                     }
                     tf.compat.v1.reset_default_graph()
                     start = datetime.datetime.now()
                     run_name = "run-%d" % session_num
+
+                    CKPTS_DIR = os.path.join(args.full_input_path, f'{run_name}', 'ckpts')
+                    LC_FILENAME = os.path.join(args.full_input_path, f'{run_name}', f'LearningCurves.png')
+                    
+                    GLOBAL_BATCH_SIZE = NUM_DEVICES * hparams[HP_BATCH_SIZE]
+                    args.training_steps = math.ceil(args.training_size / GLOBAL_BATCH_SIZE)
+                    args.validation_steps = math.ceil(args.validation_size / GLOBAL_BATCH_SIZE)
+
+                    f.write(f'Run {run_name}\n')
+                    for h in hparams:
+                        f.write(f'{h.name}:\t{hparams[h]}\n')
+                    f.write(f'global batch size: {GLOBAL_BATCH_SIZE}\n'
+                            f'training steps: {args.training_steps}\n'
+                            f'validation steps: {args.validation_steps}\n')
+                    
                     print(f'Starting trial: {run_name}')
                     print({h.name: hparams[h] for h in hparams})
-                    run(os.path.join(input_path, f'logs-fold{FOLD}/hparam_tuning', run_name), hparams, strategy)
+                    run(args, os.path.join(args.full_input_path, f'logs-fold{args.fold}/hparam_tuning', run_name), CKPTS_DIR, LC_FILENAME, hparams, strategy)
                     end = datetime.datetime.now()
                     total_time = end - start
                     hours, seconds = divmod(total_time.seconds, 3600)
                     minutes, seconds = divmod(seconds, 60)
                     print("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-                    f.write(f'runtime: {hours}:{minutes}:{seconds}.{total_time.microseconds}')
+                    f.write(f'runtime: {hours}:{minutes}:{seconds}.{total_time.microseconds}\n')
     f.close()
 
 
