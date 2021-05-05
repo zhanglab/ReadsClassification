@@ -154,6 +154,7 @@ with strategy.scope():
                                        batch_size=BATCH_SIZE, output_shapes=shapes, output_dtypes=dtypes,
                                        device_id=device_id)
 
+
     input_options = tf.distribute.InputOptions(
         experimental_place_dataset_on_device=True,
         experimental_prefetch_to_device=False,
