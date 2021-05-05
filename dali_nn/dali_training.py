@@ -7,8 +7,8 @@ import nvidia.dali.tfrecord as tfrec
 
 import tensorflow as tf
 from tensorflow_addons.optimizers import CyclicalLearningRate
-#from tensorflow import keras
-#from tf.keras.callbacks import TensorBoard
+from tensorflow import keras
+from keras.callbacks import TensorBoard
 
 import numpy as np
 import json
@@ -155,9 +155,9 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
             labels = labels.gpu()
             return (reads, labels)
 
+    dict_gpus = {'1': '/gpu:0', '2': '/gpu:0, /gpu:1', '3': '/gpu:0, /gpu:1, /gpu:2', '4': '/gpu:0, /gpu:1, /gpu:2, /gpu:3'}
     # create an instance of strategy to perform synchronous training across multiple gpus
-    #strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-    strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
+    strategy = tf.distribute.MirroredStrategy(devices=[dict_gpus[str(NUM_DEVICES)]])
     with strategy.scope():
         # Define model to train: AlexNet
         if args.model is not None:
@@ -215,23 +215,23 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
         # triangular 2 that scales initial amplitude by half with each cycle: lambda x:1 / (2.0 ** (x - 1))
         # exponential range that scales initial amplitude by gamma to the power of the cycle iterations with each cycle: lambda x: gamma ** x
 
-        cyclical_learning_rate = CyclicalLearningRate(
-                initial_learning_rate=1e-7,
-                maximal_learning_rate=1e-3,
-                step_size=TRAINING_STEPS*2,
-                scale_fn=lambda x:1 / (2.0 ** (x - 1)),
-                scale_mode='cycle')
+#        cyclical_learning_rate = CyclicalLearningRate(
+#                initial_learning_rate=1e-7,
+#                maximal_learning_rate=1e-3,
+#                step_size=TRAINING_STEPS*2,
+#                scale_fn=lambda x:1 / (2.0 ** (x - 1)),
+#                scale_mode='cycle')
         
-        model.compile(
-           optimizer=tf.keras.optimizers.Adam(learning_rate=cyclical_learning_rate),
-           loss='sparse_categorical_crossentropy',
-           metrics=['accuracy'])
-
-
 #        model.compile(
-#           optimizer='adam',
+#           optimizer=tf.keras.optimizers.Adam(learning_rate=cyclical_learning_rate),
 #           loss='sparse_categorical_crossentropy',
 #           metrics=['accuracy'])
+
+
+        model.compile(
+           optimizer='adam',
+           loss='sparse_categorical_crossentropy',
+           metrics=['accuracy'])
 
         # only write down summary of model once
         with open(os.path.join(full_input_path, 'model'), 'w+') as model_file:
@@ -269,7 +269,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
         elif args.early_stopping == 'false':
             history = model.fit(train_dataset, epochs=EPOCHS, steps_per_epoch=TRAINING_STEPS,
                                 validation_data=val_dataset, validation_steps=VALIDATION_STEPS, verbose=2,
-                                callbacks=[CreateCheckpoints()])
+                                callbacks=[tf.keras.callbacks.LearningRateScheduler(scheduler), CreateCheckpoints(), LRTensorBoard(log_dir=LR_LOGS_DIR)])
 
         # create learning curves
         learning_curves(history, LC_FILENAME)
@@ -342,7 +342,7 @@ def main():
     NUM_DEVICES = args.gpus  # number of GPUs
     BATCH_SIZE = args.batch_size  # batch size per GPU
     GLOBAL_BATCH_SIZE = NUM_DEVICES * BATCH_SIZE
-    VOCAB_SIZE = 8390658
+    VOCAB_SIZE = 8390657
     EPOCHS = args.epochs
     EMBEDDING_SIZE = 60
     DROPOUT_RATE = 0.5
