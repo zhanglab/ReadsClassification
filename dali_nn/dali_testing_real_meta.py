@@ -51,10 +51,10 @@ args = parser.parse_args()
 
 args.model_num = int(args.model.split('/')[-2][-1])
 args.epoch_num = int(args.model.split('/')[-1].split('-')[1]) + 1
-args.output_path = os.path.join(args.input_path, f'model{args.model_num}', f'{sample}_classification_model{args.model_num}_epoch{args.epoch_num}')
+args.output_path = os.path.join(args.input_path, f'model{args.model_num}', f'{args.sample}_classification_model{args.model_num}_epoch{args.epoch_num}')
 
-if not os.path.isdir(output_path):
-    os.makedirs(output_path)
+if not os.path.isdir(args.output_path):
+    os.makedirs(args.output_path)
 
 f = open(os.path.join(args.input_path, 'class_mapping.json'))
 args.class_mapping = json.load(f)
