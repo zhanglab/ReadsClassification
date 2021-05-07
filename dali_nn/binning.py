@@ -131,27 +131,41 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
         conf_scores_R1 += class_conf_scores_R1[class_id]
         conf_scores_R2 += class_conf_scores_R2[class_id]
         # create fastq files
-        generate_fastq_files(args, class_id, list_records_paired_reads_fw, 'fw_paired')
-        generate_fastq_files(args, class_id, list_records_paired_reads_rv, 'rv_paired')
+        #generate_fastq_files(args, class_id, list_records_paired_reads_fw, 'fw_paired')
+        #generate_fastq_files(args, class_id, list_records_paired_reads_rv, 'rv_paired')
         # get classified forward unpaired reads
         fw_reads = list(set_reads_R1.difference(set_reads_R2))
-        num_classified_fw_unpaired_reads += len(fw_reads)
-        list_records_unpaired_reads = [records_R1[read_id] for read_id in fw_reads]
-        class_conf_scores_R1[class_id] += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
-        conf_scores_R1 += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
+        #num_classified_fw_unpaired_reads += len(fw_reads)
+        #list_records_unpaired_reads = [records_R1[read_id] for read_id in fw_reads]
+        #class_conf_scores_R1[class_id] += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
+        #conf_scores_R1 += [fw_dict_conf_scores[read_id] for read_id in fw_reads]
+        # add reverse unclassified reads 
+        num_classified_paired_reads += len(fw_reads)
+        list_records_paired_reads_rv += [records_R2[read_id] for read_id in fw_reads]
+        class_conf_scores_R2[class_id] += [rv_dict_conf_scores[read_id] for read_id in fw_reads]
+        conf_scores_R2 += [rv_dict_conf_scores[read_id] for read_id in fw_reads]
         # get classified forward unpaired reads
         rv_reads = list(set_reads_R2.difference(set_reads_R1))
-        num_classified_rv_unpaired_reads += len(rv_reads)
-        list_records_unpaired_reads += [records_R2[read_id] for read_id in rv_reads]
-        class_conf_scores_R2[class_id] += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
-        conf_scores_R2 += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
+        #num_classified_rv_unpaired_reads += len(rv_reads)
+        #list_records_unpaired_reads += [records_R2[read_id] for read_id in rv_reads]
+        #class_conf_scores_R2[class_id] += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
+        #conf_scores_R2 += [rv_dict_conf_scores[read_id] for read_id in rv_reads]
+        # add forward unclassified reads
+        num_classified_paired_reads += len(rv_reads)
+        list_records_paired_reads_fw += [records_R1[read_id] for read_id in rv_reads]
+        class_conf_scores_R1[class_id] += [fw_dict_conf_scores[read_id] for read_id in rv_reads]
+        conf_scores_R1 += [fw_dict_conf_scores[read_id] for read_id in rv_reads]
         # create fastq files
-        generate_fastq_files(args, class_id, list_records_unpaired_reads, 'unpaired')
+        generate_fastq_files(args, class_id, list_records_paired_reads_fw, 'fw_paired')
+        generate_fastq_files(args, class_id, list_records_paired_reads_rv, 'rv_paired')
+        #generate_fastq_files(args, class_id, list_records_unpaired_reads, 'unpaired')
         # compute relative abundance
-        ra = round((len(fw_reads)+len(rv_reads)+len(reads_in_pairs))/(len(fw_read_ids) + len(rv_read_ids)), 3)
+        #ra = round((len(fw_reads)+len(rv_reads)+len(reads_in_pairs))/(len(fw_read_ids) + len(rv_read_ids)), 3)
+        ra = round((2*len(fw_reads)+2*len(rv_reads)+len(reads_in_pairs))/(len(fw_read_ids) + len(rv_read_ids)), 3)
         # summarize results
         with open(os.path.join(args.output_path, f'sample_{args.sample}_model{args.model_num}_epoch{args.epoch_num}_classification_summary'), 'a') as f:
-            f.write(f'{class_id}\t{class_name}\tpairs: {len(reads_in_pairs)}\tfw unpaired: {len(fw_reads)}\trv unpaired: {len(rv_reads)}\treads classified: {len(dict_reads_R1[class_id])+len(dict_reads_R2[class_id])}\trelative abundance: {ra}\n')
+            #f.write(f'{class_id}\t{class_name}\tpairs: {len(reads_in_pairs)}\tfw unpaired: {len(fw_reads)}\trv unpaired: {len(rv_reads)}\treads classified: {len(dict_reads_R1[class_id])+len(dict_reads_R2[class_id])}\trelative abundance: {ra}\n')
+            f.write(f'{class_id}\t{class_name}\treads classified: {len(reads_in_pairs) + 2*len(fw_reads) + 2*len(rv_reads)}\trelative abundance: {ra}\n')
         if len(dict_reads_R1[class_id]) + len(dict_reads_R2[class_id]) >= args.min_num_reads:
             with open(os.path.join(args.output_path, f'list_bins'), 'a') as f:
                 f.write(f'{class_id}\n')
@@ -160,12 +174,13 @@ def create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predict
     histogram(args, conf_scores_R1, conf_scores_R2)
     # create barplot with confidence scores stats for each class
     summarize_cs(args, class_conf_scores_R1, class_conf_scores_R2)
-    print(f'unpaired fw: {num_classified_fw_unpaired_reads}')
-    print(f'unpaired rv: {num_classified_rv_unpaired_reads}')
+    #print(f'unpaired fw: {num_classified_fw_unpaired_reads}')
+    #print(f'unpaired rv: {num_classified_rv_unpaired_reads}')
     print(f'paired: {num_classified_paired_reads}')
     print(f'total: {len(fw_read_ids) + len(rv_read_ids)}')
     print(f'total classified fw: {len(conf_scores_R1)}\ttotal classified rv:{len(conf_scores_R2)}')
     print(f'total unclassified: {len(fw_read_ids) + len(rv_read_ids) - len(conf_scores_R1) - len(conf_scores_R2)}')
 
     with open(os.path.join(args.output_path, f'sample_{args.sample}_model{args.model_num}_epoch{args.epoch_num}_classification_summary'), 'a') as f:
-        f.write(f'total reads: {len(fw_read_ids) + len(rv_read_ids)}\tunclassified reads: {len(fw_read_ids) + len(rv_read_ids) - 2*num_classified_paired_reads - num_classified_fw_unpaired_reads - num_classified_rv_unpaired_reads}\tclassified fw unpaired: {num_classified_fw_unpaired_reads}\tclassified rv unpaired: {num_classified_rv_unpaired_reads}\tclassified pairs of reads: {num_classified_paired_reads}')
+        #f.write(f'total reads: {len(fw_read_ids) + len(rv_read_ids)}\tunclassified reads: {len(fw_read_ids) + len(rv_read_ids) - 2*num_classified_paired_reads - num_classified_fw_unpaired_reads - num_classified_rv_unpaired_reads}\tclassified fw unpaired: {num_classified_fw_unpaired_reads}\tclassified rv unpaired: {num_classified_rv_unpaired_reads}\tclassified pairs of reads: {num_classified_paired_reads}')
+        f.write(f'total reads: {len(fw_read_ids) + len(rv_read_ids)}\tunclassified reads: {len(fw_read_ids) + len(rv_read_ids) - 2*num_classified_paired_reads}\tclassified pairs of reads: {num_classified_paired_reads}')
