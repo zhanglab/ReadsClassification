@@ -2,16 +2,17 @@ import json  # used to generate json
 import random  # needed to generate random numbers
 import re  # used to check characters
 from Bio import SeqIO  # used to parse fasta file
-import pandas as pd
 from collections import defaultdict  # used to create genome dictionary
+import pandas
 
 
 # This function takes a dictionary and makes it into json format
 
 
-def json_dict(dictionary):
-    with open("class_mapping.json", "w") as f:
+def json_dict(dictionary, filename):
+    with open(filename, "w") as f:
         json.dump(dictionary, f)
+    f.close()
 
 
 # This function will create a file to hold the number of mutations per ORF and number of mutations per genome
@@ -20,31 +21,38 @@ def json_dict(dictionary):
 def mutation_statistics(filename, string_to_file):
     with open(filename, 'w') as f:
         f.write(string_to_file)
-    filename.close()
+
 
 # This function will combine the species names in species.tsv with its accession_id
 
 
-def generate_datasets(genome_dict, label_dict, fastafile):
+def generate_datasets(genome_dict, label_dict, fastafile, codon_amino, amino_codon):
+    # load the genome fasta file (key = sequence id, value = sequence info
+    genome = {rec.id: list(rec.seq) for rec in SeqIO.parse(fastafile, 'fasta')}
+
     for species, label in label_dict.items():
-        # get accession ids for the species in label_dict
-        list_genomes = genome_dict[species]
-        # load the genome fasta file (key = sequence id, value = sequence info)
-        genome = {rec.id: list(rec.seq) for rec in SeqIO.parse(fastafile, 'fasta')}
+        # TODO: get accession ids for the species in label_dict
+
         # create dictionaries to store reverse and forward reads
         fw_read_dict = {}  # key = read id, value = read sequence
         rv_read_dict = {}  # key = read id, value = read sequence
         # create dictionaries to store fasta sequences of mutated sequences
-        dict_mutated_sequences = {}  # key = sequence id, value = mutated sequence
+        dict_mutated_sequences = defaultdict(list)  # key = sequence id, value = mutated sequence
         for sequence_id, sequence in genome.items():
             # call mutate function to mutate the sequence and generate reads
             # (add reads to dict_rev_reads and dict_fw_reads)
-            mutate(sequence, label, sequence_id)
-        print(genome)
+            print(f'progress {len(sequence)} {sequence_id}')
+            mut_seq, mut_stats = mutate(sequence, label, sequence_id, codon_amino, amino_codon)
+            dict_mutated_sequences[sequence_id] = mut_seq
 
+        print(dict_mutated_sequences)
     # generate fasta file with mutated sequence
+    # file = open('modified_DNA_sequence.fna', 'w')
+    # for i in seq_list:
+
     # generate fastq file for forward and reverse reads (separately)
     # add information about percentage of mutations to file mentioned above
+    return 'check to see if it worked'
 
 
 # The function below produces the complement of a sequence
@@ -61,7 +69,8 @@ def complement(seq):
     return str_comp
 
 
-# This function breaks up a dict of sequences into 250 nucleotide segments later held in a list of strings
+# TODO: Might be broken, This function breaks up a dict of sequences into 250 nucleotide segments
+#  later held in a list of strings
 
 def generate_reads(sequence_id, label, positive_strand, negative_strand, dict_forward_reads, dict_reverse_reads):
     insert_size = 600
@@ -72,7 +81,7 @@ def generate_reads(sequence_id, label, positive_strand, negative_strand, dict_fo
         rv_read = negative_strand[i + read_length + insert_size:i + read_length + insert_size + read_length]
         dict_forward_reads[f'{sequence_id}-{label}-{num_reads}-1'] = fw_read
         dict_reverse_reads[f'{sequence_id}-{label}-{num_reads}-2'] = rv_read
-        # print(f'This is the forward read {fw_read} {len(fw_read)}')
+        # print(f'This is the forward read {fw_read} {len(fw_read)} \n this is the index: {i}')
         # print(f'This is the reverse read {rv_read} {len(rv_read)}')
     return dict_forward_reads, dict_reverse_reads
 
@@ -80,13 +89,7 @@ def generate_reads(sequence_id, label, positive_strand, negative_strand, dict_fo
 # reads dictionary of codons and mutates the open reading frames
 
 
-def mutate(seq, label, seq_id):
-    df = pd.read_csv('codon_list.csv', delimiter='\t')  # dataframe containing the proteins and codons
-    amino_list = df.amino  # list of amino acids
-    codon_list = df.codons  # list of codons
-    codon_amino = dict(zip(codon_list, amino_list))  # maps codon to amino acid
-    amino_codon = list_dict(amino_list, codon_list)
-
+def mutate(seq, label, seq_id, codon_amino, amino_codon):
     forward_dict = {}
     reverse_dict = {}
     counter = 0
@@ -95,6 +98,8 @@ def mutate(seq, label, seq_id):
     total = len(seq)
     i = 0
     while i < len(seq) - 3:
+        if i % 100 == 0:
+            print(f'running {i}')
         codon = seq[i:i + 3]
         if bool(re.match('^[ACTG]+$', ''.join(codon))):
             if ''.join(codon) == 'ATG':
@@ -122,11 +127,14 @@ def mutate(seq, label, seq_id):
 
         positive_strand = ''.join(mutated_sequence)
         negative_strand = complement(positive_strand)
-
+        # print(positive_strand)
+        # print(negative_strand)
         # TODO: add generate read function
         forward_dict, reverse_dict = generate_reads(seq_id, label, positive_strand, negative_strand, forward_dict,
                                                     reverse_dict)
-    return forward_dict, reverse_dict, ((counter / total) * 100)
+    # print(f'{mutated_sequence}')
+
+    return ''.join(mutated_sequence), ((counter / total) * 100)
 
 
 def mut_counter(mutated_codon, original_codon):
@@ -171,11 +179,23 @@ def write_to_fasta(seq_dict, description):
     file.close()  # closes file
 
 
-def create_genome_dict(species_in_database, accession_id_list, database_df):
-    genome_dict = defaultdict(list)
-    for i in range(len(database_df)):
-        genome_dict[species_in_database[i]].append(accession_id_list[i])
-    return genome_dict
+# parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
+
+# this function takes in a dataframe and will parse it into pieces that will later be used for other functions
 
 
+def parse_dataframe(dataframe):
+    # species = key and value = list of species
 
+    dataframe_dict = defaultdict(list)
+    ncbi_assembly_level_list = list(dataframe.ncbi_assembly_level)
+    ncbi_genome_category_list = list(dataframe.ncbi_genome_category)
+    species_in_database = [name[(name.find('s__') + 3):] for name in list(dataframe['gtdb_taxonomy'])]
+    accession_id_list = list(dataframe.accession)
+
+    for i in range(len(dataframe)):
+        if ncbi_assembly_level_list[i] == "Complete Genome" and ncbi_genome_category_list[i] \
+                != ("derived from metagenome" or "derived from environmental_sample"):
+            dataframe_dict[species_in_database[i]].append(accession_id_list[i][3:])
+
+    return dataframe_dict
