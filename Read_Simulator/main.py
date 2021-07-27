@@ -15,15 +15,30 @@ label_dictionary = dict(zip(list(species_df['Formosa sp007197735']), list(range(
 
 # These lists are needed to assemble the genome dictionary
 
-species_in_database = [name[(name.find('s__') + 3):] for name in list(database_df['gtdb_taxonomy'])]
-accession_id_list = list(database_df.accession)
 
 # this dictionary has accession ids as values and the species will be the keys
 
-genome_dict = {species_name: accession_id for species_name, accession_id in zip(species_in_database, accession_id) if }
+genome_dict = parse_dataframe(database_df)
 
-json_dict(label_dictionary)  # takes the label dictionary and turns it into a .json file
+json_dict(label_dictionary, 'class_mapping.json')  # takes the label dictionary and turns it into a .json file
 
-print(genome_dict)
-generate_datasets(genome_dict, label_dictionary,
-                  'GCF_900101915.1_IMG-taxon_2599185216_annotated_assembly_genomic.fna')
+# used for the codon table dictionaries
+
+df = pd.read_csv('codon_list.csv', delimiter='\t')  # dataframe containing the proteins and codons
+amino_list = df.amino  # list of amino acids
+codon_list = df.codons  # list of codons
+codon_amino = dict(zip(codon_list, amino_list))  # maps codon to amino acid
+amino_codon = list_dict(amino_list, codon_list)
+json_dict(codon_amino, 'codon_to_amino.json')
+json_dict(amino_codon, 'amino_to_codon.json')
+
+# generates the genome datasets
+
+
+fasta_file = 'GCF_900660685.1_genomic.fna'
+
+genome = {rec.id: list(rec.seq) for rec in SeqIO.parse(fasta_file, 'fasta')}
+
+mut_string, mut_stats = mutate(genome['NZ_LR215041.1'], 0, 'NZ_LR215041.1', codon_amino, amino_codon)
+
+print(mut_string)
