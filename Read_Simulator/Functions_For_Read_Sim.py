@@ -1,12 +1,16 @@
 import json  # used to generate json
 import random  # needed to generate random numbers
 import re  # used to check characters
-from Bio import SeqIO  # used to parse fasta file
+import string
 from collections import defaultdict  # used to create genome dictionary
-import pandas
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 
 # This function takes a dictionary and makes it into json format
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 
 def json_dict(dictionary, filename):
@@ -19,39 +23,46 @@ def json_dict(dictionary, filename):
 
 
 def mutation_statistics(filename, string_to_file):
-    with open(filename, 'w') as f:
+    with open(filename, 'a') as f:
+        f.write('\n')
         f.write(string_to_file)
-
 
 # This function will combine the species names in species.tsv with its accession_id
 
 
-def generate_datasets(genome_dict, label_dict, fastafile, codon_amino, amino_codon, genome):
-    # load the genome fasta file (key = sequence id, value = sequence info
+def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, genome):
+    # load the genome fasta file (key = species_name, value = list of the fasta paths on aimos
 
-    for species, label in label_dict.items():
-        # TODO: get accession ids for the species in label_dict
+    needed_iterations = find_largest_genome_set(genome_dict)
 
+    for label, species in label_dict.items():
         # create dictionaries to store reverse and forward reads
-        fw_read_dict = {}  # key = read id, value = read sequence
-        rv_read_dict = {}  # key = read id, value = read sequence
+        rec_fw_read = []  # key = read id, value = read sequence
+        rec_rv_read = []  # key = read id, value = read sequence
         # create dictionaries to store fasta sequences of mutated sequences
-        dict_mutated_sequences = defaultdict(list)  # key = sequence id, value = mutated sequence
-        for sequence_id, sequence in genome.items():
-            # call mutate function to mutate the sequence and generate reads
-            # (add reads to dict_rev_reads and dict_fw_reads)
-            print(f'progress {len(sequence)} {sequence_id}')
-            mut_seq, mut_stats = mutate(sequence, label, sequence_id, codon_amino, amino_codon)
-            dict_mutated_sequences[sequence_id] = mut_seq
+        for fastafile in genome_dict[species]:
+            fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
+            genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
 
-        print(dict_mutated_sequences)
-    # generate fasta file with mutated sequence
-    # file = open('modified_DNA_sequence.fna', 'w')
-    # for i in seq_list:
+            mut_records = []
+            for rec in fasta_list:
+                # call mutate function to mutate the sequence and generate reads
+                # (add reads to dict_rev_reads and dict_fw_reads)
+                print(f'progress {len(rec.seq)} {rec.id}')
+                mut_seq, mut_stats =\
+                    mutate(rec.seq, label, rec.id, codon_amino, amino_codon, 0, False, rec_fw_read, rec_rv_read)
+                mut_rec = SeqRecord(Seq(mut_seq), id=f'{rec.id}-mutated', name=rec.name, description=rec.description)
+                mut_records.append(mut_rec)
+
+    # TODO find the genome ids for the file name
+            SeqIO.write(mut_records, f'{genome_id}-mutated.fna', "fasta")
+        SeqIO.write(rec_fw_read, f'{label}-fw-read.fq', "fastq")
+        SeqIO.write(rec_rv_read, f'{label}-rv-read.fq', "fastq")
+
 
     # generate fastq file for forward and reverse reads (separately)
     # add information about percentage of mutations to file mentioned above
-    return 'check to see if it worked'
+
 
 
 # The function below produces the complement of a sequence
@@ -74,7 +85,7 @@ def complement(seq):
 # Option 0 - 2 shifts the seq over respectively
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
 
-def generate_reads(sequence_id, label, positive_strand, negative_strand, dict_forward_reads, dict_reverse_reads,
+def generate_reads(sequence_id, label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads,
                    num_reads, rf_option, is_comp):
     if rf_option > 3:
         raise Exception('rf_option needs to be less than 3')
@@ -88,15 +99,15 @@ def generate_reads(sequence_id, label, positive_strand, negative_strand, dict_fo
         fw_read = positive_strand[i:i + read_length]
         rv_read = negative_strand[i + read_length + inner_distance:i + read_length + inner_distance + read_length]
         if len(rv_read) == read_length and len(fw_read) == read_length:
-            dict_forward_reads[f'{sequence_id}-{label}-{num_reads}-1'] = fw_read
-            dict_reverse_reads[f'{sequence_id}-{label}-{num_reads}-2'] = rv_read
+            create_fastq_record(fw_read, f'{sequence_id}-{label}-{num_reads}-1', rec_forward_reads)
+            create_fastq_record(rv_read, f'{sequence_id}-{label}-{num_reads}-2', rec_reverse_reads)
             num_reads += 1
 
 
 # reads dictionary of codons and mutates the open reading frames
 
 
-def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp):
+def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp, rec_fw_reads, rec_rv_reads):
     forward_dict = {}
     reverse_dict = {}
     counter = 0
@@ -108,9 +119,9 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp):
     while i <= (len(seq) - 3):
         codon = seq[i:i + 3]
         if ''.join(codon) == 'ATG':
-            is_mut, old_stop_codon = find_orf(seq, i)  # sees if a stop codon exists
+            is_orf, old_stop_codon = find_orf(seq, i)  # sees if a stop codon exists
             j = i
-            if is_mut == 0: # the loop for when a stop codon exists
+            if is_orf == 0:  # the loop for when a stop codon exists
                 orf = []
                 while j < (len(seq) - 3) and (''.join(seq[j:j + 3]) not in list_stop_codons):
                     if bool(re.match('^[ACTG]+$', ''.join(seq[j:j + 3]))):
@@ -124,31 +135,28 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp):
                 orf += new_stop_codon
                 counter += mut_counter(new_stop_codon, old_stop_codon)
 
-            if is_mut == -1:  # the loop for when there is no stop codon
-                orf = []
+            elif is_orf == -1:  # the loop for when there is no stop codon
                 while j < (len(seq) - 3):
-                    orf += seq[j:j+3]
+                    mutated_sequence += seq[j:j + 3]
                     j += 3
-            mutated_sequence += orf
             i = j + 3
         else:
-            mutated_sequence += seq[i:i+3]
+            mutated_sequence += seq[i:i + 3]
             i += 3
-    mutated_sequence += seq[last_add:] # adds on the last characters of the sequence
+    mutated_sequence += seq[last_add:]  # adds on the last characters of the sequence
     positive_strand = ''.join(mutated_sequence)
     negative_strand = complement(positive_strand)
-
 
     # TODO: add generate read function
 
     num_reads = 0
 
-    generate_reads(seq_id, label, positive_strand, negative_strand, forward_dict, reverse_dict,
+    generate_reads(seq_id, label, positive_strand, negative_strand, rec_fw_reads, rec_rv_reads,
                    num_reads, option, is_comp)
-    generate_reads(seq_id, label, negative_strand[::-1], positive_strand[::-1], forward_dict, reverse_dict,
-                   len(forward_dict), option, is_comp)
+    generate_reads(seq_id, label, negative_strand[::-1], positive_strand[::-1], rec_fw_reads, rec_rv_reads,
+                   len(rec_fw_reads), option, is_comp)
 
-    return ''.join(mutated_sequence), ((counter / total) * 100), forward_dict, reverse_dict
+    return ''.join(mutated_sequence), ((counter / total) * 100)
 
 
 def mut_counter(mutated_codon, original_codon):
@@ -179,12 +187,13 @@ def list_dict(amino_list, codon_list):
             temp_dict[amino_list[i]] = [codon_list[i]]
     return temp_dict
 
+
 # TODO: see if this function is necessary, if so this function will have to be changed
 #  to take a string rather than a dict
 
 
-def write_to_fasta(seq_dict, description):
-    file = open('modifiedDNA.fna', 'w')  # opens the fasta file that will hold the mutated seq
+def write_to_fasta_mut_str(seq_dict, description):
+    file = open('modifiedDNA.fna', 'a')  # opens the fasta file that will hold the mutated seq
     for seq_id, seq in seq_dict.items():  # iterates through the mutated dict
         sequence = ''
         count = 0  # iterating int to go through the seq in each dict entry
@@ -196,26 +205,47 @@ def write_to_fasta(seq_dict, description):
     file.close()  # closes file
 
 
+# this function will be used to take the fw and rv dictionaries and write them to fasta files
+
+
+def write_dict_to_fasta(fastqfile, read_dict):
+    for label, read in read_dict.items():
+        saveFasta = open(fastqfile, 'a')
+        saveFasta.write('\n')
+        saveFasta.write('>' + label)
+        for i in range(0, (len(read) - 60), 60):
+            saveFasta.write('\n')
+            saveFasta.write(read[i:i + 60])
+        saveFasta.close()
+
+
 # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
 
-# this function takes in a dataframe and will parse it into pieces that will later be used for other functions
 
-
-def parse_dataframe(dataframe):
+def parse_dataframe(genome_dataframe, species_dataframe):
     # species = key and value = list of species
 
     dataframe_dict = defaultdict(list)
-    ncbi_assembly_level_list = list(dataframe.ncbi_assembly_level)
-    ncbi_genome_category_list = list(dataframe.ncbi_genome_category)
-    species_in_database = [name[(name.find('s__') + 3):] for name in list(dataframe['gtdb_taxonomy'])]
-    accession_id_list = list(dataframe.accession)
+    ncbi_assembly_level_list = list(genome_dataframe.ncbi_assembly_level)
+    ncbi_genome_category_list = list(genome_dataframe.ncbi_genome_category)
+    species_in_database = [name[(name.find('s__') + 3):] for name in list(genome_dataframe['gtdb_taxonomy'])]
+    accession_id_list = list('/gpfs/u/home/TPMS/TPMSerrn/scratch/gtdb_genomes_reps_r95/' +
+                             genome_dataframe.accession + '_genomic.fna')
+    accession_id_list = [path.replace('RS_', '') for path in accession_id_list]
+    species_list = list(species_dataframe[0])
 
-    for i in range(len(dataframe)):
+    for i in range(len(genome_dataframe)):
         if ncbi_assembly_level_list[i] == "Complete Genome" and ncbi_genome_category_list[i] \
                 != ("derived from metagenome" or "derived from environmental_sample"):
-            dataframe_dict[species_in_database[i]].append(accession_id_list[i][3:])
+            dataframe_dict[species_in_database[i]].append(accession_id_list[i])
 
-    return dataframe_dict
+    complete_species_dict = defaultdict(list)
+
+    for j in species_list:
+        if j in dataframe_dict:
+            complete_species_dict[j] = dataframe_dict[j]
+
+    return complete_species_dict
 
 
 # this function finds the species with the most accession ids
@@ -232,16 +262,16 @@ def find_largest_genome_set(genome_dict):
 
 
 def exclude_plasmid(fastafile):
-    fasta_dict = {rec.id: list(rec.seq) for rec in SeqIO.parse(fastafile, 'fasta')
-                  if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1}
+    fasta_list = [rec for rec in SeqIO.parse(fastafile, 'fasta')
+                  if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1]
 
-    return fasta_dict
+    return fasta_list
 
 
 # this function looks for a open reading frame and if one exists returns true
 def find_orf(seq, i):
     stop_codon_list = ['TAA', 'TAG', 'TGA']
-    while ''.join(seq[i:i+3]) not in stop_codon_list:
+    while ''.join(seq[i:i + 3]) not in stop_codon_list:
         if i >= len(seq):
             is_mut = -1
             old_stop_codon = []
@@ -252,3 +282,18 @@ def find_orf(seq, i):
     return is_mut, old_stop_codon
 
 
+# this function will get a dictionary of descriptions from a fastafile
+
+def get_descriptions_fasta(fastafile):
+    description_dict = {rec.id: rec.description for rec in SeqIO.parse(fastafile, 'fasta')
+                        if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1}
+    return description_dict
+
+
+def create_fastq_record(read_seq, read_id, list_records):
+    read_qual = [random.choice(string.ascii_uppercase) for _ in range(len(read_seq))]
+    record = SeqRecord(Seq(read_seq), id=read_id)
+    quality_scores = [ord(i) for i in read_qual]
+    record.letter_annotations["phred_quality"] = quality_scores
+    record.format('fastq')
+    list_records.append(record)
