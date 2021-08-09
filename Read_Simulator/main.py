@@ -60,7 +60,7 @@ def main():
 
     # calls the generate dataframe function
 
-    # generate_datasets(genome_dict, label_dictionary, codon_amino, amino_codon)
+    generate_datasets(genome_dict, label_dictionary, codon_amino, amino_codon)
 
     print(genome_dict)
 if __name__ == '__main__':
