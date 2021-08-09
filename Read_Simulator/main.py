@@ -1,6 +1,6 @@
 from Functions_For_Read_Sim import *  # used for all of the functions in Functions_For_Read_Sim
 import pandas as pd  # used to manage tsv files
-
+import sys
 
 
 
@@ -19,25 +19,26 @@ import pandas as pd  # used to manage tsv files
 # generates the genome datasets
 
 
-fasta_file = 'GCF_900660545.1_genomic.fna'
+# fasta_file = 'GCF_900660545.1_genomic.fna'
 
-genome = exclude_plasmid(fasta_file)
+# genome = exclude_plasmid(fasta_file)
 
 
 # This area is being used as a test. Should be deleted later
 
-test_mapping = {'0': 'Mycoplasma cynos', '1': 'Mycoplasma columbinum'}
-test_accession_ids = {'Mycoplasma cynos': exclude_plasmid('GCF_900660545.1_genomic.fna'),
-                      'Mycoplasma columbinum': exclude_plasmid('GCF_900660685.1_genomic.fna')}
+# test_mapping = {'0': 'Mycoplasma cynos', '1': 'Mycoplasma columbinum'}
+# test_accession_ids = {'Mycoplasma cynos': exclude_plasmid('GCF_900660545.1_genomic.fna'),
+                      # 'Mycoplasma columbinum': exclude_plasmid('GCF_900660685.1_genomic.fna')}
 
 
 def main():
-    species_file_name = 'species.tsv'  # name of the species.tsv file
-    gtdb_database = 'bac120_metadata_r95.tsv'  # file name of the gtdb_database
+    species_file_name = sys.argv[1]  # name of the species.tsv file
+    gtdb_database = sys.argv[2]  # file name of the gtdb_database
+    codon_list = sys.argv[3]
 
     # load genetic code
 
-    df = pd.read_csv('codon_list.csv', delimiter='\t')  # dataframe containing the proteins and codons
+    df = pd.read_csv(codon_list, delimiter='\t')  # dataframe containing the proteins and codons
     amino_list = df.amino  # list of amino acids
     codon_list = df.codons  # list of codons
     codon_amino = dict(zip(codon_list, amino_list))  # maps codon to amino acid
