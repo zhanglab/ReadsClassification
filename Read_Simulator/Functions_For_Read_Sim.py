@@ -6,6 +6,7 @@ from collections import defaultdict  # used to create genome dictionary
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+import gzip
 
 
 # This function takes a dictionary and makes it into json format
@@ -240,7 +241,7 @@ def parse_dataframe(genome_dataframe, species_dataframe, path):
     # TODO: for AiMOS the direction of the \ need to be changed to /
 
     accession_id_list = list(path +
-                             genome_dataframe.accession + '_genomic.fna')
+                             genome_dataframe.accession + '_genomic.fna.gz')
     accession_id_list = [path.replace('RS_', '') for path in accession_id_list]
     species_list = list(species_dataframe[0])
 
@@ -272,8 +273,12 @@ def find_largest_genome_set(genome_dict):
 
 
 def exclude_plasmid(fastafile):
-    fasta_list = [rec for rec in SeqIO.parse(fastafile, 'fasta')
-                  if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1]
+    fasta_list = []
+    with gzip.open(fastafile, "rt") as handle:
+        for rec in SeqIO.parse(handle, "fasta"):
+            if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1:
+                fasta_list.append(rec)
+
     return fasta_list
 
 
