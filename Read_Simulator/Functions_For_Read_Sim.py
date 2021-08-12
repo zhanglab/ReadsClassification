@@ -36,6 +36,8 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
     needed_iterations = find_largest_genome_set(genome_dict)
 
     for label, species in label_dict.items():
+        with open('mutation_report.txt', 'a') as f:
+            f.write(f'{species}\t{label}\n')
         # create dictionaries to store reverse and forward reads
         rec_fw_read = []  # key = read id, value = read sequence
         rec_rv_read = []  # key = read id, value = read sequence
@@ -55,6 +57,9 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
                     mutate(rec.seq, label, rec.id, codon_amino, amino_codon, 0, False, rec_fw_read, rec_rv_read)
                 mut_rec = SeqRecord(Seq(mut_seq), id=f'{rec.id}-mutated', name=rec.name, description=rec.description)
                 mut_records.append(mut_rec)
+                with open('mutation_report.txt', 'a') as f:
+                    f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
+
 
     # TODO find the genome ids for the file name
             SeqIO.write(mut_records, f'{genome_id}-mutated.fna', "fasta")
@@ -63,6 +68,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
 
     # generate fastq file for forward and reverse reads (separately)
     # add information about percentage of mutations to file mentioned above
+
 
 
 # The function below produces the complement of a sequence
@@ -268,7 +274,6 @@ def find_largest_genome_set(genome_dict):
 def exclude_plasmid(fastafile):
     fasta_list = [rec for rec in SeqIO.parse(fastafile, 'fasta')
                   if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1]
-    print(type(fasta_list[0]))
     return fasta_list
 
 
