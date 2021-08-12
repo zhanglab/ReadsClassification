@@ -30,7 +30,7 @@ def mutation_statistics(filename, string_to_file):
 # This function will combine the species names in species.tsv with its accession_id
 
 
-def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, genome):
+def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
     # load the genome fasta file (key = species_name, value = list of the fasta paths on aimos
 
     needed_iterations = find_largest_genome_set(genome_dict)
@@ -42,13 +42,15 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, genome)
         # create dictionaries to store fasta sequences of mutated sequences
         for fastafile in genome_dict[species]:
             fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
-            genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
+
+            # TODO make genome dict more universal
+
+            genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
 
             mut_records = []
             for rec in fasta_list:
                 # call mutate function to mutate the sequence and generate reads
                 # (add reads to dict_rev_reads and dict_fw_reads)
-                print(f'progress {len(rec.seq)} {rec.id}')
                 mut_seq, mut_stats =\
                     mutate(rec.seq, label, rec.id, codon_amino, amino_codon, 0, False, rec_fw_read, rec_rv_read)
                 mut_rec = SeqRecord(Seq(mut_seq), id=f'{rec.id}-mutated', name=rec.name, description=rec.description)
@@ -59,10 +61,8 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, genome)
         SeqIO.write(rec_fw_read, f'{label}-fw-read.fq', "fastq")
         SeqIO.write(rec_rv_read, f'{label}-rv-read.fq', "fastq")
 
-
     # generate fastq file for forward and reverse reads (separately)
     # add information about percentage of mutations to file mentioned above
-
 
 
 # The function below produces the complement of a sequence
@@ -110,6 +110,7 @@ def generate_reads(sequence_id, label, positive_strand, negative_strand, rec_for
 def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp, rec_fw_reads, rec_rv_reads):
     forward_dict = {}
     reverse_dict = {}
+    seq = list(seq)
     counter = 0
     mutated_sequence = []
     list_stop_codons = ['TAA', 'TAG', 'TGA']
@@ -221,15 +222,18 @@ def write_dict_to_fasta(fastqfile, read_dict):
 
 # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
 
-
-def parse_dataframe(genome_dataframe, species_dataframe):
+# TODO: change the way the path is coded
+def parse_dataframe(genome_dataframe, species_dataframe, path):
     # species = key and value = list of species
 
     dataframe_dict = defaultdict(list)
     ncbi_assembly_level_list = list(genome_dataframe.ncbi_assembly_level)
     ncbi_genome_category_list = list(genome_dataframe.ncbi_genome_category)
     species_in_database = [name[(name.find('s__') + 3):] for name in list(genome_dataframe['gtdb_taxonomy'])]
-    accession_id_list = list('/gpfs/u/home/TPMS/TPMSerrn/scratch/gtdb_genomes_reps_r95/' +
+
+    # TODO: for AiMOS the direction of the \ need to be changed to /
+
+    accession_id_list = list(path +
                              genome_dataframe.accession + '_genomic.fna')
     accession_id_list = [path.replace('RS_', '') for path in accession_id_list]
     species_list = list(species_dataframe[0])
@@ -264,7 +268,7 @@ def find_largest_genome_set(genome_dict):
 def exclude_plasmid(fastafile):
     fasta_list = [rec for rec in SeqIO.parse(fastafile, 'fasta')
                   if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1]
-
+    print(type(fasta_list[0]))
     return fasta_list
 
 
