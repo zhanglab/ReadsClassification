@@ -7,6 +7,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import gzip
+import os
 
 
 # This function takes a dictionary and makes it into json format
@@ -49,7 +50,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
             # TODO make genome dict more universal
 
             genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
-
+            print(genome_id)
             mut_records = []
             for rec in fasta_list:
                 # call mutate function to mutate the sequence and generate reads
