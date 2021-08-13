@@ -49,7 +49,9 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
 
             # TODO make genome dict more universal
 
-            genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
+            # genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
+            genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
+
             print(genome_id)
             mut_records = []
             for rec in fasta_list:
