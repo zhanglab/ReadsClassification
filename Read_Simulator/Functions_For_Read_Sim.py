@@ -45,7 +45,10 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
         rec_rv_read = []  # key = read id, value = read sequence
         # create dictionaries to store fasta sequences of mutated sequences
         for fastafile in genome_dict[species]:
-            fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
+            try:
+                fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
+            except FileNotFoundError:
+                continue
 
             # TODO make genome dict more universal
 
