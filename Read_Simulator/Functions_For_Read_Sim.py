@@ -38,6 +38,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
     needed_iterations = find_largest_genome_set(genome_dict)
 
     for label, species in label_dict.items():
+        print(f'this is species: {species}')
         with open('mutation_report.txt', 'a') as f:
             f.write(f'{species}\t{label}\n')
         # create dictionaries to store reverse and forward reads
@@ -45,13 +46,14 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
         rec_rv_read = []  # key = read id, value = read sequence
         # create dictionaries to store fasta sequences of mutated sequences
         for fastafile in genome_dict[species]:
+            print(f'this is fastafile: {fastafile}')
             try:
                 fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
             except FileNotFoundError:
                 continue
 
+            print(f'this is fasta_list: {fasta_list}')
             # TODO make genome dict more universal
-
             # genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
             genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
 
@@ -75,8 +77,6 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
 
     # generate fastq file for forward and reverse reads (separately)
     # add information about percentage of mutations to file mentioned above
-
-
 
 # The function below produces the complement of a sequence
 
