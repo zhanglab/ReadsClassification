@@ -31,7 +31,8 @@ def main():
     species_file_name = sys.argv[1]  # name of the species.tsv file
     gtdb_database = sys.argv[2]  # file name of the gtdb_database
     codon_list = sys.argv[3]
-    path_to_fastafiles = sys.argv[4]
+    path_to_GTDB = sys.argv[4]
+    path_to_NCBI = sys.argv[5]   # this needs to be used to gather files in ncbi
 
     # load genetic code
 
@@ -48,7 +49,7 @@ def main():
     # load gtdb database info
 
     database_df = pd.read_csv(gtdb_database, delimiter='\t', low_memory=False)  # dataframe holding the gtdb_database
-    genome_dict = parse_dataframe(database_df, species_df, path_to_fastafiles)  # gets the genome dictionary
+    genome_dict = parse_dataframe(database_df, species_df, path_to_GTDB)  # gets the genome dictionary
 
     # this dictionary has the species as keys and the labels as values: labels are integers
 

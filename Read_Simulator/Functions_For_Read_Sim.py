@@ -15,6 +15,12 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 
+def missing_genome(fastafile):
+    with open('missing_genomes.txt', "a") as f:
+        f.write(fastafile)
+        f.write('\n')
+
+
 def json_dict(dictionary, filename):
     with open(filename, "w") as f:
         json.dump(dictionary, f)
@@ -50,7 +56,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
             try:
                 fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
             except FileNotFoundError:
-                continue
+                missing_genome(fastafile)
 
             print(f'this is fasta_list: {fasta_list}')
             # TODO make genome dict more universal
@@ -68,7 +74,6 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
                 mut_records.append(mut_rec)
                 with open('mutation_report.txt', 'a') as f:
                     f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
-
 
     # TODO find the genome ids for the file name
             SeqIO.write(mut_records, f'{genome_id}-mutated.fna', "fasta")
@@ -98,10 +103,14 @@ def complement(seq):
 # Option 0 - 2 shifts the seq over respectively
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
 
+# TODO: make is rf_option and is_comp random 
+
 def generate_reads(sequence_id, label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads,
                    num_reads, rf_option, is_comp):
-    if rf_option > 3:
-        raise Exception('rf_option needs to be less than 3')
+
+    rf_option = random.choice(range(0, 3))
+    is_comp = random.getrandbits(1)
+
     inner_distance = -100
     read_length = 250
     if is_comp is True:
