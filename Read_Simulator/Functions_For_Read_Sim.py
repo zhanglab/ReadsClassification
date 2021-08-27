@@ -57,6 +57,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
                 fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
             except FileNotFoundError:
                 missing_genome(fastafile)
+                continue
 
             print(f'this is fasta_list: {fasta_list}')
             # TODO make genome dict more universal
@@ -103,7 +104,7 @@ def complement(seq):
 # Option 0 - 2 shifts the seq over respectively
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
 
-# TODO: make is rf_option and is_comp random 
+# TODO: make is rf_option and is_comp random
 
 def generate_reads(sequence_id, label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads,
                    num_reads, rf_option, is_comp):
