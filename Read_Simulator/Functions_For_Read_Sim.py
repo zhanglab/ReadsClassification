@@ -32,8 +32,9 @@ def json_dict(dictionary, filename):
 
 def mutation_statistics(filename, string_to_file):
     with open(filename, 'a') as f:
-        f.write('\n')
         f.write(string_to_file)
+        f.write('\n')
+
 
 # This function will combine the species names in species.tsv with its accession_id
 
@@ -46,7 +47,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
     for label, species in label_dict.items():
         print(f'this is species: {species}')
         with open('mutation_report.txt', 'a') as f:
-            f.write(f'{species}\t{label}\n')
+            f.write(f'{species}\t{label}\t')
         # create dictionaries to store reverse and forward reads
         rec_fw_read = []  # key = read id, value = read sequence
         rec_rv_read = []  # key = read id, value = read sequence
