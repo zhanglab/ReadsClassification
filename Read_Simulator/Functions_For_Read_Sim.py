@@ -9,16 +9,16 @@ from Bio.SeqRecord import SeqRecord
 import gzip
 import os
 
-
 # This function takes a dictionary and makes it into json format
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 
-def missing_genome(fastafile):
+def missing_genome(missing_set):
     with open('missing_genomes.txt', "a") as f:
-        f.write(fastafile)
-        f.write('\n')
+        for i in missing_set:
+            f.write(i)
+            f.write('\n')
 
 
 def json_dict(dictionary, filename):
@@ -27,10 +27,9 @@ def json_dict(dictionary, filename):
     f.close()
 
 
-# This function will create a file to hold the number of mutations per ORF and number of mutations per genome
+# finds the number of iterations that need to be done for a species
 
-
-def mutation_statistics(filename, string_to_file):
+def num_iterations(filename, string_to_file):
     with open(filename, 'a') as f:
         f.write(string_to_file)
         f.write('\n')
@@ -39,10 +38,14 @@ def mutation_statistics(filename, string_to_file):
 # This function will combine the species names in species.tsv with its accession_id
 
 
-def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
+def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, NCBI_path):
     # load the genome fasta file (key = species_name, value = list of the fasta paths on aimos
 
     needed_iterations = find_largest_genome_set(genome_dict)
+
+    missing_set = set()
+
+    reads_total = 0
 
     for label, species in label_dict.items():
         print(f'this is species: {species}')
@@ -52,38 +55,78 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon):
         rec_fw_read = []  # key = read id, value = read sequence
         rec_rv_read = []  # key = read id, value = read sequence
         # create dictionaries to store fasta sequences of mutated sequences
-        for fastafile in genome_dict[species]:
-            print(f'this is fastafile: {fastafile}')
-            try:
-                fasta_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
-            except FileNotFoundError:
-                missing_genome(fastafile)
-                continue
 
-            print(f'this is fasta_list: {fasta_list}')
-            # TODO make genome dict more universal
+        # TODO: for AIMOS change k to 430
+
+        # this is the portion that starts creating reads for the unmutated genomes
+
+        working_genome_ids = []
+
+        for fastafile in genome_dict[species]:
+            # genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
+            genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
+            try:
+                seq_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
+                for rec in seq_list:
+                    # this portion is iterating through the fasta file and creating reads
+                    generate_reads(rec.id, label, rec.seq, complement(rec.seq), rec_fw_read, rec_rv_read)
+                # writes a mutation report and since no mutations are done puts the mut_stats at 100
+                with open('mutation_report.txt', 'a') as f:
+                    f.write(f'{genome_id}\t{rec.id}\t{100}\n')
+                if species != 'Staphylococcus aureus':
+                    working_genome_ids.append(fastafile)
+
+            except FileNotFoundError:
+                try:
+                    NCBI_path += genome_id
+                    seq_list = exclude_plasmid(NCBI_path)  # accession ids as keys and sequences as values
+                    for rec in seq_list:
+                        # this portion is iterating through the fasta file and creating reads
+                        generate_reads(rec.id, label, rec.seq, complement(rec.seq), rec_fw_read, rec_rv_read)
+                    # writes a mutation report and since no mutations are done puts the mut_stats at 100
+                    with open('mutation_report.txt', 'a') as f:
+                        f.write(f'{genome_id}\t{rec.id}\t{100}\n')
+                    if species != 'Staphylococcus aureus':
+                        working_genome_ids.append(NCBI_path)
+
+                except FileNotFoundError:
+                    missing_set.add(genome_id)
+                    continue
+
+        # TODO this does not work for the species that hase 430 genomes
+
+        mutate_list = random.choices(working_genome_ids, k=430 - len(working_genome_ids))
+
+        for fastafile in mutate_list:
+            seq_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
+
+            # TODO for amios change this
             # genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
             genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
 
-            print(genome_id)
             mut_records = []
-            for rec in fasta_list:
+            for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
                 # (add reads to dict_rev_reads and dict_fw_reads)
-                mut_seq, mut_stats =\
-                    mutate(rec.seq, label, rec.id, codon_amino, amino_codon, 0, False, rec_fw_read, rec_rv_read)
+                mut_seq, mut_stats = \
+                    mutate(rec.seq, label, rec.id, codon_amino, amino_codon, rec_fw_read, rec_rv_read)
                 mut_rec = SeqRecord(Seq(mut_seq), id=f'{rec.id}-mutated', name=rec.name, description=rec.description)
                 mut_records.append(mut_rec)
                 with open('mutation_report.txt', 'a') as f:
                     f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
 
-    # TODO find the genome ids for the file name
             SeqIO.write(mut_records, f'{genome_id}-mutated.fna', "fasta")
         SeqIO.write(rec_fw_read, f'{label}-fw-read.fq', "fastq")
         SeqIO.write(rec_rv_read, f'{label}-rv-read.fq', "fastq")
-
+        missing_genome(missing_set)
+        reads_total += len(rec_fw_read) + len(rec_rv_read)
+        with open('summary_reads_report.txt', 'a') as f:
+            f.write(f'{species}\t{len(rec_fw_read)}\t{len(rec_rv_read)}\t{len(rec_fw_read) + len(rec_rv_read)}\n')
     # generate fastq file for forward and reverse reads (separately)
     # add information about percentage of mutations to file mentioned above
+    with open('summary_reads_report.txt', 'a') as f:
+        f.write(f'{reads_total}')
+
 
 # The function below produces the complement of a sequence
 
@@ -105,35 +148,25 @@ def complement(seq):
 # Option 0 - 2 shifts the seq over respectively
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
 
-# TODO: make is rf_option and is_comp random
 
-def generate_reads(sequence_id, label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads,
-                   num_reads, rf_option, is_comp):
-
-    rf_option = random.choice(range(0, 3))
-    is_comp = random.getrandbits(1)
-
+def generate_reads(sequence_id, label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads):
     inner_distance = -100
     read_length = 250
-    if is_comp is True:
-        positive_strand = complement(positive_strand)
-        negative_strand = complement(negative_strand)
 
-    for i in range(rf_option, len(positive_strand) - (inner_distance + read_length), read_length):
+    for i in range(0, len(positive_strand) - (inner_distance + read_length), read_length):
         fw_read = positive_strand[i:i + read_length]
         rv_read = negative_strand[i + read_length + inner_distance:i + read_length + inner_distance + read_length]
         if len(rv_read) == read_length and len(fw_read) == read_length:
-            create_fastq_record(fw_read, f'{sequence_id}-{label}-{num_reads}-1', rec_forward_reads)
-            create_fastq_record(rv_read, f'{sequence_id}-{label}-{num_reads}-2', rec_reverse_reads)
-            num_reads += 1
+            create_fastq_record(fw_read, f'{sequence_id}-{label}-{len(rec_forward_reads)}-1', rec_forward_reads)
+            create_fastq_record(rv_read, f'{sequence_id}-{label}-{len(rec_reverse_reads)}-2', rec_reverse_reads)
 
 
 # reads dictionary of codons and mutates the open reading frames
 
 
-def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp, rec_fw_reads, rec_rv_reads):
-    forward_dict = {}
-    reverse_dict = {}
+def mutate(seq, label, seq_id, codon_amino, amino_codon, rec_fw_reads, rec_rv_reads):
+    rf_option = random.choice([0, 1, 2])
+
     seq = list(seq)
     counter = 0
     mutated_sequence = []
@@ -159,6 +192,7 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp, rec_fw
                 new_stop_codon = list_stop_codons[random.randint(0, 2)]
                 orf += new_stop_codon
                 counter += mut_counter(new_stop_codon, old_stop_codon)
+                mutated_sequence += orf
 
             elif is_orf == -1:  # the loop for when there is no stop codon
                 while j < (len(seq) - 3):
@@ -174,12 +208,15 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, option, is_comp, rec_fw
 
     # TODO: add generate read function
 
-    num_reads = 0
+    is_comp = random.getrandbits(1)
 
-    generate_reads(seq_id, label, positive_strand, negative_strand, rec_fw_reads, rec_rv_reads,
-                   num_reads, option, is_comp)
-    generate_reads(seq_id, label, negative_strand[::-1], positive_strand[::-1], rec_fw_reads, rec_rv_reads,
-                   len(rec_fw_reads), option, is_comp)
+    if is_comp is True:
+        positive_strand = complement(positive_strand)
+        negative_strand = complement(negative_strand)
+
+    generate_reads(seq_id, label, positive_strand, negative_strand, rec_fw_reads, rec_rv_reads)
+    # generate_reads(seq_id, label, negative_strand[::-1], positive_strand[::-1], rec_fw_reads, rec_rv_reads,
+    # len(rec_fw_reads))
 
     return ''.join(mutated_sequence), ((counter / total) * 100)
 
@@ -247,9 +284,8 @@ def write_dict_to_fasta(fastqfile, read_dict):
 # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
 
 # TODO: change the way the path is coded
-def parse_dataframe(genome_dataframe, species_dataframe, path):
+def parse_dataframe(genome_dataframe, species_dataframe, GTDB_path):
     # species = key and value = list of species
-
     dataframe_dict = defaultdict(list)
     ncbi_assembly_level_list = list(genome_dataframe.ncbi_assembly_level)
     ncbi_genome_category_list = list(genome_dataframe.ncbi_genome_category)
@@ -257,9 +293,11 @@ def parse_dataframe(genome_dataframe, species_dataframe, path):
 
     # TODO: for AiMOS the direction of the \ need to be changed to /
 
-    accession_id_list = list(path +
+    accession_id_list = list(GTDB_path +
                              genome_dataframe.accession + '_genomic.fna.gz')
+
     accession_id_list = [path.replace('RS_', '') for path in accession_id_list]
+
     species_list = list(species_dataframe[0])
 
     for i in range(len(genome_dataframe)):
@@ -272,6 +310,8 @@ def parse_dataframe(genome_dataframe, species_dataframe, path):
     for j in species_list:
         if j in dataframe_dict:
             complete_species_dict[j] = dataframe_dict[j]
+
+    print(complete_species_dict)
 
     return complete_species_dict
 
