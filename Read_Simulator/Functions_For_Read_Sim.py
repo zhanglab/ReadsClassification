@@ -78,7 +78,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, NCBI_pa
 
             except FileNotFoundError:
                 try:
-                    NCBI_path += genome_id
+                    NCBI_path += (genome_id + '*_genomic.fna.gz')
                     seq_list = exclude_plasmid(NCBI_path)  # accession ids as keys and sequences as values
                     for rec in seq_list:
                         # this portion is iterating through the fasta file and creating reads
