@@ -59,7 +59,7 @@ def main():
 
     # calls the generate dataframe function
 
-    generate_datasets(genome_dict, label_dictionary, codon_amino, amino_codon, path_to_NCBI)
+    generate_datasets(genome_dict, label_dictionary, codon_amino, amino_codon, path_to_GTDB, path_to_NCBI)
 
     print(genome_dict)
 

@@ -35,13 +35,24 @@ def num_iterations(filename, string_to_file):
         f.write('\n')
 
 
-# This function will combine the species names in species.tsv with its accession_id
+
+def get_seq(fasta_file, genome_id, NCBI_path):
+
+    try:
+        seq_list = exclude_plasmid(fasta_file)  # accession ids as keys and sequences as values
+    except FileNotFoundError:
+        seq_list = exclude_plasmid(os.path.join(NCBI_path, f'{genome_id}_*_genomic.fna.gz'))
+    return seq_list
+
+
+
+
 
 
 def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, NCBI_path):
     # load the genome fasta file (key = species_name, value = list of the fasta paths on aimos
 
-    needed_iterations = find_largest_genome_set(genome_dict)
+    needed_iterations, largest_species = find_largest_genome_set(genome_dict)
 
     missing_set = set()
 
@@ -65,29 +76,14 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, NCBI_pa
         for fastafile in genome_dict[species]:
             # genome_id = fastafile[fastafile.find('GCF_'):fastafile.find('_g')]
             genome_id = '_'.join([fastafile.split('/')[-1].split('_')[0], fastafile.split('/')[-1].split('_')[1]])
-            try:
-                seq_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
-                for rec in seq_list:
-                    # this portion is iterating through the fasta file and creating reads
-                    generate_reads(rec.id, label, rec.seq, complement(rec.seq), rec_fw_read, rec_rv_read)
-                # writes a mutation report and since no mutations are done puts the mut_stats at 100
-                with open('mutation_report.txt', 'a') as f:
-                    f.write(f'{genome_id}\t{rec.id}\t{100}\n')
-                if species != 'Staphylococcus aureus':
-                    working_genome_ids.append(fastafile)
 
-            except FileNotFoundError:
-                try:
-                    NCBI_path += (genome_id + '*_genomic.fna.gz')
-                    seq_list = exclude_plasmid(NCBI_path)  # accession ids as keys and sequences as values
-                    for rec in seq_list:
-                        # this portion is iterating through the fasta file and creating reads
-                        generate_reads(rec.id, label, rec.seq, complement(rec.seq), rec_fw_read, rec_rv_read)
-                    # writes a mutation report and since no mutations are done puts the mut_stats at 100
-                    with open('mutation_report.txt', 'a') as f:
-                        f.write(f'{genome_id}\t{rec.id}\t{100}\n')
-                    if species != 'Staphylococcus aureus':
-                        working_genome_ids.append(NCBI_path)
+            seq_list = get_seq(fastafile, genome_id)
+            for rec in seq_list:
+                # this portion is iterating through the fasta file and creating reads
+                generate_reads(rec.id, label, rec.seq, complement(rec.seq), rec_fw_read, rec_rv_read)
+                # writes a mutation report and since no mutations are done puts the mut_stats at 100
+            with open('mutation_report.txt', 'a') as f:
+                f.write(f'{genome_id}\t{rec.id}\t{100}\n')
 
                 except FileNotFoundError:
                     missing_set.add(genome_id)
@@ -95,7 +91,7 @@ def generate_datasets(genome_dict, label_dict, codon_amino, amino_codon, NCBI_pa
 
         # TODO this does not work for the species that hase 430 genomes
 
-        mutate_list = random.choices(working_genome_ids, k=430 - len(working_genome_ids))
+        mutate_list = random.choices(working_genome_ids, k=(430 - len(working_genome_ids)))
 
         for fastafile in mutate_list:
             seq_list = exclude_plasmid(fastafile)  # accession ids as keys and sequences as values
@@ -284,7 +280,7 @@ def write_dict_to_fasta(fastqfile, read_dict):
 # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
 
 # TODO: change the way the path is coded
-def parse_dataframe(genome_dataframe, species_dataframe, GTDB_path):
+def parse_dataframe(genome_dataframe, species_dataframe, GTDB_path, NCBI_path):
     # species = key and value = list of species
     dataframe_dict = defaultdict(list)
     ncbi_assembly_level_list = list(genome_dataframe.ncbi_assembly_level)
@@ -293,8 +289,7 @@ def parse_dataframe(genome_dataframe, species_dataframe, GTDB_path):
 
     # TODO: for AiMOS the direction of the \ need to be changed to /
 
-    accession_id_list = list(GTDB_path +
-                             genome_dataframe.accession + '_genomic.fna.gz')
+    accession_id_list = [(GTDB_path + genome_dataframe.accession + '_genomic.fna.gz')]
 
     accession_id_list = [path.replace('RS_', '') for path in accession_id_list]
 
@@ -326,8 +321,7 @@ def find_largest_genome_set(genome_dict):
         if len(accession_list) > largest:
             largest = len(accession_list)
             largest_species = species
-    print(f'{largest_species} has the most accession ids: {largest}')
-
+    return largest, largest_species
 
 def exclude_plasmid(fastafile):
     fasta_list = []
