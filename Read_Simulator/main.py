@@ -1,67 +1,38 @@
 from Functions_For_Read_Sim import *  # used for all of the functions in Functions_For_Read_Sim
 import pandas as pd  # used to manage tsv files
 import sys
-
-
-# These lists are needed to assemble the genome dictionary
-
-
-# this dictionary has accession ids as values and the species will be the keys
-
-
-# used for the codon table dictionaries
-
-
-# generates the genome datasets
-
-
-# fasta_file = 'GCF_900660545.1_genomic.fna'
-
-# genome = exclude_plasmid(fasta_file)
-
-
-# This area is being used as a test. Should be deleted later
-
-# test_mapping = {'0': 'Mycoplasma cynos', '1': 'Mycoplasma columbinum'}
-# test_accession_ids = {'Mycoplasma cynos': exclude_plasmid('GCF_900660545.1_genomic.fna'),
-# 'Mycoplasma columbinum': exclude_plasmid('GCF_900660685.1_genomic.fna')}
+import argparse
+import multiprocess as mp
+from utils import *
 
 
 def main():
-    species_file_name = sys.argv[1]  # name of the species.tsv file
-    gtdb_database = sys.argv[2]  # file name of the gtdb_database
-    codon_list = sys.argv[3]
-    path_to_GTDB = sys.argv[4]
-    path_to_NCBI = sys.argv[5]   # this needs to be used to gather files in ncbi
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_path', type=str, help='path containing species.tsv file')
+    parser.add_argument('--gtdb_path', type=str, help='path to GTDB database')
+    parser.add_argument('--ncbi_path', type=str, help='path to NCBI database')
+    parser.add_argument('--gtdb_info', type=str, help='path to file with info on GTDB')
+    parser.add_argument('--genetic_code', type=str, help='path to file containing the genetic code')
+    args = parser.parse_args()
 
     # load genetic code
-
-    df = pd.read_csv(codon_list, delimiter='\t')  # dataframe containing the proteins and codons
-    amino_list = df.amino  # list of amino acids
-    codon_list = df.codons  # list of codons
-    codon_amino = dict(zip(codon_list, amino_list))  # maps codon to amino acid
-    amino_codon = list_dict(amino_list, codon_list)  # maps amino acids to codons
-
+    args.codon_amino, args.amino_codon = get_genetic_code(args)
     # loads species in dataset
-
-    species_df = pd.read_csv(species_file_name, sep='\t', header=None)  # dataframe holding the species.tsv file
-
-    # load gtdb database info
-
-    database_df = pd.read_csv(gtdb_database, delimiter='\t', low_memory=False)  # dataframe holding the gtdb_database
-    genome_dict = parse_dataframe(database_df, species_df, path_to_GTDB)  # gets the genome dictionary
-
-    # this dictionary has the species as keys and the labels as values: labels are integers
-
-    label_dictionary = dict(zip((range(len(list(species_df[0])))), list(species_df[0])))
-
-    json_dict(label_dictionary, 'class_mapping.json')  # takes the label dictionary and turns it into a .json file
-
-    # calls the generate dataframe function
-
-    generate_datasets(genome_dict, label_dictionary, codon_amino, amino_codon, path_to_GTDB, path_to_NCBI)
-
-    print(genome_dict)
+    args.list_species = get_species(args)
+    # select genomes
+    args.genome_dict = select_genomes(args)  # gets the genome dictionary
+    # get species with largest number of genomes
+    needed_iterations, largest_species = find_largest_genome_set(args.genome_dict)
+    # create dictionary mapping labels to species
+    args.label_dict = get_label_dict(args, genome_dict)
+    # generate reads for each species in parallel
+    with mp.Manager() as manager:
+        # create new processes
+        processes = [mp.Process(target=generate_dataset, args=(args, label, needed_iterations)) for label in args.label_dict.keys()]
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
 
 
 if __name__ == '__main__':
