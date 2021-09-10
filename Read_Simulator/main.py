@@ -1,8 +1,6 @@
-from Functions_For_Read_Sim import *  # used for all of the functions in Functions_For_Read_Sim
-import pandas as pd  # used to manage tsv files
-import sys
 import argparse
 import multiprocess as mp
+from Functions_For_Read_Sim import *  # used for all of the functions in Functions_For_Read_Sim
 from utils import *
 
 
