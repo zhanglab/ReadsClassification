@@ -9,6 +9,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import gzip
 import os
+from utils import *
 
 def generate_dataset(args, label, needed_iterations):
     """ central function that calls the functions necessary to mutate genomes and generate reads  """
@@ -163,6 +164,6 @@ def select_genomes(args):
                     genome_dict[species_in_database[i]].append(os.path.join(args.gtdb_path, gtdb_genomes_avail[accession_id_list[i][3:]]))
                 # verify if genome fasta file is available in the local ncbi database
                 elif accession_id_list[i][3:] in ncbi_genomes_avail:
-                    genome_dict[species_in_database[i]].append(os.path.join(args.ncbi_path, gtdb_genomes_avail[accession_id_list[i][3:]]))
+                    genome_dict[species_in_database[i]].append(os.path.join(args.ncbi_path, ncbi_genomes_avail[accession_id_list[i][3:]]))
 
     return genome_dict
