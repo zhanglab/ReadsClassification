@@ -27,6 +27,12 @@ def get_label_dict(args, genome_dict):
         json.dump(label_dict, f)
     return label_dict
 
+def load_class_mapping(filename):
+    """ returns dictionary mapping labels to species stored in json file  """
+    with open(filename) as f:
+        class_mapping = json.load(f)
+    return class_mapping
+
 def find_largest_genome_set(genome_dict):
     """ returns species with largest number of genomes  """
     largest = 0
