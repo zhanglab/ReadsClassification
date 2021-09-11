@@ -11,6 +11,7 @@ def main():
     parser.add_argument('--ncbi_path', type=str, help='path to NCBI database')
     parser.add_argument('--gtdb_info', type=str, help='path to file with info on GTDB')
     parser.add_argument('--genetic_code', type=str, help='path to file containing the genetic code')
+    parser.add_argument('--mutate', action='store_true', default=False)
     args = parser.parse_args()
 
     # load genetic code
