@@ -170,6 +170,7 @@ def select_genomes(args):
     # retrieve information on genomes
     ncbi_assembly_level_list = list(gtdb_df.ncbi_assembly_level)
     ncbi_genome_category_list = list(gtdb_df.ncbi_genome_category)
+    accession_id_list = list(gtdb_df.accession)
 
     # get genomes available in local NCBI and GTDB databases
     gtdb_genomes_avail = {'_'.join(i.split('/')[-1].split('_')[:2]) : i for i in glob.glob(os.path.join(args.gtdb_path, '*.fna.gz'))}
