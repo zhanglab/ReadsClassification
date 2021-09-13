@@ -2,6 +2,9 @@ import os
 import gzip
 import json
 import pandas as pd
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from collections import defaultdict
 
 def get_genetic_code(args):
