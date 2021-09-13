@@ -11,7 +11,7 @@ import gzip
 import os
 from utils import *
 
-def generate_dataset(args, label, needed_iterations):
+def generate_dataset(args, species, label, needed_iterations):
     """ central function that calls all functions necessary to mutate genomes and generate reads  """
     # create file to store mutation mutation report
     mut_f = open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w')
