@@ -119,6 +119,7 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, rec_fw_reads, rec_rv_re
     list_stop_codons = ['TAA', 'TAG', 'TGA']
     last_add = len(seq) - (len(seq) % 3)
     i = 0
+    print(type(seq), type(str(seq)))
     while i <= (len(seq) - 3):
         codon = seq[i:i + 3]
         if codon == 'ATG':
@@ -128,7 +129,6 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, rec_fw_reads, rec_rv_re
             if is_orf == 0:  # the loop for when a stop codon exists
                 orf = []
                 while j < (len(seq) - 3) and seq[j:j + 3] not in list_stop_codons:
-                    print(type(seq[j:j+3]))
                     if bool(re.match('^[ACTG]+$', seq[j:j + 3])):
                         # replace by a synonymous codon
                         mutated_codon = select_codon(seq[j:j + 3], codon_amino, amino_codon)
