@@ -75,7 +75,7 @@ def generate_dataset(args, species, label, needed_iterations):
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
             simulate_reads(rec.id, label, str(rec.seq), complement(str(rec.seq)), rec_fw_read, rec_rv_read)
             # positive and negative strands are inversed
-            simulate_reads(rec.id, label, complement(str(rec.seq))[::-1], rec.seq[::-1], rec_fw_read, rec_rv_read)
+            simulate_reads(rec.id, label, complement(str(rec.seq))[::-1], str(rec.seq)[::-1], rec_fw_read, rec_rv_read)
             # writes a mutation report and since no mutations are done puts the mut_stats at 100
             mut_f.write(f'{genome_id}\t{rec.id}\t{100}\n')
         # write reads to fastq file
