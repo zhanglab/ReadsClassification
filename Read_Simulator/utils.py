@@ -26,7 +26,7 @@ def get_species(args):
 def get_label_dict(args, genome_dict):
     """ returns dictionary mapping labels to species  """
     # report missing species
-    with open(os.path.join(args.input, 'missing-species.txt'), 'w') as f:
+    with open(os.path.join(args.input_path, 'missing-species.txt'), 'w') as f:
         for s in args.list_species:
             if s not in genome_dict.keys():
                 f.write(f'{s}\n')
