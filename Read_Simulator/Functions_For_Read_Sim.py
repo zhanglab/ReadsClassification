@@ -128,11 +128,13 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, rec_fw_reads, rec_rv_re
             is_orf, old_stop_codon = find_orf(seq, i, list_stop_codons)
             j = i
             if is_orf == 0:  # the loop for when a stop codon exists
-                orf = []
+                orf = ''
                 while j < (len(seq) - 3) and seq[j:j + 3] not in list_stop_codons:
+                    print(seq[j:j+3])
                     if bool(re.match('^[ACTG]+$', seq[j:j + 3])):
                         # replace by a synonymous codon
                         mutated_codon = select_codon(seq[j:j + 3], codon_amino, amino_codon)
+                        print(mutated_codon)
                         orf += mutated_codon
                         # keep track of the number of point mutations
                         counter += mut_counter(mutated_codon, seq[j:j + 3])
