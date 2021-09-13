@@ -35,13 +35,13 @@ def generate_dataset(args, species, label, needed_iterations):
         mut_records = []
         for fasta_file in mutate_list:
             # get genome id from fasta filename
-            genome_id = '_'.join(fastafile.split('/')[-1].split('_')[:2])
+            genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
             genomes_count[genome_id] += 1
             # create dictionaries to store reverse and forward reads of each genome
             rec_fw_read = []  # key = read id, value = read sequence
             rec_rv_read = []  # key = read id, value = read sequence
             # get sequences
-            seq_list = get_sequences(fastafile)
+            seq_list = get_sequences(fasta_file)
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
@@ -61,15 +61,15 @@ def generate_dataset(args, species, label, needed_iterations):
             SeqIO.write(mut_records, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-mutated.fna'), "fasta")
 
     # generate reads from original non mutated genomes
-    for fastafile in list_genomes:
+    for fasta_file in list_genomes:
         # create dictionaries to store reverse and forward reads of each genome
         rec_fw_read = []  # key = read id, value = read sequence
         rec_rv_read = []  # key = read id, value = read sequence
         # get genome id from fasta filename
-        genome_id = '_'.join(fastafile.split('/')[-1].split('_')[:2])
+        genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
         genomes_count[genome_id] += 1
         # get sequences
-        seq_list = get_sequences(fastafile)
+        seq_list = get_sequences(fasta_file)
         for rec in seq_list:
             # this portion is iterating through the fasta file and creating reads
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
