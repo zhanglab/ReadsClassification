@@ -46,7 +46,6 @@ def generate_dataset(args, species, label, needed_iterations):
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
                     mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon, rec_fw_read, rec_rv_read)
-                print(str(rec.seq), mut_seq)
                 # forward reads are simulated from the positive strand and reverse reads from the negative strands
                 simulate_reads(rec.id, label, mut_seq, complement(mut_seq), rec_fw_read, rec_rv_read)
                 # positive and negative strands are inversed
@@ -72,7 +71,6 @@ def generate_dataset(args, species, label, needed_iterations):
         # get sequences
         seq_list = get_sequences(fasta_file)
         for rec in seq_list:
-            print(f'{str(rec.seq)}\n{complement(str(rec.seq))}')
             # this portion is iterating through the fasta file and creating reads
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
             simulate_reads(rec.id, label, str(rec.seq), complement(str(rec.seq)), rec_fw_read, rec_rv_read)
