@@ -3,6 +3,7 @@ import gzip
 import json
 import pandas as pd
 import random
+import string
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
