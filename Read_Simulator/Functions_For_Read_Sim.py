@@ -45,7 +45,8 @@ def generate_dataset(args, species, label, needed_iterations):
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
-                    mutate(rec.seq, label, rec.id, args.codon_amino, args.amino_codon, rec_fw_read, rec_rv_read)
+                    mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon, rec_fw_read, rec_rv_read)
+                print(str(rec.seq), mut_seq)
                 # forward reads are simulated from the positive strand and reverse reads from the negative strands
                 simulate_reads(rec.id, label, mut_seq, complement(mut_seq), rec_fw_read, rec_rv_read)
                 # positive and negative strands are inversed
@@ -71,11 +72,12 @@ def generate_dataset(args, species, label, needed_iterations):
         # get sequences
         seq_list = get_sequences(fasta_file)
         for rec in seq_list:
+            print(f'{str(rec.seq)}\n{complement(str(rec.seq))}')
             # this portion is iterating through the fasta file and creating reads
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
-            simulate_reads(rec.id, label, rec.seq, complement(rec.seq), rec_fw_read, rec_rv_read)
+            simulate_reads(rec.id, label, str(rec.seq), complement(str(rec.seq)), rec_fw_read, rec_rv_read)
             # positive and negative strands are inversed
-            simulate_reads(rec.id, label, complement(rec.seq)[::-1], rec.seq[::-1], rec_fw_read, rec_rv_read)
+            simulate_reads(rec.id, label, complement(str(rec.seq))[::-1], rec.seq[::-1], rec_fw_read, rec_rv_read)
             # writes a mutation report and since no mutations are done puts the mut_stats at 100
             mut_f.write(f'{genome_id}\t{rec.id}\t{100}\n')
         # write reads to fastq file
@@ -119,7 +121,6 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon, rec_fw_reads, rec_rv_re
     list_stop_codons = ['TAA', 'TAG', 'TGA']
     last_add = len(seq) - (len(seq) % 3)
     i = 0
-    print(type(seq), type(str(seq)))
     while i <= (len(seq) - 3):
         codon = seq[i:i + 3]
         if codon == 'ATG':
