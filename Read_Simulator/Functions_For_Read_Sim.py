@@ -55,10 +55,10 @@ def generate_dataset(args, species, label, needed_iterations):
                 mut_records.append(mut_rec)
                 mut_f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
             # write reads to fastq file
-            SeqIO.write(rec_fw_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-fw-read.fq'), "fastq")
-            SeqIO.write(rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-rv-read.fq'), "fastq")
+            SeqIO.write(rec_fw_read + rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-read.fq'), "fastq")
+            #SeqIO.write(rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-rv-read.fq'), "fastq")
             # write mutated genome to fasta file
-            SeqIO.write(mut_records, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-mutated.fna'), "fasta")
+            #SeqIO.write(mut_records, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-mutated.fna'), "fasta")
 
     # generate reads from original non mutated genomes
     for fasta_file in list_genomes:
@@ -79,8 +79,8 @@ def generate_dataset(args, species, label, needed_iterations):
             # writes a mutation report and since no mutations are done puts the mut_stats at 100
             mut_f.write(f'{genome_id}\t{rec.id}\t{100}\n')
         # write reads to fastq file
-        SeqIO.write(rec_fw_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-fw-read.fq'), "fastq")
-        SeqIO.write(rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-rv-read.fq'), "fastq")
+        SeqIO.write(rec_fw_read + rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-read.fq'), "fastq")
+        #SeqIO.write(rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-rv-read.fq'), "fastq")
 
     return
 
