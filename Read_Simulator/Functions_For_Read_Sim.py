@@ -11,80 +11,102 @@ import gzip
 import os
 from utils import *
 
-def generate_dataset(args, species, label, needed_iterations):
-    """ central function that calls all functions necessary to mutate genomes and generate reads  """
+def mutate_genomes(args, species, label, needed_iterations):
+    """ returns 2 list of genomes (original and mutated versions), one for training and one for testing  """
+    # create empty dictionary to store the genomes (key = genome id, value = list of sequences)
+    dict_sequences = defaultdict(list)
     # create file to store mutation mutation report
     mut_f = open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w')
-    # create file to store the number of reads
-    reads_f = open(os.path.join(args.input_path, f'{label}_summary_reads_report.txt'), 'w')
     # create dictionary to keep track of the count per genomes
     genomes_count = defaultdict(int)
+
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
         # get list of randomly selected genomes that will be mutated
-        mutate_list = random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
+        list_mutate = random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
         # define list of genomes that won't be mutated
         list_genomes = args.genome_dict[species]
     else:
-        mutate_list = []
+        list_mutate = []
         # randomly select genomes to add to the list of genomes that won't be mutated
         list_genomes = args.genome_dict[species] + random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
 
-    # generate reads from mutated genomes
-    if len(mutate_list) != 0:
-        mut_records = []
-        for fasta_file in mutate_list:
-            # get genome id from fasta filename
-            genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
-            genomes_count[genome_id] += 1
-            # create dictionaries to store reverse and forward reads of each genome
-            rec_fw_read = []  # key = read id, value = read sequence
-            rec_rv_read = []  # key = read id, value = read sequence
-            # get sequences
-            seq_list = get_sequences(fasta_file)
-            for rec in seq_list:
-                # call mutate function to mutate the sequence and generate reads
-                mut_seq, mut_stats = \
-                    mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon, rec_fw_read, rec_rv_read)
-                # forward reads are simulated from the positive strand and reverse reads from the negative strands
-                simulate_reads(rec.id, label, mut_seq, complement(mut_seq), rec_fw_read, rec_rv_read)
-                # positive and negative strands are inversed
-                simulate_reads(rec.id, label, complement(mut_seq)[::-1], mut_seq[::-1], rec_fw_read, rec_rv_read)
-                # create record for fasta file
-                mut_rec = SeqRecord(Seq(mut_seq), id=f'{rec.id}-mutated', name=rec.name, description=rec.description)
-                mut_records.append(mut_rec)
-                mut_f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
-            # write reads to fastq file
-            SeqIO.write(rec_fw_read + rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-read.fq'), "fastq")
-            #SeqIO.write(rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-rv-read.fq'), "fastq")
-            # write mutated genome to fasta file
-            #SeqIO.write(mut_records, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-mutated.fna'), "fasta")
-
-    # generate reads from original non mutated genomes
+    # get sequences from unmutated genomes
     for fasta_file in list_genomes:
-        # create dictionaries to store reverse and forward reads of each genome
-        rec_fw_read = []  # key = read id, value = read sequence
-        rec_rv_read = []  # key = read id, value = read sequence
         # get genome id from fasta filename
         genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
         genomes_count[genome_id] += 1
         # get sequences
         seq_list = get_sequences(fasta_file)
         for rec in seq_list:
-            # this portion is iterating through the fasta file and creating reads
-            # forward reads are simulated from the positive strand and reverse reads from the negative strands
-            simulate_reads(rec.id, label, str(rec.seq), complement(str(rec.seq)), rec_fw_read, rec_rv_read)
-            # positive and negative strands are inversed
-            simulate_reads(rec.id, label, complement(str(rec.seq))[::-1], str(rec.seq)[::-1], rec_fw_read, rec_rv_read)
-            # writes a mutation report and since no mutations are done puts the mut_stats at 100
-            mut_f.write(f'{genome_id}\t{rec.id}\t{100}\n')
-        # write reads to fastq file
-        SeqIO.write(rec_fw_read + rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-read.fq'), "fastq")
-        #SeqIO.write(rec_rv_read, os.path.join(args.input_path, f'{label}-{genome_id}-{genomes_count[genome_id]}-rv-read.fq'), "fastq")
+            dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
+
+    # mutate genomes
+    if len(list_mutate) != 0:
+        for fasta_file in list_mutate:
+            # get genome id from fasta filename
+            genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
+            genomes_count[genome_id] += 1
+            # get sequences
+            seq_list = get_sequences(fasta_file)
+            for rec in seq_list:
+                # call mutate function to mutate the sequence and generate reads
+                mut_seq, mut_stats = \
+                    mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon, rec_fw_read, rec_rv_read)
+                mut_f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
+                dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
+
+    # split genomes between training and testing sets
+    total_genomes = list(dict_sequences.keys())
+    num_train_genomes = math.ceil(0.7*len(total_genomes))
+    random.shuffle(total_genomes)
+    train_genomes = total_genomes[:num_train_genomes]
+    test_genomes = total_genomes[num_train_genomes:]
+
+    # create training, validation and testing sets and simulate reads
+    create_sets(args, label, train_genomes, 'train')
+    create_sets(args, label, test_genomes, 'test')
 
     return
 
+def create_train_val_sets(args, label, list_genomes, type_set):
+    train_reads = []
+    val_reads = []
+    for genome in list_genomes:
+        rec_fw_reads = []
+        rec_rv_reads = []
+        for seq in genome:
+            # forward reads are simulated from the positive strand and reverse reads from the negative strands
+            simulate_reads(label, seq, complement(seq), rec_fw_reads, rec_rv_reads)
+            # positive and negative strands are inversed
+            simulate_reads(label, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
+        # split reads into training and validation sets if constraints are met
+        random.shuffle(rec_fw_reads)
+        random.shuffle(rec_rv_reads)
+        num_train_reads = math.ceil(0.7*len(rec_fw_reads))
+        train_reads += rec_fw_reads[:num_train_reads]
+        val_reads += rec_fw_reads[num_train_reads:]
+        train_reads += rec_rv_reads[:num_train_reads]
+        val_reads += rec_rv_reads[num_train_reads:]
 
+    # write reads to fastq file
+    SeqIO.write(train_reads, os.path.join(args.input_path, f'{label}-train-reads.fq'), "fastq")
+    SeqIO.write(val_reads, os.path.join(args.input_path, f'{label}-val-reads.fq'), "fastq")
+
+def create_test_set(args, label, list_genomes, type_set):
+    test_reads = []
+    for genome in list_genomes:
+        rec_fw_reads = []
+        rec_rv_reads = []
+        for seq in genome:
+            # forward reads are simulated from the positive strand and reverse reads from the negative strands
+            simulate_reads(label, seq, complement(seq), rec_fw_reads, rec_rv_reads)
+            # positive and negative strands are inversed
+            simulate_reads(label, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
+        test_reads += rec_fw_reads + rec_rv_reads
+
+    # write reads to fastq file
+    SeqIO.write(test_reads, os.path.join(args.input_path, f'{label}-test-reads.fq'), "fastq")
 
 
 # This function breaks up a dict of sequences into 250 nucleotide segments
@@ -92,7 +114,7 @@ def generate_dataset(args, species, label, needed_iterations):
 # Option is what reading frame you would like the reading frame to be
 # Option 0 - 2 shifts the seq over respectively
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
-def simulate_reads(sequence_id, label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads):
+def simulate_reads(label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads):
     """ simulate forward and reverse reads """
     # set distance between forward and reverse reads
     inner_distance = -100
