@@ -27,7 +27,7 @@ def main():
     # generate reads for each species in parallel
     with mp.Manager() as manager:
         # create new processes
-        processes = [mp.Process(target=generate_dataset, args=(args, species, label, needed_iterations)) for label, species in args.label_dict.items()]
+        processes = [mp.Process(target=mutate_genomes, args=(args, species, label, needed_iterations)) for label, species in args.label_dict.items()]
         for p in processes:
             p.start()
         for p in processes:
