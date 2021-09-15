@@ -52,7 +52,7 @@ def mutate_genomes(args, species, label, needed_iterations):
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
-                    mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon, rec_fw_read, rec_rv_read)
+                    mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon)
                 mut_f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
@@ -129,7 +129,7 @@ def simulate_reads(label, positive_strand, negative_strand, rec_forward_reads, r
             create_fastq_record(rv_read, f'{sequence_id}-{label}-{len(rec_reverse_reads)}-2', rec_reverse_reads)
     return
 
-def mutate(seq, label, seq_id, codon_amino, amino_codon, rec_fw_reads, rec_rv_reads):
+def mutate(seq, label, seq_id, codon_amino, amino_codon):
     """ returns a mutated sequence with synonymous mutations randomly added to every ORF """
     # randomly select one of the 3 reading frames
     rf_option = random.choice([0, 1, 2])
