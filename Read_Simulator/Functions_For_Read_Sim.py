@@ -9,6 +9,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import gzip
 import os
+import math
 from utils import *
 
 def mutate_genomes(args, species, label, needed_iterations):
