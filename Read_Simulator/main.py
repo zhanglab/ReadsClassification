@@ -21,9 +21,9 @@ def main():
     # select genomes
     args.genome_dict = select_genomes(args)  # gets the genome dictionary
     # get species with largest number of genomes
-    needed_iterations, largest_species = find_largest_genome_set(args.genome_dict)
+    needed_iterations, largest_species = find_largest_genome_set(args, args.genome_dict)
     # create dictionary mapping labels to species
-    args.label_dict = get_label_dict(args, args.genome_dict)
+    args.label_dict = get_dataset_info(args)
     # generate reads for each species in parallel
     with mp.Manager() as manager:
         # create new processes
