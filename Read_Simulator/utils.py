@@ -23,7 +23,7 @@ def get_species(args):
     species_df = pd.read_csv(os.path.join(args.input_path, 'species.tsv'), sep='\t', header=None)
     return species_df[0].tolist()
 
-def get_label_dict(args, genome_dict):
+def get_dataset_info(args, genome_dict):
     """ returns dictionary mapping labels to species  """
     # report missing species
     with open(os.path.join(args.input_path, 'missing-species.txt'), 'w') as f:
@@ -37,6 +37,11 @@ def get_label_dict(args, genome_dict):
     # create json file
     with open(os.path.join(args.input_path, 'class_mapping.json'), "w") as f:
         json.dump(label_dict, f)
+    # report number of genomes per species
+    with open(os.path.join(args.input_path, 'num_genomes_report.txt'), 'w') as f:
+        for key, value in label_dict.items():
+            f.write(f'{key}\t{value}\t{len(genome_dict[value])}\n')
+
     return label_dict
 
 def load_class_mapping(filename):
@@ -45,15 +50,19 @@ def load_class_mapping(filename):
         class_mapping = json.load(f)
     return class_mapping
 
-def find_largest_genome_set(genome_dict):
+def find_largest_genome_set(args):
     """ returns species with largest number of genomes  """
-    largest = 0
+    max_num = 0
     largest_species = ''
-    for species, accession_list in genome_dict.items():
-        if len(accession_list) > largest:
-            largest = len(accession_list)
+    for species, accession_list in args.genome_dict.items():
+        if len(accession_list) > max_num:
+            max_num = len(accession_list)
             largest_species = species
-    return largest, largest_species
+    # report species with largest number of genomes
+    with open(os.path.join(args.input_path, 'species-max-num-genomes'), 'w') as f:
+        f.write(f'{largest_species}\t{max_num}\n')
+
+    return max_num, largest_species
 
 def get_sequences(fastafile):
     """ returns the list of all sequences in the fasta file except plasmids """
