@@ -69,9 +69,12 @@ def get_tfrecords(args, label):
     """ Converts reads to tfrecords """
     # get reads
     list_reads = shuffle_reads(args, label)
+    # report the number of reads
+    with open(os.path.join(args.input_path, 'tfrecords', f'{label}-{args.dataset_type}-num-reads')) as f:
+        f.write(f'{label}\t{len(list_reads)}\n')
     # define tfrecords filename
     output_tfrec = f'{label}-{args.dataset_type}-reads.tfrec'
-    with tf.compat.v1.python_io.TFRecordWriter(os.path.join(args.input_path, output_tfrec)) as writer:
+    with tf.compat.v1.python_io.TFRecordWriter(os.path.join(args.input_path, 'tfrecords', output_tfrec)) as writer:
         for read in list_reads:
             rec = read.split('\n')
             read_seq = str(rec[1])
