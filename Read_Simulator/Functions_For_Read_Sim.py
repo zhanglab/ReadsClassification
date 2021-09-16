@@ -86,9 +86,9 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
         rec_rv_reads = []
         for seq in dict_sequences[genome]:
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
-            simulate_reads(label, seq, complement(seq), rec_fw_reads, rec_rv_reads)
+            simulate_reads(label, genome, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
-            simulate_reads(label, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
+            simulate_reads(label, genome, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
         # split reads into training and validation sets if constraints are met
         random.shuffle(rec_fw_reads)
         random.shuffle(rec_rv_reads)
@@ -111,9 +111,9 @@ def create_test_set(args, label, list_genomes, dict_sequences):
         rec_rv_reads = []
         for seq in dict_sequences[genome]:
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
-            simulate_reads(label, seq, complement(seq), rec_fw_reads, rec_rv_reads)
+            simulate_reads(label, genome, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
-            simulate_reads(label, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
+            simulate_reads(label, genome, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
         test_reads += rec_fw_reads + rec_rv_reads
 
     # write reads to fastq file
@@ -127,7 +127,7 @@ def create_test_set(args, label, list_genomes, dict_sequences):
 # Option is what reading frame you would like the reading frame to be
 # Option 0 - 2 shifts the seq over respectively
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
-def simulate_reads(label, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads):
+def simulate_reads(label, sequence_id, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads):
     """ simulate forward and reverse reads """
     # set distance between forward and reverse reads
     inner_distance = -100
