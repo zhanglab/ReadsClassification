@@ -64,19 +64,27 @@ def mutate_genomes(args, species, label, needed_iterations):
     train_genomes = total_genomes[:num_train_genomes]
     test_genomes = total_genomes[num_train_genomes:]
 
+    # report genomes in testing and training/validation sets
+    with open(os.path.join(args.input_fasta, f'{label}-train-genomes'), 'w') as f:
+        for g in train_genomes:
+            f.write(f'{label}\t{g}\n')
+    with open(os.path.join(args.input_fasta, f'{label}-test-genomes'), 'w') as f:
+        for g in test_genomes:
+            f.write(f'{label}\t{g}\n')
+
     # create training, validation and testing sets and simulate reads
-    create_train_val_sets(args, label, train_genomes)
-    create_test_set(args, label, test_genomes)
+    create_train_val_sets(args, label, train_genomes, dict_sequences)
+    create_test_set(args, label, test_genomes, dict_sequences)
 
     return
 
-def create_train_val_sets(args, label, list_genomes):
+def create_train_val_sets(args, label, list_genomes, dict_sequences):
     train_reads = []
     val_reads = []
     for genome in list_genomes:
         rec_fw_reads = []
         rec_rv_reads = []
-        for seq in genome:
+        for seq in dict_sequences[genome]:
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
             simulate_reads(label, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
@@ -94,12 +102,14 @@ def create_train_val_sets(args, label, list_genomes):
     SeqIO.write(train_reads, os.path.join(args.input_path, f'{label}-train-reads.fq'), "fastq")
     SeqIO.write(val_reads, os.path.join(args.input_path, f'{label}-val-reads.fq'), "fastq")
 
-def create_test_set(args, label, list_genomes):
+    return
+
+def create_test_set(args, label, list_genomes, dict_sequences):
     test_reads = []
     for genome in list_genomes:
         rec_fw_reads = []
         rec_rv_reads = []
-        for seq in genome:
+        for seq in dict_sequences[genome]:
             # forward reads are simulated from the positive strand and reverse reads from the negative strands
             simulate_reads(label, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
@@ -108,6 +118,8 @@ def create_test_set(args, label, list_genomes):
 
     # write reads to fastq file
     SeqIO.write(test_reads, os.path.join(args.input_path, f'{label}-test-reads.fq'), "fastq")
+
+    return
 
 
 # This function breaks up a dict of sequences into 250 nucleotide segments
