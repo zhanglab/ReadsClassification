@@ -65,10 +65,10 @@ def mutate_genomes(args, species, label, needed_iterations):
     test_genomes = total_genomes[num_train_genomes:]
 
     # report genomes in testing and training/validation sets
-    with open(os.path.join(args.input_fasta, f'{label}-train-genomes'), 'w') as f:
+    with open(os.path.join(args.input_path, f'{label}-train-genomes'), 'w') as f:
         for g in train_genomes:
             f.write(f'{label}\t{g}\n')
-    with open(os.path.join(args.input_fasta, f'{label}-test-genomes'), 'w') as f:
+    with open(os.path.join(args.input_path, f'{label}-test-genomes'), 'w') as f:
         for g in test_genomes:
             f.write(f'{label}\t{g}\n')
 
