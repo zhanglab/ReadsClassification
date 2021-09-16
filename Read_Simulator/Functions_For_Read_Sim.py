@@ -65,12 +65,12 @@ def mutate_genomes(args, species, label, needed_iterations):
     test_genomes = total_genomes[num_train_genomes:]
 
     # create training, validation and testing sets and simulate reads
-    create_sets(args, label, train_genomes, 'train')
-    create_sets(args, label, test_genomes, 'test')
+    create_train_val_sets(args, label, train_genomes)
+    create_test_set(args, label, test_genomes)
 
     return
 
-def create_train_val_sets(args, label, list_genomes, type_set):
+def create_train_val_sets(args, label, list_genomes):
     train_reads = []
     val_reads = []
     for genome in list_genomes:
@@ -94,7 +94,7 @@ def create_train_val_sets(args, label, list_genomes, type_set):
     SeqIO.write(train_reads, os.path.join(args.input_path, f'{label}-train-reads.fq'), "fastq")
     SeqIO.write(val_reads, os.path.join(args.input_path, f'{label}-val-reads.fq'), "fastq")
 
-def create_test_set(args, label, list_genomes, type_set):
+def create_test_set(args, label, list_genomes):
     test_reads = []
     for genome in list_genomes:
         rec_fw_reads = []
