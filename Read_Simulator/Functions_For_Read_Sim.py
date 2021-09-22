@@ -23,6 +23,8 @@ def mutate_genomes(args, species, label, needed_iterations):
 
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
+        # get average GC content and average tetranucleotide frequencies per species
+        args.GC_content, args.TETRA_nt = get_genomes_info(args, species, label)
         # get list of randomly selected genomes that will be mutated
         list_mutate = random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
         # define list of genomes that won't be mutated
@@ -38,8 +40,8 @@ def mutate_genomes(args, species, label, needed_iterations):
         genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
         genomes_count[genome_id] += 1
         # get sequences
-        seq_list = get_sequences(fasta_file)
-        for rec in seq_list:
+        rec_list = get_sequences(fasta_file)
+        for rec in rec_list:
             dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
 
     # mutate genomes
@@ -87,6 +89,7 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
             simulate_reads(label, genome, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
             simulate_reads(label, genome, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
+            print(len(rec_fw_reads), len(rec_rv_reads))
         # split reads into training and validation sets if constraints are met
         random.shuffle(rec_fw_reads)
         random.shuffle(rec_rv_reads)
@@ -97,14 +100,6 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
         with open(os.path.join(args.input_path, f'{label}-val-reads.fq'), 'a') as outfile:
             outfile.write(''.join(rec_fw_reads[num_train_reads:]))
             outfile.write(''.join(rec_rv_reads[num_train_reads:]))
-        # train_reads += rec_fw_reads[:num_train_reads]
-        # val_reads += rec_fw_reads[num_train_reads:]
-        # train_reads += rec_rv_reads[:num_train_reads]
-        # val_reads += rec_rv_reads[num_train_reads:]
-
-    # write reads to fastq file
-    # SeqIO.write(train_reads, os.path.join(args.input_path, f'{label}-train-reads.fq'), "fastq")
-    # SeqIO.write(val_reads, os.path.join(args.input_path, f'{label}-val-reads.fq'), "fastq")
 
     return
 
@@ -122,9 +117,6 @@ def create_test_set(args, label, list_genomes, dict_sequences):
         with open(os.path.join(args.input_path, f'{label}-test-reads.fq'), 'a') as outfile:
             outfile.write(''.join(rec_fw_reads))
             outfile.write(''.join(rec_rv_reads))
-
-    # write reads to fastq file
-    # SeqIO.write(test_reads, os.path.join(args.input_path, f'{label}-test-reads.fq'), "fastq")
 
     return
 
@@ -232,3 +224,16 @@ def select_genomes(args):
                     genome_dict[species_in_database[i]].append(os.path.join(args.ncbi_path, ncbi_genomes_avail[accession_id_list[i][3:]]))
 
     return genome_dict
+
+def get_genomes_info(args, species, label):
+    total_GC_content = float()
+    TETRA_nt = defaultdict(int)
+    for genome in args.genome_dict[species]:
+        rec_list = get_sequences(fastafile)
+        for rec in rec_list:
+            """ compute the genome GC content: Count(G + C)/Count(A + T + G + C) * 100% """
+            total_GC_content += (float((str(rec.seq).count('C') + str(rec.seq).count('G'))) / (str(rec.seq).count('C') + str(rec.seq).count('G') + str(rec.seq).count('A') + str(rec.seq).count('T'))) * 100
+            get_tetra_nt_fqcy(TETRA_nt, str(rec.seq))
+            print(total_GC_content, len(TETRA_nt))
+            
+    return total_GC_content/len(args.genome_dict[species]),
