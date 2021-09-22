@@ -229,12 +229,12 @@ def get_genomes_info(args, species, label):
     total_GC_content = float()
     TETRA_nt = defaultdict(int)
     for genome in args.genome_dict[species]:
-        rec_list = get_sequences(fastafile)
+        rec_list = get_sequences(genome)
         for rec in rec_list:
             """ compute the genome GC content: Count(G + C)/Count(A + T + G + C) * 100% """
             total_GC_content += (float((str(rec.seq).count('C') + str(rec.seq).count('G'))) / (str(rec.seq).count('C') + str(rec.seq).count('G') + str(rec.seq).count('A') + str(rec.seq).count('T'))) * 100
             get_tetra_nt_fqcy(TETRA_nt, str(rec.seq))
             print(total_GC_content, len(TETRA_nt))
     # update dictionary tetranucleotides to have the average frequency
-    updated_TETRA_nt = {key: float(value)/len(args.genome_dict[species]) for key, value in TETRA_nt.items()} 
+    updated_TETRA_nt = {key: float(value)/len(args.genome_dict[species]) for key, value in TETRA_nt.items()}
     return total_GC_content/len(args.genome_dict[species]), updated_TETRA_nt
