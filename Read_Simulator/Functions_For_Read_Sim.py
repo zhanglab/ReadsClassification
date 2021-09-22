@@ -79,8 +79,6 @@ def mutate_genomes(args, species, label, needed_iterations):
     return
 
 def create_train_val_sets(args, label, list_genomes, dict_sequences):
-    train_reads = []
-    val_reads = []
     for genome in list_genomes:
         rec_fw_reads = []
         rec_rv_reads = []
@@ -93,19 +91,25 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
         random.shuffle(rec_fw_reads)
         random.shuffle(rec_rv_reads)
         num_train_reads = math.ceil(0.7*len(rec_fw_reads))
-        train_reads += rec_fw_reads[:num_train_reads]
-        val_reads += rec_fw_reads[num_train_reads:]
-        train_reads += rec_rv_reads[:num_train_reads]
-        val_reads += rec_rv_reads[num_train_reads:]
+        with open(os.path.join(args.input_path, f'{label}-train-reads.fq'), 'a') as outfile:
+            outfile.write(''.join(rec_fw_reads[:num_train_reads]))
+            outfile.write(''.join(rec_rv_reads[:num_train_reads]))
+        with open(os.path.join(args.input_path, f'{label}-val-reads.fq'), 'a') as outfile:
+            outfile.write(''.join(rec_fw_reads[num_train_reads:]))
+            outfile.write(''.join(rec_rv_reads[num_train_reads:]))
+        # train_reads += rec_fw_reads[:num_train_reads]
+        # val_reads += rec_fw_reads[num_train_reads:]
+        # train_reads += rec_rv_reads[:num_train_reads]
+        # val_reads += rec_rv_reads[num_train_reads:]
 
     # write reads to fastq file
-    SeqIO.write(train_reads, os.path.join(args.input_path, f'{label}-train-reads.fq'), "fastq")
-    SeqIO.write(val_reads, os.path.join(args.input_path, f'{label}-val-reads.fq'), "fastq")
+    # SeqIO.write(train_reads, os.path.join(args.input_path, f'{label}-train-reads.fq'), "fastq")
+    # SeqIO.write(val_reads, os.path.join(args.input_path, f'{label}-val-reads.fq'), "fastq")
 
     return
 
 def create_test_set(args, label, list_genomes, dict_sequences):
-    test_reads = []
+    # test_reads = []
     for genome in list_genomes:
         rec_fw_reads = []
         rec_rv_reads = []
@@ -114,10 +118,13 @@ def create_test_set(args, label, list_genomes, dict_sequences):
             simulate_reads(label, genome, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
             simulate_reads(label, genome, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
-        test_reads += rec_fw_reads + rec_rv_reads
+        # test_reads += rec_fw_reads + rec_rv_reads
+        with open(os.path.join(args.input_path, f'{label}-test-reads.fq'), 'a') as outfile:
+            outfile.write(''.join(rec_fw_reads))
+            outfile.write(''.join(rec_rv_reads))
 
     # write reads to fastq file
-    SeqIO.write(test_reads, os.path.join(args.input_path, f'{label}-test-reads.fq'), "fastq")
+    # SeqIO.write(test_reads, os.path.join(args.input_path, f'{label}-test-reads.fq'), "fastq")
 
     return
 
