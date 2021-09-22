@@ -122,3 +122,11 @@ def mut_counter(mutated_codon, original_codon):
         if mutated_codon[i] != original_codon[i]:
             counter += 1
     return counter
+
+def get_tetra_nt_fqcy(TETRA_nt, sequence):
+    """ returns the frequency of all tetranucleotides in the sequence """
+    for i in range(0, len(sequence)-3, 1):
+        tetra_nt = sequence[i:i+4]
+        TETRA_nt[tetra_nt] += 1
+
+    return
