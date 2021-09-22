@@ -235,5 +235,6 @@ def get_genomes_info(args, species, label):
             total_GC_content += (float((str(rec.seq).count('C') + str(rec.seq).count('G'))) / (str(rec.seq).count('C') + str(rec.seq).count('G') + str(rec.seq).count('A') + str(rec.seq).count('T'))) * 100
             get_tetra_nt_fqcy(TETRA_nt, str(rec.seq))
             print(total_GC_content, len(TETRA_nt))
-            
-    return total_GC_content/len(args.genome_dict[species]),
+    # update dictionary tetranucleotides to have the average frequency
+    updated_TETRA_nt = {key: float(value)/len(args.genome_dict[species]) for key, value in TETRA_nt.items()} 
+    return total_GC_content/len(args.genome_dict[species]), updated_TETRA_nt
