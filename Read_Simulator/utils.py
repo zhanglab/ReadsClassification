@@ -92,7 +92,7 @@ def create_fastq_record(read_seq, read_id, list_records):
     print(read_qual, type(read_qual))
     #record.letter_annotations["phred_quality"] = quality_scores
     #record.format('fastq')
-    record_str = f'{read_id}\n{read_seq}\n+\n{read_qual}\n'
+    record_str = f'{"@" + read_id}\n{read_seq}\n+\n{read_qual}\n'
     print(record_str)
     list_records.append(record_str)
 
