@@ -87,13 +87,7 @@ def complement(seq):
 def create_fastq_record(read_seq, read_id, list_records):
     """ generates fastq records """
     read_qual = ''.join([random.choice(string.ascii_uppercase) for _ in range(len(read_seq))])
-    #record = SeqRecord(Seq(read_seq), id=read_id)
-    #quality_scores = ''.join([str(ord(i)) for i in read_qual])
-    print(read_qual, type(read_qual))
-    #record.letter_annotations["phred_quality"] = quality_scores
-    #record.format('fastq')
     record_str = f'{"@" + read_id}\n{read_seq}\n+\n{read_qual}\n'
-    print(record_str)
     list_records.append(record_str)
 
 # this function looks for a open reading frame and if one exists returns true
