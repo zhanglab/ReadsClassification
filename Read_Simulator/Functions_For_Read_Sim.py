@@ -23,8 +23,6 @@ def mutate_genomes(args, species, label, needed_iterations):
 
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
-        # get average GC content and average tetranucleotide frequencies per species
-        args.GC_content, args.TETRA_nt = get_genomes_info(args, species, label)
         # get list of randomly selected genomes that will be mutated
         list_mutate = random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
         # define list of genomes that won't be mutated
@@ -55,9 +53,12 @@ def mutate_genomes(args, species, label, needed_iterations):
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
-                    mutate(str(rec.seq), label, rec.id, args.codon_amino, args.amino_codon)
+                    mutate(args, str(rec.seq), label, rec.id)
                 mut_f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
+
+    # get average GC content and average tetranucleotide frequencies per species of original genomes
+    get_genomes_info(args, species, label, dict_sequences)
 
     # split genomes between training and testing sets
     total_genomes = list(dict_sequences.keys())
@@ -89,7 +90,6 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
             simulate_reads(label, genome, seq, complement(seq), rec_fw_reads, rec_rv_reads)
             # positive and negative strands are inversed
             simulate_reads(label, genome, complement(seq)[::-1], seq[::-1], rec_fw_reads, rec_rv_reads)
-            print(len(rec_fw_reads), len(rec_rv_reads))
         # split reads into training and validation sets if constraints are met
         random.shuffle(rec_fw_reads)
         random.shuffle(rec_rv_reads)
@@ -141,7 +141,7 @@ def simulate_reads(label, sequence_id, positive_strand, negative_strand, rec_for
             create_fastq_record(rv_read, f'{sequence_id}-{label}-{len(rec_reverse_reads)}-2', rec_reverse_reads)
     return
 
-def mutate(seq, label, seq_id, codon_amino, amino_codon):
+def mutate(args, seq, label, seq_id):
     """ returns a mutated sequence with synonymous mutations randomly added to every ORF """
     # randomly select one of the 3 reading frames
     rf_option = random.choice([0, 1, 2])
@@ -164,7 +164,7 @@ def mutate(seq, label, seq_id, codon_amino, amino_codon):
                 while j < (len(seq) - 3) and seq[j:j + 3] not in list_stop_codons:
                     if bool(re.match('^[ACTG]+$', seq[j:j + 3])):
                         # replace by a synonymous codon
-                        mutated_codon = select_codon(seq[j:j + 3], codon_amino, amino_codon)
+                        mutated_codon = select_codon(seq[j:j + 3], args.codon_amino, args.amino_codon)
                         orf += mutated_codon
                         # keep track of the number of point mutations
                         counter += mut_counter(mutated_codon, seq[j:j + 3])
@@ -225,16 +225,25 @@ def select_genomes(args):
 
     return genome_dict
 
-def get_genomes_info(args, species, label):
+def get_genomes_info(args, species, label, dict_sequences):
     total_GC_content = float()
+    num_original_genomes = int()
     TETRA_nt = defaultdict(int)
-    for genome in args.genome_dict[species]:
-        rec_list = get_sequences(genome)
-        for rec in rec_list:
+    for genome in dict_sequences:
+        genome_GC_content = float()
+        genome_count = int(genome.split('-')[1])
+        for seq in seq_list:
             """ compute the genome GC content: Count(G + C)/Count(A + T + G + C) * 100% """
-            total_GC_content += (float((str(rec.seq).count('C') + str(rec.seq).count('G'))) / (str(rec.seq).count('C') + str(rec.seq).count('G') + str(rec.seq).count('A') + str(rec.seq).count('T'))) * 100
-            get_tetra_nt_fqcy(TETRA_nt, str(rec.seq))
-            print(total_GC_content, len(TETRA_nt))
+            seq_GC_content = (float((seq.count('C') + seq.count('G'))) / (seq.count('C') + seq.count('G') + seq.count('A') + seq.count('T'))) * 100
+            genome_GC_content += seq_GC_content
+            get_tetra_nt_fqcy(TETRA_nt, seq)
+        if genome_count == 1:
+            total_GC_content += genome_GC_content
+            num_original_genomes += 1
+        with open(os.path.join(args.input_path, f'{label}-GC-content'), 'a') as f:
+            f.write(f'{genome_id}\t{genome_GC_content}\n')
+    with open(os.path.join(args.input_path, f'{label}-GC-content'), 'a') as f:
+        f.write(f'{total_GC_content/num_original_genomes}\n')
     # update dictionary tetranucleotides to have the average frequency
-    updated_TETRA_nt = {key: float(value)/len(args.genome_dict[species]) for key, value in TETRA_nt.items()}
+    updated_TETRA_nt = {key: float(value)/num_original_genomes) for key, value in TETRA_nt.items()}
     return total_GC_content/len(args.genome_dict[species]), updated_TETRA_nt
