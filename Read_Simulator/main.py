@@ -36,6 +36,7 @@ def main():
             needed_iterations = args.num_mutate
         # create dictionary mapping labels to species
         args.label_dict = get_dataset_info(args)
+        print(f'Rank: {rank}\n{args.label_dict}\n')
         # split dictionary into lists of dictionaries
         list_dict = []
         list_labels = [list(args.label_dict.keys())[i:i+len(args.label_dict)//size] for i in range(0, len(args.label_dict), len(args.label_dict)//size)]
