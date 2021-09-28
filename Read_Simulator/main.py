@@ -46,7 +46,7 @@ def main():
         print(f'Rank: {rank}\n{list_labels}\n')
         print(f'Rank: {rank}\n{list_dict}\n')
     # broadcast the needed_iterations variable to all processes
-    needed_iterations = comm.bdcast(needed_iterations, root=0)
+    needed_iterations = comm.bcast(needed_iterations, root=0)
     # scatter dictionary to all processes
     list_dict = comm.scatter(list_dict, root=0)
     print(f'Rank: {rank}\n{list_dict}\n{needed_iterations}\n')
