@@ -41,7 +41,7 @@ def main():
         list_dict = []
         list_labels = [list(args.label_dict.keys())[i:i+len(args.label_dict)//size] for i in range(0, len(args.label_dict), len(args.label_dict)//size)]
         for i in range(len(list_labels)):
-            dict_process = {str(j): args.label_dict[str(j)] for j in list_labels[i]}
+            dict_process = {j: args.label_dict[j] for j in list_labels[i]}
             list_dict.append(dict_process)
         print(f'Rank: {rank}\n{list_labels}\n')
         print(f'Rank: {rank}\n{list_dict}\n')
