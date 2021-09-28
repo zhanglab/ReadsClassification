@@ -245,5 +245,5 @@ def get_genomes_info(args, species, label, dict_sequences):
     with open(os.path.join(args.input_path, f'{label}-GC-content'), 'a') as f:
         f.write(f'{total_GC_content/num_original_genomes}\n')
     # update dictionary tetranucleotides to have the average frequency
-    updated_TETRA_nt = {key: float(value)/num_original_genomes) for key, value in TETRA_nt.items()}
+    updated_TETRA_nt = {key: float(value)/num_original_genomes for key, value in TETRA_nt.items()}
     return total_GC_content/len(args.genome_dict[species]), updated_TETRA_nt
