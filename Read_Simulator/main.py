@@ -36,15 +36,20 @@ def main():
             needed_iterations = args.num_mutate
         # create dictionary mapping labels to species
         args.label_dict = get_dataset_info(args)
+        # split dictionary into N lists of dictionaries with N equal to the number of processes
+        list_dict = [{} for i in range(size)]
+        l_pos = 0
+        for i in range(len(args.label_dict)):
+            list_dict[l_pos][i] = args.label_dict[i]
+            l_pos += 1
+            if l_pos == size:
+                l_pos = 0
         print(f'Rank: {rank}\n{args.label_dict}\n')
-        # split dictionary into lists of dictionaries
-        list_dict = []
-        list_labels = [list(args.label_dict.keys())[i:i+len(args.label_dict)//size] for i in range(0, len(args.label_dict), len(args.label_dict)//size)]
-        for i in range(len(list_labels)):
-            dict_process = {j: args.label_dict[j] for j in list_labels[i]}
-            list_dict.append(dict_process)
-        print(f'Rank: {rank}\n{list_labels}\n')
-        print(f'Rank: {rank}\n{list_dict}\n')
+        print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
+        num_items = 0
+        for i in range(len(list_dict)):
+            num_items += len(list_dict[i])
+        print(f'Rank: {rank}\n{num_items}\n')
     else:
         needed_iterations = None
         list_dict = None
