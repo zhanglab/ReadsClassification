@@ -58,6 +58,9 @@ def main():
     # scatter dictionary to all processes
     list_dict = comm.scatter(list_dict, root=0)
     print(f'Rank: {rank}\n{list_dict}\n{needed_iterations}\n')
+    # start read simulation
+    for label, species in list_dict.items():
+        mutate_genomes(args, species, label, needed_iterations)
 
     # generate reads for each species in parallel
     # with mp.Manager() as manager:
