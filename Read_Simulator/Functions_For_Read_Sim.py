@@ -12,7 +12,7 @@ import os
 import math
 from utils import *
 
-def mutate_genomes(args, species, label, needed_iterations):
+def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     """ returns 2 list of genomes (original and mutated versions), one for training and one for testing  """
     # create empty dictionary to store the genomes (key = genome id, value = list of sequences)
     dict_sequences = defaultdict(list)
@@ -24,13 +24,13 @@ def mutate_genomes(args, species, label, needed_iterations):
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
         # get list of randomly selected genomes that will be mutated
-        list_mutate = random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
+        list_mutate = random.choices(genome_dict[species], k=(needed_iterations - len(genome_dict[species])))
         # define list of genomes that won't be mutated
-        list_genomes = args.genome_dict[species]
+        list_genomes = genome_dict[species]
     else:
         list_mutate = []
         # randomly select genomes to add to the list of genomes that won't be mutated
-        list_genomes = args.genome_dict[species] + random.choices(args.genome_dict[species], k=(needed_iterations - len(args.genome_dict[species])))
+        list_genomes = genome_dict[species] + random.choices(genome_dict[species], k=(needed_iterations - len(genome_dict[species])))
 
     # get sequences from unmutated genomes
     for fasta_file in list_genomes:
@@ -58,7 +58,7 @@ def mutate_genomes(args, species, label, needed_iterations):
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
     # get average GC content and average tetranucleotide frequencies per species of original genomes
-    get_genomes_info(args, species, label, dict_sequences)
+    get_genomes_info(args, species, label, dict_sequences, genome_dict)
 
     # split genomes between training and testing sets
     total_genomes = list(dict_sequences.keys())
@@ -225,7 +225,7 @@ def select_genomes(args):
 
     return genome_dict
 
-def get_genomes_info(args, species, label, dict_sequences):
+def get_genomes_info(args, species, label, dict_sequences, genome_dict):
     total_GC_content = float()
     num_original_genomes = int()
     TETRA_nt = defaultdict(int)
@@ -246,4 +246,4 @@ def get_genomes_info(args, species, label, dict_sequences):
         f.write(f'{total_GC_content/num_original_genomes}\n')
     # update dictionary tetranucleotides to have the average frequency
     updated_TETRA_nt = {key: float(value)/num_original_genomes for key, value in TETRA_nt.items()}
-    return total_GC_content/len(args.genome_dict[species]), updated_TETRA_nt
+    return total_GC_content/len(genome_dict[species]), updated_TETRA_nt
