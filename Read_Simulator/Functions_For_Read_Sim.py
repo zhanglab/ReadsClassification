@@ -229,7 +229,7 @@ def get_genomes_info(args, species, label, dict_sequences):
     total_GC_content = float()
     num_original_genomes = int()
     TETRA_nt = defaultdict(int)
-    for genome in dict_sequences:
+    for genome, seq_list in dict_sequences.items():
         genome_GC_content = float()
         genome_count = int(genome.split('-')[1])
         for seq in seq_list:
