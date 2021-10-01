@@ -28,7 +28,7 @@ def main():
         # loads species in dataset
         args.list_species = get_species(args)
         # select genomes
-        args.genome_dict = select_genomes(args)  # gets the genome dictionary
+        genome_dict = select_genomes(args)  # gets the genome dictionary
         # get species with largest number of genomes
         if args.num_mutate is None:
             needed_iterations = find_largest_genome_set(args)
@@ -53,14 +53,17 @@ def main():
     else:
         needed_iterations = None
         list_dict = None
+        genome_dict = None
     # broadcast the needed_iterations variable to all processes
     needed_iterations = comm.bcast(needed_iterations, root=0)
+    # broadcast the dictionary of genomes to all processes
+    genome_dict = comm.bcast(genome_dict, root=0)
     # scatter dictionary to all processes
     list_dict = comm.scatter(list_dict, root=0)
     print(f'Rank: {rank}\n{list_dict}\n{needed_iterations}\n')
     # start read simulation
     for label, species in list_dict.items():
-        mutate_genomes(args, species, label, needed_iterations)
+        mutate_genomes(args, species, label, needed_iterations, genome_dict)
 
     # generate reads for each species in parallel
     # with mp.Manager() as manager:
