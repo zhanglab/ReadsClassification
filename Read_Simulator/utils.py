@@ -23,24 +23,24 @@ def get_species(args):
     species_df = pd.read_csv(os.path.join(args.input_path, 'species.tsv'), sep='\t', header=None)
     return species_df[0].tolist()
 
-def get_dataset_info(args):
+def get_dataset_info(args, genome_dict, list_species):
     """ returns dictionary mapping labels to species  """
     # report missing species
     with open(os.path.join(args.input_path, 'missing-species.txt'), 'w') as f:
-        for s in args.list_species:
-            if s not in args.genome_dict.keys():
+        for s in list_species:
+            if s not in genome_dict.keys():
                 f.write(f'{s}\n')
     # update list of species if necessary
-    args.list_species = list(args.genome_dict.keys())
+    list_species = list(genome_dict.keys())
     # create dictionary mapping labels to species
-    label_dict = dict(zip(list(range(len(args.list_species))), args.list_species))
+    label_dict = dict(zip(list(range(len(list_species))), list_species))
     # create json file
     with open(os.path.join(args.input_path, 'class_mapping.json'), "w") as f:
         json.dump(label_dict, f)
     # report number of genomes per species
     with open(os.path.join(args.input_path, 'num_genomes_report.txt'), 'w') as f:
         for key, value in label_dict.items():
-            f.write(f'{key}\t{value}\t{len(args.genome_dict[value])}\n')
+            f.write(f'{key}\t{value}\t{len(genome_dict[value])}\n')
 
     return label_dict
 
@@ -50,11 +50,11 @@ def load_class_mapping(filename):
         class_mapping = json.load(f)
     return class_mapping
 
-def find_largest_genome_set(args):
+def find_largest_genome_set(args, genome_dict):
     """ returns species with largest number of genomes  """
     max_num = 0
     largest_species = ''
-    for species, accession_list in args.genome_dict.items():
+    for species, accession_list in genome_dict.items():
         if len(accession_list) > max_num:
             max_num = len(accession_list)
             largest_species = species
