@@ -192,7 +192,7 @@ def mutate(args, seq, label, seq_id):
     return mutated_sequence, ((counter / len(seq)) * 100)
 
 
-def select_genomes(args):
+def select_genomes(args, list_species):
     # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
     """ returns a dictionary with a list of genomes for each species """
     # load gtdb information
@@ -213,7 +213,7 @@ def select_genomes(args):
     # filter genomes based on species in dataset and genomes type
     genome_dict = defaultdict(list)
     for i in range(len(gtdb_df)):
-        if species_in_database[i] in args.list_species:
+        if species_in_database[i] in list_species:
             if ncbi_assembly_level_list[i] == "Complete Genome" and ncbi_genome_category_list[i] \
                     != ("derived from metagenome" or "derived from environmental_sample"):
                 # verify if genome fasta file is available in the local gtdb database
