@@ -16,8 +16,6 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     """ returns 2 list of genomes (original and mutated versions), one for training and one for testing  """
     # create empty dictionary to store the genomes (key = genome id, value = list of sequences)
     dict_sequences = defaultdict(list)
-    # create file to store mutation mutation report
-    mut_f = open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w')
     # create dictionary to keep track of the count per genomes
     genomes_count = defaultdict(int)
 
@@ -54,7 +52,8 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
                     mutate(args, str(rec.seq), label, rec.id)
-                mut_f.write(f'{genome_id}\t{rec.id}\t{100 - mut_stats}\n')
+                with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w') as mut_f:
+                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{100 - mut_stats}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
     # get average GC content and average tetranucleotide frequencies per species of original genomes
@@ -100,6 +99,8 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
         with open(os.path.join(args.input_path, f'{label}-val-reads.fq'), 'a') as outfile:
             outfile.write(''.join(rec_fw_reads[num_train_reads:]))
             outfile.write(''.join(rec_rv_reads[num_train_reads:]))
+        with open(os.path.join(args.input_path, f'{label}-train-val-reads'), 'a') as f:
+            f.write(f'{genome}\t{len(rec_fw_reads)}\t{len(rec_rv_reads)}\n')
 
     return
 
@@ -117,6 +118,8 @@ def create_test_set(args, label, list_genomes, dict_sequences):
         with open(os.path.join(args.input_path, f'{label}-test-reads.fq'), 'a') as outfile:
             outfile.write(''.join(rec_fw_reads))
             outfile.write(''.join(rec_rv_reads))
+        with open(os.path.join(args.input_path, f'{label}-test-reads'), 'a') as f:
+            f.write(f'{genome}\t{len(rec_fw_reads)}\t{len(rec_rv_reads)}\n')
 
     return
 
@@ -232,18 +235,25 @@ def get_genomes_info(args, species, label, dict_sequences, genome_dict):
     for genome_id, seq_list in dict_sequences.items():
         genome_GC_content = float()
         genome_count = int(genome_id.split('-')[1])
+        genome_size = int()
         for seq in seq_list:
             """ compute the genome GC content: Count(G + C)/Count(A + T + G + C) * 100% """
             seq_GC_content = (float((seq.count('C') + seq.count('G'))) / (seq.count('C') + seq.count('G') + seq.count('A') + seq.count('T'))) * 100
             genome_GC_content += seq_GC_content
+            genome_size += len(seq)
             get_tetra_nt_fqcy(TETRA_nt, seq)
         if genome_count == 1:
             total_GC_content += genome_GC_content
             num_original_genomes += 1
         with open(os.path.join(args.input_path, f'{label}-GC-content'), 'a') as f:
             f.write(f'{genome_id}\t{genome_GC_content}\n')
+        with open(os.path.join(args.input_path, f'{label}-genome-size'), 'a') as f:
+            f.write(f'{genome_id}\t{genome_size}\n')
     with open(os.path.join(args.input_path, f'{label}-GC-content'), 'a') as f:
         f.write(f'{total_GC_content/num_original_genomes}\n')
-    # update dictionary tetranucleotides to have the average frequency
+    # update dictionary tetranucleotides to have the average frequency and save to file
     updated_TETRA_nt = {key: float(value)/num_original_genomes for key, value in TETRA_nt.items()}
+    with open(os.path.join(args.input_path, f'{label}-TETRA-nt'), 'w') as f:
+        for tetra in updated_TETRA_nt.keys():
+            f.write("%s,%s\n"%(tetra, updated_TETRA_nt[tetra]))
     return total_GC_content/len(genome_dict[species]), updated_TETRA_nt
