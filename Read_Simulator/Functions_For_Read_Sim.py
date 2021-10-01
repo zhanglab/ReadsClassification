@@ -51,7 +51,7 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
                 mut_seq, mut_stats = \
-                    mutate(args, str(rec.seq), label, rec.id)
+                    mutate(args, str(rec.seq), label, rec.id, genome_id)
                 with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w') as mut_f:
                     mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{100 - mut_stats}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
@@ -144,7 +144,7 @@ def simulate_reads(label, sequence_id, positive_strand, negative_strand, rec_for
             create_fastq_record(rv_read, f'{sequence_id}-{label}-{len(rec_reverse_reads)}-2', rec_reverse_reads)
     return
 
-def mutate(args, seq, label, seq_id):
+def mutate(args, seq, label, seq_id, genome_id):
     """ returns a mutated sequence with synonymous mutations randomly added to every ORF """
     # randomly select one of the 3 reading frames
     rf_option = random.choice([0, 1, 2])
@@ -191,7 +191,10 @@ def mutate(args, seq, label, seq_id):
             i += 3
     # adds on the last characters of the sequence if its length is not a multiple of 3
     mutated_sequence += seq[last_add:]
-
+    if len(seq) != len(mutated_sequence):
+        print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}')
+        with open(os.path.join(args.input_path, f'{label}-{genome_id}-{seq_id}.fasta'), 'w') as f:
+            f.write(f'>original-{seq_id}\n{seq}\n>mutated-{seq_id}\n{mutated_sequence}\n')
     return mutated_sequence, ((counter / len(seq)) * 100)
 
 
