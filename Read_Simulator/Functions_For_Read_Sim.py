@@ -229,9 +229,9 @@ def get_genomes_info(args, species, label, dict_sequences, genome_dict):
     total_GC_content = float()
     num_original_genomes = int()
     TETRA_nt = defaultdict(int)
-    for genome, seq_list in dict_sequences.items():
+    for genome_id, seq_list in dict_sequences.items():
         genome_GC_content = float()
-        genome_count = int(genome.split('-')[1])
+        genome_count = int(genome_id.split('-')[1])
         for seq in seq_list:
             """ compute the genome GC content: Count(G + C)/Count(A + T + G + C) * 100% """
             seq_GC_content = (float((seq.count('C') + seq.count('G'))) / (seq.count('C') + seq.count('G') + seq.count('A') + seq.count('T'))) * 100
