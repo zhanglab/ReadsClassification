@@ -26,25 +26,25 @@ def main():
     # select genomes only on processor with rank 0
     if rank == 0:
         # loads species in dataset
-        args.list_species = get_species(args)
+        list_species = get_species(args)
         # select genomes
-        genome_dict = select_genomes(args)  # gets the genome dictionary
+        genome_dict = select_genomes(args, list_species)  # gets the genome dictionary
         # get species with largest number of genomes
         if args.num_mutate is None:
-            needed_iterations = find_largest_genome_set(args)
+            needed_iterations = find_largest_genome_set(args, genome_dict)
         else:
             needed_iterations = args.num_mutate
         # create dictionary mapping labels to species
-        args.label_dict = get_dataset_info(args)
+        label_dict = get_dataset_info(args, genome_dict, list_species)
         # split dictionary into N lists of dictionaries with N equal to the number of processes
         list_dict = [{} for i in range(size)]
         l_pos = 0
-        for i in range(len(args.label_dict)):
-            list_dict[l_pos][i] = args.label_dict[i]
+        for i in range(len(label_dict)):
+            list_dict[l_pos][i] = label_dict[i]
             l_pos += 1
             if l_pos == size:
                 l_pos = 0
-        print(f'Rank: {rank}\n{args.label_dict}\n')
+        print(f'Rank: {rank}\n{label_dict}\n')
         print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
         num_items = 0
         for i in range(len(list_dict)):
