@@ -92,16 +92,21 @@ def create_fastq_record(read_seq, read_id, list_records):
 
 # this function looks for a open reading frame and if one exists returns true
 def find_orf(seq, i):
+    orf = ''
     list_stop_codons = ['TAA', 'TAG', 'TGA']
-    while seq[i:i + 3] not in list_stop_codons:
-        if i >= len(seq):
-            is_mut = -1
-            old_stop_codon = []
-            return is_mut, old_stop_codon
-        i += 3
-        is_mut = 0
-    old_stop_codon = seq[i:i + 3]
-    return is_mut, old_stop_codon
+    j = i
+    while j <= (len(seq) - 3):
+        orf += seq[j:j+3]
+        j += 3
+        # add stop codon to ORF
+        if seq[j:j+3] in list_stop_codons:
+            orf += seq[j:j+3]
+            break
+        # if no stop codons have been found when reaching the end of the sequence
+        # return an empty string
+        if j == (len(seq) - 3) and seq[j:j+3] not in list_stop_codons:
+            orf = ''
+    return orf
 
 def select_codon(codon, codon_amino, amino_codon):
     """ returns a synonymous codon """
