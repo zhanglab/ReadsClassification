@@ -146,51 +146,77 @@ def simulate_reads(label, sequence_id, positive_strand, negative_strand, rec_for
 
 def mutate(args, seq, label, seq_id, genome_id):
     """ returns a mutated sequence with synonymous mutations randomly added to every ORF """
+    print(args.codon_amino)
+    print(args.amino_codon)
     # randomly select one of the 3 reading frames
     rf_option = random.choice([0, 1, 2])
     # keep track of the number of point mutations
     counter = 0
     # create variable to store the mutated sequence
     mutated_sequence = ''
-    # define a list with STOP codons
-    list_stop_codons = ['TAA', 'TAG', 'TGA']
-    last_add = len(seq) - (len(seq) % 3)
-    i = 0
-    while i <= (len(seq) - 3):
-        codon = seq[i:i + 3]
+    # iterate over sequence
+    i = rf_option
+    while i <= (len(seq) - 3 - rf_option):
+        codon = seq[i:i+3]
         if codon == 'ATG':
-            # sees if a stop codon exists
-            is_orf, old_stop_codon = find_orf(seq, i, list_stop_codons)
-            j = i
-            if is_orf == 0:  # the loop for when a stop codon exists
-                orf = ''
-                while j < (len(seq) - 3) and seq[j:j + 3] not in list_stop_codons:
-                    if bool(re.match('^[ACTG]+$', seq[j:j + 3])):
+            # check if start codon is part of an ORF
+            orf = find_orf(seq, i, list_stop_codons)
+            if orf is not None:
+                # mutate orf
+                new_orf = ''
+                j = 0
+                while j <= (len(orf) - 3):
+                    if bool(re.match('^[ACTG]+$', orf[j:j + 3]))
                         # replace by a synonymous codon
-                        mutated_codon = select_codon(seq[j:j + 3], args.codon_amino, args.amino_codon)
-                        orf += mutated_codon
+                        mutated_codon = select_codon(orf[j:j+3], args.codon_amino, args.amino_codon)
+                        new_orf += mutated_codon
                         # keep track of the number of point mutations
-                        counter += mut_counter(mutated_codon, seq[j:j + 3])
-                    # add original codon to mutated sequence if presence of non universal base
+                        counter += mut_counter(mutated_codon, orf[j:j+3])
                     else:
-                        orf += seq[j:j + 3]
+                        new_orf += orf[j:j+3]
                     j += 3
-                # add randomly selected stop codons
-                new_stop_codon = list_stop_codons[random.randint(0, 2)]
-                orf += new_stop_codon
-                counter += mut_counter(new_stop_codon, old_stop_codon)
+                    print(f'{len(orf)}\t{len(new_orf)}')
                 mutated_sequence += orf
-            # when there is no stop codon
-            elif is_orf == -1:
-                while j < (len(seq) - 3):
-                    mutated_sequence += seq[j:j + 3]
-                    j += 3
-            i = j + 3
+                i += len(orf)
+            else:
+                mutate_sequence += seq[i:i+3]
+                i += 3
         else:
-            mutated_sequence += seq[i:i + 3]
+            mutate_sequence += seq[i:i+3]
             i += 3
+    print(f'{len(seq)}\t{len(mutated_sequence)}')
+
+
+        #     j = i
+        #     if is_orf == 0:  # the loop for when a stop codon exists
+        #         orf = ''
+        #         while j < (len(seq) - 3) and seq[j:j + 3] not in list_stop_codons:
+        #             if bool(re.match('^[ACTG]+$', seq[j:j + 3])):
+        #                 # replace by a synonymous codon
+        #                 mutated_codon = select_codon(seq[j:j + 3], args.codon_amino, args.amino_codon)
+        #                 orf += mutated_codon
+        #                 # keep track of the number of point mutations
+        #                 counter += mut_counter(mutated_codon, seq[j:j + 3])
+        #             # add original codon to mutated sequence if presence of non universal base
+        #             else:
+        #                 orf += seq[j:j + 3]
+        #             j += 3
+        #         # add randomly selected stop codons
+        #         new_stop_codon = list_stop_codons[random.randint(0, 2)]
+        #         orf += new_stop_codon
+        #         counter += mut_counter(new_stop_codon, old_stop_codon)
+        #         mutated_sequence += orf
+        #     # when there is no stop codon
+        #     elif is_orf == -1:
+        #         while j < (len(seq) - 3):
+        #             mutated_sequence += seq[j:j + 3]
+        #             j += 3
+        #     i = j + 3
+        # else:
+        #     mutated_sequence += seq[i:i + 3]
+        #     i += 3
     # adds on the last characters of the sequence if its length is not a multiple of 3
-    mutated_sequence += seq[last_add:]
+    # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
         print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}')
         with open(os.path.join(args.input_path, f'{label}-{genome_id}-{seq_id}.fasta'), 'w') as f:
