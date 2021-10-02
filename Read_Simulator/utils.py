@@ -91,7 +91,8 @@ def create_fastq_record(read_seq, read_id, list_records):
     list_records.append(record_str)
 
 # this function looks for a open reading frame and if one exists returns true
-def find_orf(seq, i, list_stop_codons):
+def find_orf(seq, i):
+    list_stop_codons = ['TAA', 'TAG', 'TGA']
     while seq[i:i + 3] not in list_stop_codons:
         if i >= len(seq):
             is_mut = -1
