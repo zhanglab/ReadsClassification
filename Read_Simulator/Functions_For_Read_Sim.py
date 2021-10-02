@@ -161,7 +161,7 @@ def mutate(args, seq, label, seq_id, genome_id):
         if codon == 'ATG':
             # check if start codon is part of an ORF
             orf = find_orf(seq, i, list_stop_codons)
-            if orf is not None:
+            if len(orf) != 0:
                 # mutate orf
                 new_orf = ''
                 j = 0
