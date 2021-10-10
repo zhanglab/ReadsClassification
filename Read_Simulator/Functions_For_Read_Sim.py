@@ -217,6 +217,7 @@ def mutate(args, seq, label, seq_id, genome_id):
     # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
         print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}')
+        print(f'{seq[len(seq)-100:]}\t{mutated_sequence[len(mutated_sequence)-100:]}')
         with open(os.path.join(args.input_path, f'{label}-{genome_id}-{seq_id}.fasta'), 'w') as f:
             f.write(f'>original-{seq_id}\n{seq}\n>mutated-{seq_id}\n{mutated_sequence}\n')
     return mutated_sequence, ((counter / len(seq)) * 100)
