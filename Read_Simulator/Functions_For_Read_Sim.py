@@ -154,9 +154,11 @@ def mutate(args, seq, label, seq_id, genome_id):
     counter = 0
     # create variable to store the mutated sequence
     mutated_sequence = ''
+    if rf_option != 0:
+        mutated_sequence = seq[rf_option]
     # iterate over sequence
     i = rf_option
-    while i <= (len(seq) - 3 - rf_option):
+    while i <= (len(seq) - 3):
         codon = seq[i:i+3]
         if codon == 'ATG':
             # check if start codon is part of an ORF
