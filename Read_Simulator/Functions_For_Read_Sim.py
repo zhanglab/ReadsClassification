@@ -53,7 +53,7 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
                 mut_seq, mut_stats = \
                     mutate(args, str(rec.seq), label, rec.id, genome_id)
                 with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w') as mut_f:
-                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{100 - mut_stats}\n')
+                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{len(rec.seq)}\t{len(mut_seq)}\t{100 - mut_stats}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
     # get average GC content and average tetranucleotide frequencies per species of original genomes
@@ -146,8 +146,6 @@ def simulate_reads(label, sequence_id, positive_strand, negative_strand, rec_for
 
 def mutate(args, seq, label, seq_id, genome_id):
     """ returns a mutated sequence with synonymous mutations randomly added to every ORF """
-    print(args.codon_amino)
-    print(args.amino_codon)
     # randomly select one of the 3 reading frames
     rf_option = random.choice([0, 1, 2])
     # keep track of the number of point mutations
@@ -219,10 +217,6 @@ def mutate(args, seq, label, seq_id, genome_id):
     # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
         mutated_sequence += seq[-(len(seq)-len(mutated_sequence)):]
-        print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}\t{rf_option}')
-        print(f'i start :{rf_option}\ti end:{i}\t{len(seq)}')
-        with open(os.path.join(args.input_path, f'{label}-{genome_id}-{seq_id}.fasta'), 'w') as f:
-            f.write(f'>original-{seq_id}\n{seq}\n>mutated-{seq_id}\n{mutated_sequence}\n')
     return mutated_sequence, ((counter / len(seq)) * 100)
 
 
