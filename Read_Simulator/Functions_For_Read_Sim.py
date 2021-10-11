@@ -167,7 +167,7 @@ def mutate(args, seq, label, seq_id, genome_id):
                 # mutate orf
                 new_orf = ''
                 j = 0
-                while j <= (len(orf) - 3):
+                while j <= len(orf) - 3:
                     if bool(re.match('^[ACTG]+$', orf[j:j + 3])):
                         # replace by a synonymous codon
                         mutated_codon = select_codon(orf[j:j+3], args.codon_amino, args.amino_codon)
@@ -177,8 +177,9 @@ def mutate(args, seq, label, seq_id, genome_id):
                     else:
                         new_orf += orf[j:j+3]
                     j += 3
-                mutated_sequence += orf
+                mutated_sequence += new_orf
                 i += len(orf)
+                print(f'previous orf: {len(orf)}\tnew orf: {len(new_orf)}')
             else:
                 mutated_sequence += seq[i:i+3]
                 i += 3
