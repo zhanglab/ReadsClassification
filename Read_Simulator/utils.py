@@ -95,16 +95,15 @@ def find_orf(seq, i):
     orf = ''
     list_stop_codons = ['TAA', 'TAG', 'TGA']
     j = i
-    while j <= (len(seq) - 3):
+    while j <= len(seq) - 3:
         orf += seq[j:j+3]
         j += 3
         # add stop codon to ORF
         if seq[j:j+3] in list_stop_codons:
-            orf += seq[j:j+3]
             break
         # if no stop codons have been found when reaching the end of the sequence
         # return an empty string
-        if j == (len(seq) - 3) and seq[j:j+3] not in list_stop_codons:
+        if j == len(seq) - 3 and seq[j:j+3] not in list_stop_codons:
             orf = ''
     return orf
 
