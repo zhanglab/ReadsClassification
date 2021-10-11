@@ -155,10 +155,10 @@ def mutate(args, seq, label, seq_id, genome_id):
     # create variable to store the mutated sequence
     mutated_sequence = ''
     if rf_option != 0:
-        mutated_sequence = seq[rf_option]
+        mutated_sequence = seq[:rf_option]
     # iterate over sequence
     i = rf_option
-    while i <= (len(seq) - 3):
+    while i <= len(seq) - 3:
         codon = seq[i:i+3]
         if codon == 'ATG':
             # check if start codon is part of an ORF
@@ -218,7 +218,7 @@ def mutate(args, seq, label, seq_id, genome_id):
     # adds on the last characters of the sequence if its length is not a multiple of 3
     # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
-        print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}')
+        print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}\t{rf_option}')
         print(f'{seq[len(seq)-100:]}\t{mutated_sequence[len(mutated_sequence)-100:]}')
         with open(os.path.join(args.input_path, f'{label}-{genome_id}-{seq_id}.fasta'), 'w') as f:
             f.write(f'>original-{seq_id}\n{seq}\n>mutated-{seq_id}\n{mutated_sequence}\n')
