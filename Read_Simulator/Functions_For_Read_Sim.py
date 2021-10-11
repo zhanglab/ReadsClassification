@@ -163,7 +163,7 @@ def mutate(args, seq, label, seq_id, genome_id):
         if codon == 'ATG':
             # check if start codon is part of an ORF
             orf = find_orf(seq, i)
-            if len(orf) != 0:
+            if len(orf) != 0 and len(orf) > 6:
                 # mutate orf
                 new_orf = ''
                 j = 0
@@ -179,8 +179,6 @@ def mutate(args, seq, label, seq_id, genome_id):
                     j += 3
                 mutated_sequence += new_orf
                 i += len(orf)
-                if len(orf) == 3:
-                    print(f'previous orf: {orf}\tnew orf: {new_orf}')
             else:
                 mutated_sequence += seq[i:i+3]
                 i += 3
