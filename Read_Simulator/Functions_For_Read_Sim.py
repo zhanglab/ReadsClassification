@@ -179,7 +179,8 @@ def mutate(args, seq, label, seq_id, genome_id):
                     j += 3
                 mutated_sequence += new_orf
                 i += len(orf)
-                print(f'previous orf: {len(orf)}\tnew orf: {len(new_orf)}')
+                if len(orf) == 3:
+                    print(f'previous orf: {orf}\tnew orf: {new_orf}')
             else:
                 mutated_sequence += seq[i:i+3]
                 i += 3
