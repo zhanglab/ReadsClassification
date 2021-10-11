@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
-import multiprocess as mp
+from mpi4py import MPI
 import argparse
 import sys
 import random
@@ -91,25 +91,52 @@ def get_tfrecords(args, label):
             writer.write(serialized)
 
 def main():
+    # create a communicator consisting of all the processors
+    comm = MPI.COMM_WORLD
+    # get the number of processors
+    size = comm.Get_size()
+    # get the rank of each processor
+    rank = comm.Get_rank()
+    print(comm, size, rank)
+    # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
     parser.add_argument('--voc', type=str, help='path to file containing vocabulary (list of kmers)')
     parser.add_argument('--dataset_type', type=str, help='type of dataset used training, evaluating and testing', choices=['train', 'val', 'test'])
     args = parser.parse_args()
-    # load class_mapping dictionary
-    args.class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
     # define the length of kmer vectors
     args.kmer_vector_length = args.read_length - args.k_value + 1
     # get dictionary mapping kmers to indexes
     args.dict_kmers = get_voc_dict(args.voc)
+    if rank == 0:
+        # load class_mapping dictionary
+        class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
+        # split dictionary into N lists of dictionaries with N equal to the number of processes
+        list_dict = [{} for i in range(size)]
+        l_pos = 0
+        for i in range(len(class_mapping)):
+            list_dict[l_pos][i] = class_mapping[str(i)]
+            l_pos += 1
+            if l_pos == size:
+                l_pos = 0
+        print(f'Rank: {rank}\n{label_dict}\n')
+        print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
+    else:
+        class_mapping = None
+        list_dict = None
+    # scatter dictionary to all processes
+    list_dict = comm.scatter(list_dict, root=0)
+    print(f'Rank: {rank}\n{list_dict}\n')
     # generate tfrecords for each species in parallel
-    with mp.Manager() as manager:
-        # create new processes
-        processes = [mp.Process(target=get_tfrecords, args=(args, label)) for label in args.class_mapping.keys()]
-        for p in processes:
-            p.start()
-        for p in processes:
-            p.join()
+    for label in list_dict.keys():
+        get_tfrecords(args, label)
+    # with mp.Manager() as manager:
+    #     # create new processes
+    #     processes = [mp.Process(target=get_tfrecords, args=(args, label)) for label in args.class_mapping.keys()]
+    #     for p in processes:
+    #         p.start()
+    #     for p in processes:
+    #         p.join()
 
 if __name__ == '__main__':
     main()
