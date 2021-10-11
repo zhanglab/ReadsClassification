@@ -100,6 +100,7 @@ def find_orf(seq, i):
         j += 3
         # add stop codon to ORF
         if seq[j:j+3] in list_stop_codons:
+            print(f'complete orf: {orf}')
             break
         # if no stop codons have been found when reaching the end of the sequence
         # return an empty string
