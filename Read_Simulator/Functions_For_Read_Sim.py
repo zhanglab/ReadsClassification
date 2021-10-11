@@ -163,7 +163,7 @@ def mutate(args, seq, label, seq_id, genome_id):
         if codon == 'ATG':
             # check if start codon is part of an ORF
             orf = find_orf(seq, i)
-            if len(orf) != 0 and len(orf) > 6:
+            if len(orf) != 0 or len(orf) > 6:
                 # mutate orf
                 new_orf = ''
                 j = 0
@@ -185,7 +185,7 @@ def mutate(args, seq, label, seq_id, genome_id):
         else:
             mutated_sequence += seq[i:i+3]
             i += 3
-
+    # add last nucleotides if necessary
 
         #     j = i
         #     if is_orf == 0:  # the loop for when a stop codon exists
@@ -218,8 +218,9 @@ def mutate(args, seq, label, seq_id, genome_id):
     # adds on the last characters of the sequence if its length is not a multiple of 3
     # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
+        mutated_sequence += seq[-(len(seq)-len(mutated_sequence)):]
         print(f'{label}\t{seq_id}\t{len(seq)}\t{len(mutated_sequence)}\t{rf_option}')
-        print(f'{seq[len(seq)-100:]}\t{mutated_sequence[len(mutated_sequence)-100:]}')
+        print(f'i start :{rf_option}\ti end:{i}\t{len(seq)}')
         with open(os.path.join(args.input_path, f'{label}-{genome_id}-{seq_id}.fasta'), 'w') as f:
             f.write(f'>original-{seq_id}\n{seq}\n>mutated-{seq_id}\n{mutated_sequence}\n')
     return mutated_sequence, ((counter / len(seq)) * 100)
