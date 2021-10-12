@@ -102,6 +102,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
     parser.add_argument('--read_length', type=int, help='length of reads in bp')
+    parser.add_argument('--k_value', type=int, help='length of kmers', default=12)
     parser.add_argument('--voc', type=str, help='path to file containing vocabulary (list of kmers)')
     parser.add_argument('--dataset_type', type=str, help='type of dataset used training, evaluating and testing', choices=['train', 'val', 'test'])
     args = parser.parse_args()
@@ -122,6 +123,7 @@ def main():
                 l_pos = 0
         print(f'Rank: {rank}\n{label_dict}\n')
         print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
+        print(f'Rank: {rank}\t{args.kmer_vector_length}')
     else:
         class_mapping = None
         list_dict = None
