@@ -8,7 +8,7 @@ def get_reads(list_fq_files, fq_files_loc):
     reads = {}
     with open(list_fq_files, 'r') as f:
         for line in f:
-            with open(os.path.join(fq_files_loc, line), "r") as handle:
+            with open(os.path.join(fq_files_loc, line.rstrip()), "r") as handle:
                 for rec in SeqIO.parse(handle, "fastq"):
                     reads[rec.id] = rec.seq
     return reads
