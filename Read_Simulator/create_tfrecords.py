@@ -101,6 +101,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
+    parser.add_argument('--read_length', type=int, help='length of reads in bp')
     parser.add_argument('--voc', type=str, help='path to file containing vocabulary (list of kmers)')
     parser.add_argument('--dataset_type', type=str, help='type of dataset used training, evaluating and testing', choices=['train', 'val', 'test'])
     args = parser.parse_args()
