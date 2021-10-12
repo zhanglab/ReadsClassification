@@ -112,6 +112,9 @@ def main():
     # get dictionary mapping kmers to indexes
     args.dict_kmers = get_voc_dict(args.voc)
     if rank == 0:
+        # craete directory to store tfrecords
+        if not os.path.isdir(os.path.join(args.input_path, 'tfrecords')):
+            os.makedirs(os.path.join(args.input_path, 'tfrecords'))
         # load class_mapping dictionary
         class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
         # split dictionary into N lists of dictionaries with N equal to the number of processes
