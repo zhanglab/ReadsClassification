@@ -32,7 +32,7 @@ def main():
                 rep = line.rstrip().split('\t')[0]
                 reads = clusters[rep]
                 print(f'rep: {rep}\nread: {reads}\n')
-                reads_in_train = set(rep]).intersection(set(train_reads))
+                reads_in_train = set(rep).intersection(set(train_reads))
                 reads_in_val = set(clusters[rep]).intersection(set(val_reads))
                 print(f'reads in training set:\n')
                 for r in reads_in_val:
