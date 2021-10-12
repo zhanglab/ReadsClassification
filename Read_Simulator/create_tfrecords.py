@@ -5,6 +5,7 @@ from mpi4py import MPI
 import argparse
 import sys
 import random
+from utils import *
 
 def get_rev_complement(read):
     """ Converts a k-mer to its reverse complement """
