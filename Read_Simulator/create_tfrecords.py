@@ -79,7 +79,7 @@ def get_tfrecords(args, label):
         for read in list_reads:
             rec = read.split('\n')
             read_seq = str(rec[1])
-            label = int(rec[0].split('|')[1])
+            label = int(rec[0].split('-')[1])
             kmer_array = get_kmer_vector(read_seq, args.k_value, args.dict_kmers, args.kmer_vector_length)
             data = \
                 {
