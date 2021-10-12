@@ -122,7 +122,6 @@ def main():
             l_pos += 1
             if l_pos == size:
                 l_pos = 0
-        print(f'Rank: {rank}\n{label_dict}\n')
         print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
         print(f'Rank: {rank}\t{args.kmer_vector_length}')
     else:
