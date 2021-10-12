@@ -60,7 +60,7 @@ def wrap_label(value):
 
 def shuffle_reads(args, label):
     """ Loads and shuffle reads """
-    with open(os.path.join(ags.input_path, f'{label}-{args.dataset_type}-reads.fq'), 'r') as infile:
+    with open(os.path.join(args.input_path, f'{label}-{args.dataset_type}-reads.fq'), 'r') as infile:
         content = infile.readlines()
         reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
         random.shuffle(reads)
