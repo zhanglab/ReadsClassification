@@ -71,7 +71,7 @@ def get_tfrecords(args, label):
     # get reads
     list_reads = shuffle_reads(args, label)
     # report the number of reads
-    with open(os.path.join(args.input_path, 'tfrecords', f'{label}-{args.dataset_type}-num-reads')) as f:
+    with open(os.path.join(args.input_path, 'tfrecords', f'{label}-{args.dataset_type}-num-reads'), 'w') as f:
         f.write(f'{label}\t{len(list_reads)}\n')
     # define tfrecords filename
     output_tfrec = f'{label}-{args.dataset_type}-reads.tfrec'
