@@ -106,7 +106,6 @@ def main():
     parser.add_argument('--read_length', type=int, help='length of reads in bp')
     parser.add_argument('--k_value', type=int, help='length of kmers', default=12)
     parser.add_argument('--voc', type=str, help='path to file containing vocabulary (list of kmers)')
-    parser.add_argument('--dataset_type', type=str, help='type of dataset used training, evaluating and testing', choices=['train', 'val', 'test'])
     args = parser.parse_args()
     # define the length of kmer vectors
     args.kmer_vector_length = args.read_length - args.k_value + 1
