@@ -128,7 +128,7 @@ def main():
             diff = set(tfrec_done).difference(set(num_reads_files))
             # define final list of fastq files to convert
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(fq_files).difference(diff)]
-            print(f'number of fq files to convert: {len(diff)}\t{}')
+            print(f'number of fq files to convert: {len(diff)}\t{len(final_fq_files)}')
         # load class_mapping dictionary
         #class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
         # split dictionary into N lists of dictionaries with N equal to the number of processes
