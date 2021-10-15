@@ -6,7 +6,7 @@ from collections import defaultdict
 
 def get_reads(fq_files_loc, cluster_reads):
     # reads = {}
-    with open(os.path.join(fq_files_loc, 'list_fq_files') 'r') as f:
+    with open(os.path.join(fq_files_loc, 'list_fq_files'), 'r') as f:
         for line in f:
             print(line)
             with open(os.path.join(fq_files_loc, line), "r") as handle:
