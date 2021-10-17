@@ -32,23 +32,26 @@ def main():
     # print(f'Number of reads: {len(train_reads)+len(val_reads)}')
     # process linclust output file
     clusters = defaultdict(list)
+    num_lines = 0
     with open(os.path.join(os.getcwd(), linclust_out), 'r') as infile:
         for line in infile:
-            clusters[line.rstrip().split('\t')[0]].append(line.rstrip().split('\t')[1])
-            if len(clusters[line.rstrip().split('\t')[0]]) >= 3:
-                print(f'rep: {line.rstrip().split('\t')[0]}\nreads: {clusters[line.rstrip().split('\t')[0]]}\n')
-                get_reads(train_fq, clusters[line.rstrip().split('\t')[0]])
-                get_reads(val_fq, clusters[line.rstrip().split('\t')[0]])
-                # reads_in_train = set(clusters[line.rstrip().split('\t')[0]]).intersection(set(train_reads))
-                # reads_in_val = set(clusters[line.rstrip().split('\t')[0]]).intersection(set(val_reads))
-                # print(f'reads in training set:\n')
-                # for r in reads_in_val:
-                #     print(r, train_reads[r])
-                # print(f'reads in validation set:\n')
-                # for r in reads_in_val:
-                #     print(r, val_reads[r])
-
-                break
+            num_lines += 1
+            # clusters[line.rstrip().split('\t')[0]].append(line.rstrip().split('\t')[1])
+            # if len(clusters[line.rstrip().split("\t")[0]]) >= 3:
+            #     print(f'rep: {line.rstrip().split('\t')[0]}\nreads: {clusters[line.rstrip().split("\t")[0]]}\n')
+            #     get_reads(train_fq, clusters[line.rstrip().split('\t')[0]])
+            #     get_reads(val_fq, clusters[line.rstrip().split('\t')[0]])
+            #     # reads_in_train = set(clusters[line.rstrip().split('\t')[0]]).intersection(set(train_reads))
+            #     # reads_in_val = set(clusters[line.rstrip().split('\t')[0]]).intersection(set(val_reads))
+            #     # print(f'reads in training set:\n')
+            #     # for r in reads_in_val:
+            #     #     print(r, train_reads[r])
+            #     # print(f'reads in validation set:\n')
+            #     # for r in reads_in_val:
+            #     #     print(r, val_reads[r])
+            #
+            #     break
+    print(f'number of lines in tsv file: {num_lines}')
 
 if __name__ == "__main__":
     main()
