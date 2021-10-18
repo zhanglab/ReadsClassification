@@ -23,31 +23,31 @@ def main():
 
     # define output file
     outfile = os.path.join(os.getcwd(), '-'.join(['linclust-analysis-x', linclust_out.split('x')[1]]))
-
+    print(outfile, linclust_out)
     # process linclust output file
-    clusters = defaultdict(list)
-    with open(os.path.join(os.getcwd(), linclust_out), 'r') as infile:
-        for line in infile:
-            clusters[line.rstrip().split('\t')[0]].append(line.rstrip().split('\t')[1])
-
-    # check whether reads are part of the validation or the training set for clusters with more than 1 read
-    for rep_cluster, reads_cluster in clusters.items():
-        if len(reads_cluster) > 1:
-            # get training sets and validations sets in which those reads can be found
-            training_sets = get_sets(train_fq, reads_cluster)
-            validation_sets = get_sets(val_fq, reads_cluster)
-            # write output to file if there are reads in both the training and validation sets
-            if len(training_sets) > 0 and len(validation_sets) > 0:
-                with open(outfile, 'a') as handle:
-                    handle.write(f'training sets:\t{len(training_sets)}\n')
-                    for key, value in training_sets.items():
-                        for i in range(len(value)):
-                            handle.write(f'{key}\t{value[i][0]}\t{value[i][1]}\n')
-
-                    handle.write(f'validation sets:\t{len(validation_sets)}\n')
-                    for key, value in validation_sets.items():
-                        for i in range(len(value)):
-                            handle.write(f'{key}\t{value[i][0]}\t{value[i][1]}\n')
+    # clusters = defaultdict(list)
+    # with open(os.path.join(os.getcwd(), linclust_out), 'r') as infile:
+    #     for line in infile:
+    #         clusters[line.rstrip().split('\t')[0]].append(line.rstrip().split('\t')[1])
+    #
+    # # check whether reads are part of the validation or the training set for clusters with more than 1 read
+    # for rep_cluster, reads_cluster in clusters.items():
+    #     if len(reads_cluster) > 1:
+    #         # get training sets and validations sets in which those reads can be found
+    #         training_sets = get_sets(train_fq, reads_cluster)
+    #         validation_sets = get_sets(val_fq, reads_cluster)
+    #         # write output to file if there are reads in both the training and validation sets
+    #         if len(training_sets) > 0 and len(validation_sets) > 0:
+    #             with open(outfile, 'a') as handle:
+    #                 handle.write(f'training sets:\t{len(training_sets)}\n')
+    #                 for key, value in training_sets.items():
+    #                     for i in range(len(value)):
+    #                         handle.write(f'{key}\t{value[i][0]}\t{value[i][1]}\n')
+    #
+    #                 handle.write(f'validation sets:\t{len(validation_sets)}\n')
+    #                 for key, value in validation_sets.items():
+    #                     for i in range(len(value)):
+    #                         handle.write(f'{key}\t{value[i][0]}\t{value[i][1]}\n')
 
 if __name__ == "__main__":
     main()
