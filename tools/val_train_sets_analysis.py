@@ -17,15 +17,16 @@ def get_reads(dataset, fq_file, fq_files_loc):
 
 def parse_linclust(linclust_subset, training_set, validation_set, outfilename):
     outfile = open(outfilename, 'w')
-    for line in linclust_subset:
-        ref = line.rstrip().split('\t')[0]
-        read = line.rstrip().split('\t')[1]
-        if ref in training_set and read in validation_set:
-            outfile.write(f'{ref}\t{training_set[ref]}\t{read}\t{validation_set[read]}\n')
-        elif ref in validation_set and read in training_set:
-            outfile.write(f'{ref}\t{validation_set[ref]}\t{read}\t{training_set[read]}\n')
-        else:
-            continue
+    with open(linclust_subset, 'r') as f:
+        for line in f:
+            ref = line.rstrip().split('\t')[0]
+            read = line.rstrip().split('\t')[1]
+            if ref in training_set and read in validation_set:
+                outfile.write(f'{ref}\t{training_set[ref]}\t{read}\t{validation_set[read]}\n')
+            elif ref in validation_set and read in training_set:
+                outfile.write(f'{ref}\t{validation_set[ref]}\t{read}\t{training_set[read]}\n')
+            else:
+                continue
 
 def parse_data(filename):
     with open(os.path.join(filename), 'r') as f:
@@ -38,12 +39,10 @@ def parse_data(filename):
 
 def main():
     input_dir = sys.argv[1]
+    print(mp.cpu_count())
     # parse data
     train_fq_files_sets = parse_data(os.path.join(input_dir, 'training_data_cov_7x', 'list_fq_files'))
     val_fq_files_sets = parse_data(os.path.join(input_dir, 'validation_data_cov_7x', 'list_fq_files'))
-    linclust_subsets = parse_data(os.path.join(input_dir, 'cluster_res_cluster.tsv'))
-    # # create output file
-    outfile = open(f'analysis-linclust-subset-{rank}', 'w')
     # get reads in training and validation sets
     with mp.Manager() as manager:
         training_set = manager.dict()
@@ -61,7 +60,7 @@ def main():
         for p in processes:
             p.join()
         # parse linclust output data
-        processes = [mp.Process(target=parse_linclust, args=(linclust_subsets[i], training_set, validation_set, os.path.join(input_dir, f'analysis-linclust-subset-{i}'))) for i in range(len(linclust_subsets))]
+        processes = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), training_set, validation_set, os.path.join(input_dir, f'analysis-linclust-subset-{i}'))) for i in range(mp.cpu_count())]
         for p in processes:
             p.start()
         for p in processes:
