@@ -3,6 +3,7 @@ import sys
 import os
 from collections import defaultdict
 #from mpi4py import MPI
+import glob
 import multiprocess as mp
 
 def get_reads(dataset, fq_file, fq_files_loc):
@@ -32,6 +33,7 @@ def parse_data(filename):
     with open(os.path.join(filename), 'r') as f:
         content = f.readlines()
         content = [i.rstrip() for i in content]
+    print(content)
     chunk_size = len(content) // mp.cpu_count() + 1
     chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
     print(filename, len(chunks), chunk_size)
@@ -43,6 +45,8 @@ def main():
     # parse data
     train_fq_files_sets = parse_data(os.path.join(input_dir, 'training_data_cov_7x', 'list_fq_files'))
     val_fq_files_sets = parse_data(os.path.join(input_dir, 'validation_data_cov_7x', 'list_fq_files'))
+    print(train_fq_files_sets)
+    print(val_fq_files_sets)
     # get reads in training and validation sets
     with mp.Manager() as manager:
         training_set = manager.dict()
@@ -59,8 +63,10 @@ def main():
             p.start()
         for p in processes:
             p.join()
+        # get number of necessary processes
+        num_processes = glob.glob(os.path.join(input_dir, f'linclust-subset-*'))
         # parse linclust output data
-        processes = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), training_set, validation_set, os.path.join(input_dir, f'analysis-linclust-subset-{i}'))) for i in range(mp.cpu_count())]
+        processes = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), training_set, validation_set, os.path.join(input_dir, f'analysis-linclust-subset-{i}'))) for i in range(num_processes)]
         for p in processes:
             p.start()
         for p in processes:
