@@ -2,9 +2,10 @@
 import sys
 import os
 from collections import defaultdict
+from mpi4py import MPI
 
-def get_sets(fq_files_loc, cluster_reads):
-    dataset = defaultdict(list) # key = subset, value = list of reads id and sequence in cluster
+def get_reads(fq_files_loc):
+    dataset = defaultdict(list) # key = read id, value = set
     with open(os.path.join(fq_files_loc, 'list_fq_files'), 'r') as f:
         for line in f:
             with open(os.path.join(fq_files_loc, line.rstrip()), "r") as handle:
@@ -12,42 +13,66 @@ def get_sets(fq_files_loc, cluster_reads):
                 list_reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
                 for read in list_reads:
                     rec = read.split('\n')
-                    if rec[0] in cluster_reads:
-                        dataset[line.rstrip()].append([rec[0], rec[1]])
+                    dataset[rec[0]] = line.rstrip()
+    print(fq_files_loc, len(dataset))
     return dataset
 
+def split_data(filename, size):
+    print(filename)
+    with open(filename, 'r') as f:
+        content = f.readlines()
+        chunk_size = len(content)//size + 1
+        chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
+        print(f'number of chunks: {len(chunks)} - size of chunks: {chunk_size}')
+    return chunks
+
+def parse_linclust(clusters, training_set, validation_set, outfile):
+    for i in clusters:
+        ref = i.rstrip().split('\t')[0]
+        read = i.rstrip().split('\t')[1]
+        if ref in training_set and read in validation_set:
+            outfile.write(f'{ref}\t{training_set[ref]}\t{read}\t{validation_set[read]}\n')
+        elif ref in validaiton_set and read in training_set:
+            outfile.write(f'{ref}\t{validation_set[ref]}\t{read}\t{training_set[read]}\n')
+        else:
+            continue
+
 def main():
-    linclust_out = sys.argv[1]
-    train_fq = sys.argv[2]
-    val_fq = sys.argv[3]
+    input_dir = sys.argv[1]
+    linclust_subset = sys.argv[2]
+    # create a communicator consisting of all the processors
+    comm = MPI.COMM_WORLD
+    # get the number of processors
+    size = comm.Get_size()
+    # get the rank of each processor
+    rank = comm.Get_rank()
+    print(comm, size, rank)
+    if rank == 0:
+        # create dictionary for storing reads in training and validaiton sets
+        training_set = get_reads(os.path.join(input_dir, 'training_data_cov_7x'))
+        validation_set = get_reads(os.path.join(input_dir, 'validation_data_cov_7x'))
+        # load and split subset file of linclust output into N lists (N = number of processes)
+        linclust_chunks = split_data(os.path.join(input_dir, linclust_subset), size)
+    else:
+        training_set = None
+        validation_set = None
+        linclust_chunks = None
 
-    # define output file
-    outfile = os.path.join(os.getcwd(), '-'.join(['linclust-analysis-x', linclust_out.split('x')[1]]))
-    print(outfile, linclust_out)
-    # process linclust output file
-    clusters = defaultdict(list)
-    with open(os.path.join(os.getcwd(), linclust_out), 'r') as infile:
-        for line in infile:
-            clusters[line.rstrip().split('\t')[0]].append(line.rstrip().split('\t')[1])
+    # create output file
+    outfilename = '-'.join(['linclust_out_subset',linclust_subset.rstrip().split('-')[-1], 'rank', rank])
+    outfile = open(outfilename, 'w')
 
-    # check whether reads are part of the validation or the training set for clusters with more than 1 read
-    for rep_cluster, reads_cluster in clusters.items():
-        if len(reads_cluster) > 1:
-            # get training sets and validations sets in which those reads can be found
-            training_sets = get_sets(train_fq, reads_cluster)
-            validation_sets = get_sets(val_fq, reads_cluster)
-            # write output to file if there are reads in both the training and validation sets
-            if len(training_sets) > 0 and len(validation_sets) > 0:
-                with open(outfile, 'a') as handle:
-                    handle.write(f'training sets:\t{len(training_sets)}\n')
-                    for key, value in training_sets.items():
-                        for i in range(len(value)):
-                            handle.write(f'{key}\t{value[i][0]}\t{value[i][1]}\n')
+    # broadcast dictionaries to other processes
+    training_set = comm.bcast(training_set, root=0)
+    validation_set = comm.bcast(validation_set, root=0)
 
-                    handle.write(f'validation sets:\t{len(validation_sets)}\n')
-                    for key, value in validation_sets.items():
-                        for i in range(len(value)):
-                            handle.write(f'{key}\t{value[i][0]}\t{value[i][1]}\n')
+    # scatter chunks of linclust output to other processes
+    linclust_chunks = comm.scatter(linclust_chunks, root=0)
+
+    # parse linclust output
+    parse_linclust(linclust_chunks, training_set, validation_set, outfile)
+
+
 
 if __name__ == "__main__":
     main()
