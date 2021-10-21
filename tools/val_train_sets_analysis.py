@@ -45,10 +45,6 @@ def main():
         training_set = None
         validation_set = None
 
-    # create output file
-    outfilename = '-'.join(['linclust_out_subset',linclust_subset.rstrip().split('-')[-1], 'rank', rank])
-    outfile = open(outfilename, 'w')
-
     # broadcast dictionaries to other processes
     training_set = comm.bcast(training_set, root=0)
     validation_set = comm.bcast(validation_set, root=0)
@@ -56,6 +52,9 @@ def main():
     # load linclust output subset
     linclust_subset = open(os.path.join(input_dir, f'linclust-subset-{rank}'), 'r')
     print(f'{rank} - {linclust-subset}')
+
+    # create output file
+    outfile = open(f'analysis-linclust-subset-{rank}', 'w')
 
     # parse linclust output
     parse_linclust(linclust_subset, training_set, validation_set, outfile)
