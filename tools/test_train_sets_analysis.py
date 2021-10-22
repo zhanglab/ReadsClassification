@@ -26,7 +26,7 @@ def main():
     train_genomes = get_genomes(list_train_genomes)
     test_genomes = get_genomes(list_test_genomes)
     # get average mash distance for each testing genome
-    processes = [mp.Process(target=get_avg_distance, args=(test_g, train_genomes, mash_dir) for test_g in test_genomes]
+    processes = [mp.Process(target=get_avg_distance, args=(test_g, train_genomes, mash_dir)) for test_g in test_genomes]
     for p in processes:
         p.start()
     for p in processes:
