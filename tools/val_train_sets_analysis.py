@@ -1,6 +1,7 @@
 """ script to process linclust tsv output file and identify the number of identical reads between the training and validation sets """
 import sys
 import os
+import math
 from collections import defaultdict
 #from mpi4py import MPI
 import glob
@@ -13,7 +14,7 @@ def get_reads(dataset, fq_file, fq_files_loc):
         for read in list_reads:
             rec = read.split('\n')
             dataset[rec[0]] = fq_file
-    print(fq_file, len(dataset))
+    print(mp.current_process(), fq_file, len(dataset))
     return
 
 def parse_linclust(linclust_subset, training_set, validation_set, outfilename):
@@ -33,11 +34,11 @@ def parse_data(filename):
     with open(os.path.join(filename), 'r') as f:
         content = f.readlines()
         content = [i.rstrip() for i in content]
-    print(content)
-    chunk_size = len(content) // mp.cpu_count() + 1
-    chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
-    print(filename, len(chunks), chunk_size)
-    return chunks
+    print(len(content))
+    #chunk_size = math.ceil(len(content) // mp.cpu_count())
+    #chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
+    #print(filename, len(content), len(chunks), chunk_size, mp.cpu_count())
+    return content
 
 def main():
     input_dir = sys.argv[1]
@@ -57,12 +58,14 @@ def main():
             p.start()
         for p in processes:
             p.join()
+        print(f'size of training set dictionary: {len(training_set)}')
         # fill out validation dictionaries
         processes = [mp.Process(target=get_reads, args=(validation_set, fq_file, os.path.join(input_dir, 'validation_data_cov_7x'))) for fq_file in val_fq_files_sets]
         for p in processes:
             p.start()
         for p in processes:
             p.join()
+        print(f'size of validation set dictionary: {len(validation_set)}')
         # get number of necessary processes
         num_processes = glob.glob(os.path.join(input_dir, f'linclust-subset-*'))
         # parse linclust output data
