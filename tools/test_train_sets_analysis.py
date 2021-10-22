@@ -11,7 +11,7 @@ def get_genomes(filename):
 def get_avg_distance(test_genome, train_genomes, mash_dir):
     avg_msh_dist = float()
     for train_g in train_genomes:
-        with open(os.path.join(mash_dir, f'{test_genome}-{train_genome}-mash-dist'), 'r') as f:
+        with open(os.path.join(mash_dir, f'{test_genome}-{train_g}-mash-dist'), 'r') as f:
             for line in f:
                 avg_msh_dist += float(line.rstrip().split('\t')[2])
     print(f'{test_genome}\t{round(float(avg_msh_dist)/len(train_genomes), 5)}')
