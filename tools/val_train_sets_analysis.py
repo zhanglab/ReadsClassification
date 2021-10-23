@@ -59,7 +59,7 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
     return reads, labels
 
 class DALIPreprocessor(object):
-    def __init__(self, filenames, idx_filenames, batch_size, num_threads, dali_cpu=True,
+    def __init__(self, filenames, idx_filenames, batch_size, num_threads, VECTOR_SIZE, dali_cpu=True,
                deterministic=False, training=False):
 
         device_id = hvd.local_rank()
@@ -75,7 +75,7 @@ class DALIPreprocessor(object):
         self.device_id = device_id
 
         self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
-            output_shapes=((batch_size, 239), (batch_size)),
+            output_shapes=((batch_size, VECTOR_SIZE), (batch_size)),
             batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
 
     def get_device_dataset(self):
