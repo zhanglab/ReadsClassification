@@ -119,7 +119,7 @@ def main():
     linclust_subsets = glob.glob(os.path.join(linclust_out, 'linclust-subset-*'))
     print(linclust_subsets)
     # parse linclust output data
-    processes = [mp.Process(target=parse_linclust, args=(i, linclust_dict) for i in linclust_subsets]
+    processes = [mp.Process(target=parse_linclust, args=(i, linclust_dict)) for i in linclust_subsets]
     for p in processes:
         p.start()
     for p in processes:
