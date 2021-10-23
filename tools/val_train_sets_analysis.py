@@ -18,7 +18,7 @@ import datetime
 import numpy as np
 import math
 import io
-import multiprocess as mp
+import pandas as pd
 from collections import defaultdict
 
 
@@ -117,17 +117,8 @@ def main():
 
 
     # parse linclust output
-    linclust_dict = {}
-    linclust_subsets = glob.glob(os.path.join(linclust_out, 'linclust-subset-*'))
-    print(linclust_subsets)
-    # parse linclust output data
-    processes = [mp.Process(target=parse_linclust, args=(i, linclust_dict)) for i in linclust_subsets]
-    for p in processes:
-        p.start()
-    for p in processes:
-        p.join()
-
-    print(f'#linclust subsets: {len(linclust_subsets)} - # reads: {len(linclust_dict)}')
+    df = pd.read_csv(linclust_out, delimiter='\t')
+    print(f'# reads: {len(df)}')
 
     # start = datetime.datetime.now()
     # for batch, (reads, labels) in enumerate(train_input.take(train_steps), 1):
