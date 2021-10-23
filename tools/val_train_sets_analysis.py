@@ -93,6 +93,7 @@ def main():
     dataset_name = sys.argv[2]
     linclust_out = sys.argv[3]
     BATCH_SIZE = int(sys.argv[4])
+    VECTOR_SIZE = 250 - 12 + 1
     num_train_samples = int(sys.argv[5])
     num_val_samples = int(sys.argv[6])
     # load training and validation tfrecords
