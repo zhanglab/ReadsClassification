@@ -54,8 +54,8 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_cpus, 
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
                                      "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
     # retrieve reads and labels
-    reads = inputs["read"].cpu()
-    labels = inputs["label"].cpu()
+    reads = inputs["read"]
+    labels = inputs["label"]
     return reads, labels
 
 class DALIPreprocessor(object):
