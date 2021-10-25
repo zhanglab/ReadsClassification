@@ -6,7 +6,6 @@ import argparse
 import sys
 import random
 import glob
-import math
 from utils import *
 
 def get_rev_complement(read):
@@ -134,10 +133,18 @@ def main():
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
             print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
 
-        group_size = math.ceil(len(final_fq_files)/size)
+        group_size = len(final_fq_files)//size
         print(f'group size: {group_size}')
         print(final_fq_files)
-        fq_files_per_processes = [final_fq_files[i:i+group_size] for i in range(0, len(final_fq_files), group_size)]
+        fq_files_per_processes = [[] for i in range(size)]
+        print(len(fq_files_per_processes))
+        num_process = 0
+        for i in range(len(final_fq_files)):
+            fq_files_per_processes[num_process].append(final_fq_files[i])
+            num_process += 1
+            if num_process == size:
+                num_process = 0 
+        # fq_files_per_processes = [final_fq_files[i:i+group_size] for i in range(0, len(final_fq_files), group_size)]
         print(f'Rank: {rank}\n{fq_files_per_processes}\n{len(fq_files_per_processes)}')
 
     else:
