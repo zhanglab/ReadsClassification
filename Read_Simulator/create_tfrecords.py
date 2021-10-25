@@ -72,7 +72,7 @@ def get_tfrecords(args, fq_file):
     # get reads
     list_reads = shuffle_reads(args, fq_file)
     # define tfrecords filename
-    output_tfrec = os.path.join(args.output, '.'.join(fq_file.split('.')[0], 'tfrec'))
+    output_tfrec = os.path.join(args.output_path, '.'.join(fq_file.split('.')[0], 'tfrec'))
     print(output_tfrec)
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for read in list_reads:
@@ -143,7 +143,7 @@ def main():
             fq_files_per_processes[num_process].append(final_fq_files[i])
             num_process += 1
             if num_process == size:
-                num_process = 0 
+                num_process = 0
         # fq_files_per_processes = [final_fq_files[i:i+group_size] for i in range(0, len(final_fq_files), group_size)]
         print(f'Rank: {rank}\n{fq_files_per_processes}\n{len(fq_files_per_processes)}')
 
