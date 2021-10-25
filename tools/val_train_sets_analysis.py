@@ -90,13 +90,7 @@ def parse_linclust(linclust_subset, linclust_dict):
             linclust_dict[read] = ref
 
 def main():
-    # create a communicator consisting of all the processors
-    comm = MPI.COMM_WORLD
-    # get the number of processors
-    size = comm.Get_size()
-    # get the rank of each processor
-    rank = comm.Get_rank()
-    print(comm, size, rank)
+    print(f'# processes: {hvd.size()}')
     input_dir = sys.argv[1]
     dataset_name = sys.argv[2]
     linclust_out = sys.argv[3]
@@ -130,7 +124,7 @@ def main():
 
     start = datetime.datetime.now()
     for batch, (reads, labels) in enumerate(train_input.take(train_steps), 1):
-        print(rank, batch)
+        print(hvd.rank(), batch)
 
     end = datetime.datetime.now()
     #
