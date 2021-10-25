@@ -35,40 +35,37 @@ os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 hvd.init()
 # Pin GPU to be used to process local rank (one GPU per process)
 # use hvd.local_rank() for gpu pinning instead of hvd.rank()
-gpus = tf.config.experimental.list_physical_devices('GPU')
-print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-if gpus:
-    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
+# for gpu in gpus:
+#     tf.config.experimental.set_memory_growth(gpu, True)
+# if gpus:
+#     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 # define the DALI pipeline
 @pipeline_def
-def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, dali_cpu=True, training=True):
+def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_cpus, dali_cpu=True):
     inputs = fn.readers.tfrecord(path=tfrec_filenames,
                                  index_path=tfrec_idx_filenames,
-                                 random_shuffle=training,
                                  shard_id=shard_id,
-                                 num_shards=num_gpus,
+                                 num_shards=num_cpus,
                                  initial_fill=10000,
                                  features={
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
                                      "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
-    # retrieve reads and labels and copy them to the gpus
-    reads = inputs["read"].gpu()
-    labels = inputs["label"].gpu()
+    # retrieve reads and labels
+    reads = inputs["read"].cpu()
+    labels = inputs["label"].cpu()
     return reads, labels
 
 class DALIPreprocessor(object):
-    def __init__(self, filenames, idx_filenames, batch_size, num_threads, VECTOR_SIZE, dali_cpu=True,
-               deterministic=False, training=False):
+    def __init__(self, filenames, idx_filenames, batch_size, vector_size, dali_cpu=True,
+               deterministic=False):
 
         device_id = hvd.local_rank()
         shard_id = hvd.rank()
-        num_gpus = hvd.size()
-        self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, batch_size=batch_size,
-                                      num_threads=num_threads, device_id=device_id, shard_id=shard_id, num_gpus=num_gpus,
-                                      dali_cpu=dali_cpu, training=training, seed=7 * (1 + hvd.rank()) if deterministic else None)
+        num_cpus = hvd.size()
+        self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, shard_id=shard_id, num_cpus=num_cpus, dali_cpu=dali_cpu, seed=7 * (1 + hvd.rank()) if deterministic else None)
 
         self.daliop = dali_tf.DALIIterator()
 
@@ -76,7 +73,7 @@ class DALIPreprocessor(object):
         self.device_id = device_id
 
         self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
-            output_shapes=((batch_size, VECTOR_SIZE), (batch_size)),
+            output_shapes=((batch_size, vector_size), (batch_size)),
             batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
 
     def get_device_dataset(self):
@@ -103,15 +100,12 @@ def main():
     train_idx_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', 'idx_files', f'training*')))
     val_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', f'validation*')))
     val_idx_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', 'idx_files', f'validation*')))
-    train_steps = num_train_samples // (BATCH_SIZE*hvd.size())
-    val_steps = num_val_samples // (BATCH_SIZE*hvd.size())
+    train_steps = num_train_samples
+    val_steps = num_val_samples
 
-    num_preprocessing_threads = 4
-
-    train_preprocessor = DALIPreprocessor(train_files, train_idx_files, BATCH_SIZE, num_preprocessing_threads, VECTOR_SIZE,
-                                          dali_cpu=True, deterministic=False, training=True)
-    val_preprocessor = DALIPreprocessor(val_files, val_idx_files, BATCH_SIZE, num_preprocessing_threads, VECTOR_SIZE, dali_cpu=True,
-                                        deterministic=False, training=False)
+    train_preprocessor = DALIPreprocessor(train_files, train_idx_files, BATCH_SIZE, VECTOR_SIZE, dali_cpu=True, deterministic=False)
+    val_preprocessor = DALIPreprocessor(val_files, val_idx_files, BATCH_SIZE, VECTOR_SIZE, dali_cpu=True,
+                                        deterministic=False)
 
     train_input = train_preprocessor.get_device_dataset()
     val_input = val_preprocessor.get_device_dataset()
