@@ -72,7 +72,7 @@ def get_tfrecords(args, fq_file):
     # get reads
     list_reads = shuffle_reads(args, fq_file)
     # define tfrecords filename
-    output_tfrec = os.path.join(args.output_path, '.'.join(fq_file.split('.')[0], 'tfrec'))
+    output_tfrec = os.path.join(args.output_path, '.'.join([fq_file.split('.')[0], 'tfrec']))
     print(output_tfrec)
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for read in list_reads:
