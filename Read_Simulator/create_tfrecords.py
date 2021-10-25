@@ -136,9 +136,10 @@ def main():
 
         group_size = math.ceil(len(final_fq_files)/size)
         print(f'group size: {group_size}')
+        print(final_fq_files)
         fq_files_per_processes = [final_fq_files[i:group_size] for i in range(0, len(final_fq_files), group_size)]
         print(f'Rank: {rank}\n{fq_files_per_processes}\n{len(fq_files_per_processes)}')
-        print(f'Rank: {rank}\t{args.kmer_vector_length}')
+
     else:
         class_mapping = None
         fq_files_per_processes = None
