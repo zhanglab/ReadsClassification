@@ -6,6 +6,7 @@ import argparse
 import sys
 import random
 import glob
+import math
 from utils import *
 
 def get_rev_complement(read):
@@ -59,21 +60,22 @@ def wrap_read(value):
 def wrap_label(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-def shuffle_reads(args, label):
+def shuffle_reads(args, fq_file):
     """ Loads and shuffle reads """
-    with open(os.path.join(args.input_path, f'{label}-{args.dataset_type}-reads.fq'), 'r') as infile:
+    with open(os.path.join(args.input_path, fq_file), 'r') as infile:
         content = infile.readlines()
         reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
         random.shuffle(reads)
         return reads
 
-def get_tfrecords(args, label):
+def get_tfrecords(args, fq_file):
     """ Converts reads to tfrecords """
     # get reads
-    list_reads = shuffle_reads(args, label)
+    list_reads = shuffle_reads(args, fq_file)
     # define tfrecords filename
-    output_tfrec = f'{label}-{args.dataset_type}-reads.tfrec'
-    with tf.compat.v1.python_io.TFRecordWriter(os.path.join(args.output_path, output_tfrec)) as writer:
+    output_tfrec = os.path.join(args.output, '.'.join(fq_file.split('.')[0], 'tfrec'))
+    print(output_tfrec)
+    with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for read in list_reads:
             rec = read.split('\n')
             read_seq = str(rec[1])
@@ -89,7 +91,7 @@ def get_tfrecords(args, label):
             serialized = example.SerializeToString()
             writer.write(serialized)
     # report the number of reads
-    with open(os.path.join(args.output_path, f'{label}-{args.dataset_type}-num-reads'), 'w') as f:
+    with open(os.path.join(args.output_path, '-'.join(fq_file.split('-')[:2], 'num-reads')), 'w') as f:
         f.write(f'{label}\t{len(list_reads)}\n')
 
 def main():
@@ -118,38 +120,34 @@ def main():
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
         # get list of fastq files to convert
-        fq_files = ['-'.join(i.split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.input_path, f'*.fq')))]
+        list_fq_files = ['-'.join(i.split('/')[-1].split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.input_path, f'*.fq')))]
         # resume converting reads to tfrecords if any were previously created
         if len(os.listdir(args.output_path)) != 0:
             # get tfrecords done
-            tfrec_done = ['-'.join(i.split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-reads.tfrec')))]
-            num_reads_files = ['-'.join(i.split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-num-reads')))]
+            tfrec_present = ['-'.join(i.split('/')[-1].split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-reads.tfrec')))]
+            num_reads_files = ['-'.join(i.split('/')[-1].split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-num-reads')))]
+            print(len(tfrec_present), len(num_reads_files), len(list_fq_files))
+            print(tfrec_present[0], num_reads_files[0], list_fq_files[0])
             # find tfrecords missing
-            diff = set(tfrec_done).difference(set(num_reads_files))
+            tfrec_completed = set(tfrec_present).intersection(set(num_reads_files))
             # define final list of fastq files to convert
-            final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(fq_files).difference(diff)]
-            print(f'number of fq files to convert: {len(diff)}\t{len(final_fq_files)}')
-        # load class_mapping dictionary
-        class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
-        # split dictionary into N lists of dictionaries with N equal to the number of processes
-        list_dict = [{} for i in range(size)]
-        l_pos = 0
-        for i in range(len(class_mapping)):
-            list_dict[l_pos][i] = class_mapping[str(i)]
-            l_pos += 1
-            if l_pos == size:
-                l_pos = 0
-        print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
+            final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
+            print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
+
+        group_size = math.ceil(len(final_fq_files)/size)
+        print(f'group size: {group_size}')
+        fq_files_per_processes = [final_fq_files[i:group_size] for i in range(0, len(final_fq_files), group_size)]
+        print(f'Rank: {rank}\n{fq_files_per_processes}\n{len(fq_files_per_processes)}')
         print(f'Rank: {rank}\t{args.kmer_vector_length}')
     else:
         class_mapping = None
-        list_dict = None
-    # scatter dictionary to all processes
-    list_dict = comm.scatter(list_dict, root=0)
-    print(f'Rank: {rank}\n{list_dict}\n')
+        fq_files_per_processes = None
+    # scatter list of fastq files to all processes
+    fq_files_per_processes = comm.scatter(fq_files_per_processes, root=0)
+    print(f'Rank: {rank}\n{fq_files_per_processes}\n')
     # generate tfrecords for each species in parallel
-    for label in list_dict.keys():
-        get_tfrecords(args, label)
+    for fq_file in fq_files_per_processes:
+        get_tfrecords(args, fq_file)
 
 if __name__ == '__main__':
     main()
