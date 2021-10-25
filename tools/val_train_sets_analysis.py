@@ -117,18 +117,15 @@ def main():
 
 
     # parse linclust output
-    df = pd.read_csv(linclust_out, delimiter='\t')
-    linclust_dict = df.to_dict()
-    print(f'# reads: {len(df)}\t{len(linclust_dict)}')
-    for key, value in linclust_dict.items():
-        print(key, value)
-        break
+    #df = pd.read_csv(linclust_out, delimiter='\t')
+    #print(f'# reads: {len(df)}')
 
-    # start = datetime.datetime.now()
-    # for batch, (reads, labels) in enumerate(train_input.take(train_steps), 1):
-    #     #print(reads, labels)
-    #
-    # end = datetime.datetime.now()
+
+    start = datetime.datetime.now()
+    for batch, (reads, labels) in enumerate(train_input.take(train_steps), 1):
+        #print(reads, labels)
+
+    end = datetime.datetime.now()
     #
     #
     #
