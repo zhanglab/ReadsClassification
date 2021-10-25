@@ -118,7 +118,7 @@ def main():
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
         # get list of fastq files to convert
-        fq_files = ['-'.join(i.split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.input, f'*.fq')))]
+        fq_files = ['-'.join(i.split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.input_path, f'*.fq')))]
         # resume converting reads to tfrecords if any were previously created
         if len(os.listdir(args.output_path)) != 0:
             # get tfrecords done
@@ -130,33 +130,26 @@ def main():
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(fq_files).difference(diff)]
             print(f'number of fq files to convert: {len(diff)}\t{len(final_fq_files)}')
         # load class_mapping dictionary
-        #class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
+        class_mapping = load_class_mapping(os.path.join(args.input_path, 'class_mapping.json'))
         # split dictionary into N lists of dictionaries with N equal to the number of processes
-    #     list_dict = [{} for i in range(size)]
-    #     l_pos = 0
-    #     for i in range(len(class_mapping)):
-    #         list_dict[l_pos][i] = class_mapping[str(i)]
-    #         l_pos += 1
-    #         if l_pos == size:
-    #             l_pos = 0
-    #     print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
-    #     print(f'Rank: {rank}\t{args.kmer_vector_length}')
-    # else:
-    #     class_mapping = None
-    #     list_dict = None
-    # # scatter dictionary to all processes
-    # list_dict = comm.scatter(list_dict, root=0)
-    # print(f'Rank: {rank}\n{list_dict}\n')
-    # # generate tfrecords for each species in parallel
-    # for label in list_dict.keys():
-    #     get_tfrecords(args, label)
-    # with mp.Manager() as manager:
-    #     # create new processes
-    #     processes = [mp.Process(target=get_tfrecords, args=(args, label)) for label in args.class_mapping.keys()]
-    #     for p in processes:
-    #         p.start()
-    #     for p in processes:
-    #         p.join()
+        list_dict = [{} for i in range(size)]
+        l_pos = 0
+        for i in range(len(class_mapping)):
+            list_dict[l_pos][i] = class_mapping[str(i)]
+            l_pos += 1
+            if l_pos == size:
+                l_pos = 0
+        print(f'Rank: {rank}\n{list_dict}\n{len(list_dict)}')
+        print(f'Rank: {rank}\t{args.kmer_vector_length}')
+    else:
+        class_mapping = None
+        list_dict = None
+    # scatter dictionary to all processes
+    list_dict = comm.scatter(list_dict, root=0)
+    print(f'Rank: {rank}\n{list_dict}\n')
+    # generate tfrecords for each species in parallel
+    for label in list_dict.keys():
+        get_tfrecords(args, label)
 
 if __name__ == '__main__':
     main()
