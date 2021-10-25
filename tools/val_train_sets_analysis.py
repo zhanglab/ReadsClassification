@@ -118,15 +118,15 @@ def main():
 
     # parse linclust output
     df = pd.read_csv(linclust_out, delimiter='\t')
-    print(f'# reads: {len(df)}')
+    linclust_dict = df.to_dict()
+    print(f'# reads: {len(df)}\t{len(linclust_dict)}')
+    for key, value in linclust_dict.items():
+        print(key, value)
+        break
 
     # start = datetime.datetime.now()
     # for batch, (reads, labels) in enumerate(train_input.take(train_steps), 1):
     #     #print(reads, labels)
-    #
-    #     if hvd.rank() == 0:
-    #         pred_classes += [np.argmax(i) for i in batch_pred.numpy().tolist()]
-    #         true_classes += labels.numpy().tolist()
     #
     # end = datetime.datetime.now()
     #
