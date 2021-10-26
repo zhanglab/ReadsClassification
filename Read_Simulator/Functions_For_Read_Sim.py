@@ -131,6 +131,7 @@ def create_test_set(args, label, list_genomes, dict_sequences):
 # is_comp is a boolean variable that indicates if the user wants the positive and negative strings to be reversed
 def simulate_reads(label, sequence_id, positive_strand, negative_strand, rec_forward_reads, rec_reverse_reads):
     """ simulate forward and reverse reads """
+    """ reads id : @{genome_id}-{genomes_count}-{label}-{reads count}-{1/2}  """
     # set distance between forward and reverse reads
     inner_distance = -100
     # set length of reads
