@@ -20,8 +20,8 @@ def get_avg_distance(test_genome, train_genomes, mash_dir, output_path):
 
 def main():
     mash_dir = sys.argv[1]
-    list_train_genomes = sys.argv[3]
-    list_test_genomes = sys.argv[4]
+    list_train_genomes = sys.argv[2]
+    list_test_genomes = sys.argv[3]
     # get training and testing genomes
     train_genomes = get_genomes(list_train_genomes)
     test_genomes = get_genomes(list_test_genomes)
