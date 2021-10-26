@@ -1,126 +1,91 @@
-import tensorflow as tf
-import horovod.tensorflow as hvd
-import tensorflow.keras as keras
-from tensorflow.python.keras.utils import tf_utils
-from tensorflow.python.keras import backend
-from tensorflow.python.keras.mixed_precision import device_compatibility_check
-from nvidia.dali.pipeline import pipeline_def
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
-import nvidia.dali.tfrecord as tfrec
-import nvidia.dali.plugin.tf as dali_tf
 import os
 import sys
-import json
 import glob
-import utils
 import datetime
 import numpy as np
 import math
 import io
 import pandas as pd
+import multiprocess as mp
 from collections import defaultdict
 
+def parse_linclust(linclust_subset, training_set, reads_of_interest):
+    curr_process = mp.current_process()
+    curr_process_id = curr_process._identity
+    local_dict = {}
+    df = pd.read_csv(linclust_out, delimiter='\t', header=None)
+    print(f'process id: {curr_process_id} - # reads: {len(df)}')
+    # add read that is not in the training set as a key to reads_of_interest dictionary
+    for row in df.itertuples():
+        if row[1] in training_set and row[2] not in training_set:
+            local_dict[row[2]] = row[1]
+        elif row[1] not in training_set and row[2] in training_set:
+            local_dict[row[1]] = row[2]
+        else:
+            continue
 
-# disable eager execution
-#tf.compat.v1.disable_eager_execution()
-print(tf.executing_eagerly())
-# print which unit (CPU/GPU) is used for an operation
-#tf.debugging.set_log_device_placement(True)
+    reads_of_interest[curr_process_id] = local_dict
 
-# enable XLA = XLA (Accelerated Linear Algebra) is a domain-specific compiler for linear algebra that can accelerate
-# TensorFlow models with potentially no source code changes
-os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
-# Initialize Horovod
-hvd.init()
-# Pin GPU to be used to process local rank (one GPU per process)
-# use hvd.local_rank() for gpu pinning instead of hvd.rank()
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
-# for gpu in gpus:
-#     tf.config.experimental.set_memory_growth(gpu, True)
-# if gpus:
-#     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+def verify_reads(reads_of_interest, validation_set, output_file):
+    f = open(output_file, 'w')
+    for read, ref_read in reads_of_interest.items():
+        if read in validation_set:
+            f.write(f'{read}\t{ref_read}\n')
+    f.close()
 
-# define the DALI pipeline
-@pipeline_def
-def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_cpus, dali_cpu=True):
-    inputs = fn.readers.tfrecord(path=tfrec_filenames,
-                                 index_path=tfrec_idx_filenames,
-                                 shard_id=shard_id,
-                                 num_shards=num_cpus,
-                                 initial_fill=10000,
-                                 features={
-                                     "read": tfrec.VarLenFeature([], tfrec.int64, 0),
-                                     "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
-    # retrieve reads and labels
-    reads = inputs["read"]
-    labels = inputs["label"]
-    return reads, labels
+def get_read_ids(list_fq_files):
+    dataset = []
+    for fq_file in list_fq_files:
+        with open(fq_file, 'r') as infile:
+            content = infile.readlines()
+            reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
+            dataset += [j[0] for j in reads]
+    return set(dataset)
 
-class DALIPreprocessor(object):
-    def __init__(self, filenames, idx_filenames, batch_size, vector_size, dali_cpu=True,
-               deterministic=False):
-
-        device_id = hvd.local_rank()
-        shard_id = hvd.rank()
-        num_cpus = hvd.size()
-        self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, shard_id=shard_id, num_cpus=num_cpus, dali_cpu=dali_cpu, seed=7 * (1 + hvd.rank()) if deterministic else None)
-
-        self.daliop = dali_tf.DALIIterator()
-
-        self.batch_size = batch_size
-        self.device_id = device_id
-
-        self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
-            output_shapes=((batch_size, vector_size), (batch_size)),
-            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
-
-    def get_device_dataset(self):
-        return self.dalidataset
-
-def parse_linclust(linclust_subset, linclust_dict):
-    with open(linclust_subset, 'r') as f:
-        for line in f:
-            ref = line.rstrip().split('\t')[0]
-            read = line.rstrip().split('\t')[1]
-            linclust_dict[read] = ref
+def get_time(start, end):
+    total_time = end - start
+    hours, seconds = divmod(total_time.seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    print("\n%02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
+    return end
 
 def main():
-    print(f'# processes: {hvd.size()}')
     input_dir = sys.argv[1]
     dataset_name = sys.argv[2]
     linclust_out = sys.argv[3]
-    BATCH_SIZE = int(sys.argv[4])
-    VECTOR_SIZE = 250 - 12 + 1
-    num_train_samples = int(sys.argv[5])
-    num_val_samples = int(sys.argv[6])
     # load training and validation tfrecords
-    train_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', f'training*')))
-    train_idx_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', 'idx_files', f'training*')))
-    val_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', f'validation*')))
-    val_idx_files = sorted(glob.glob(os.path.join(input_dir, f'tfrecords-{dataset_name}', 'idx_files', f'validation*')))
-    train_steps = num_train_samples
-    val_steps = num_val_samples
-
-    train_preprocessor = DALIPreprocessor(train_files, train_idx_files, BATCH_SIZE, VECTOR_SIZE, dali_cpu=True, deterministic=False)
-    val_preprocessor = DALIPreprocessor(val_files, val_idx_files, BATCH_SIZE, VECTOR_SIZE, dali_cpu=True,
-                                        deterministic=False)
-
-    train_input = train_preprocessor.get_device_dataset()
-    val_input = val_preprocessor.get_device_dataset()
-
-
-    # parse linclust output
-    #df = pd.read_csv(linclust_out, delimiter='\t')
-    #print(f'# reads: {len(df)}')
-
+    train_files = sorted(glob.glob(os.path.join(input_dir, 'training_data_cov_7x', '*.fq')))
+    val_files = sorted(glob.glob(os.path.join(input_dir, 'validation_data_cov_7x', '*.fq')))
 
     start = datetime.datetime.now()
-    for batch, (reads, labels) in enumerate(train_input.take(train_steps), 1):
-        print(hvd.rank(), batch)
-
-    end = datetime.datetime.now()
+    # get training dataset
+    train_set = get_read_ids(train_files)
+    print('get training dataset')
+    start = get_time(start, datetime.datetime.now())
+    # parse linclust output, compare reads to training set
+    num_processes = mp.cpu_count()
+    with mp.Manager() as manager:
+        # store reads that haven't been found in the training set (key = read, value = reference read)
+        reads_of_interest = manager.dict()
+        processes_compare_train = [mp.Process(target=verify_reads, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest)) for i in range(num_processes)]
+        for p in processes_compare_train:
+            p.start()
+        for p in processes_compare_train:
+            p.join()
+        print('compare linclust output to training set')
+        start = get_time(start, datetime.datetime.now())
+        print(f'number of reads of interest: {len(reads_of_interest)}')
+        val_set = get_read_ids(train_files)
+        print('get validation set')
+        start = get_time(start, datetime.datetime.now())
+        # verify that reads of interest are part of the validation sets
+        processes_compare_val = [mp.Process(target=parse_linclust, args=(reads_of_interest[i], val_set, os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
+        for p in processes_compare_val:
+            p.start()
+        for p in processes_compare_val:
+            p.join()
+        print('check reads in validation set')
+        end = get_time(start, datetime.datetime.now())
     #
     #
     #
