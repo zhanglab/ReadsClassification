@@ -58,7 +58,7 @@ def main():
     train_files = sorted(glob.glob(os.path.join(input_dir, 'training_data_cov_7x', '*.fq')))
     val_files = sorted(glob.glob(os.path.join(input_dir, 'validation_data_cov_7x', '*.fq')))
     # define the number of processes required
-    num_processes = len(glob.glob(os.path.join(input)dir, 'linclust-subset-*')))
+    num_processes = len(glob.glob(os.path.join(input_dir, 'linclust-subset-*')))
     print(f'Number of processes: {num_processes}')
 
     start = datetime.datetime.now()
