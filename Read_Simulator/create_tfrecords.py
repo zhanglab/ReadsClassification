@@ -134,7 +134,7 @@ def main():
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
             print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
         else:
-            final_fq_files = list_fq_files
+            final_fq_files = ['-'.join([i, 'reads.fq']) for i in list_fq_files]
         group_size = len(final_fq_files)//size
         print(f'group size: {group_size}')
         print(final_fq_files)
