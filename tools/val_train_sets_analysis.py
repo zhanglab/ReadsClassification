@@ -9,11 +9,13 @@ import pandas as pd
 import multiprocess as mp
 from collections import defaultdict
 
-def parse_linclust(linclust_subset, training_set, reads_of_interest):
+def parse_linclust(linclust_subset, training_set, reads_of_interest, reads_in_training, reads_in_validation):
     curr_process = mp.current_process()
     curr_process_name = str(curr_process.name)
     curr_process_num = curr_process_name.split('-')[1]
-    local_dict = {}
+    local_dict_roi = {}
+    local_dict_rit = {}
+    local_dict_riv = {}
     df = pd.read_csv(linclust_subset, delimiter='\t', header=None)
     print(f'process id: {curr_process_num} - # reads: {len(df)}')
     # add read that is not in the training set as a key to reads_of_interest dictionary
@@ -22,10 +24,17 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest):
             local_dict[row[2]] = row[1]
         elif row[1] not in training_set and row[2] in training_set:
             local_dict[row[1]] = row[2]
+        elif row[1] in training_set and row[2] in training_set:
+            local_dict_rit[row[1]] = row[2]
+        elif row[1] not in training_set and row[2] not in training_set:
+            local_dict_riv[row[1]] = row[2]
         else:
             continue
 
-    reads_of_interest[str(curr_process_num)] = local_dict
+    reads_of_interest[str(curr_process_num)] = local_dict_roi
+    reads_in_training[str(curr_process_num)] = local_dict_rit
+    reads_in_validation[str(curr_process_num)] = local_dict_riv
+
 
 def verify_reads(reads_of_interest, validation_set, output_file):
     f = open(output_file, 'w')
@@ -51,6 +60,13 @@ def get_time(start, end):
     print("\n%02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
     return end
 
+def get_num_reads(data):
+    num_reads = 0
+    for key, value in data.items():
+        print(f'{key}\t{len(value)}')
+        num_reads += len(value)
+    print(num_reads)
+
 def main():
     input_dir = sys.argv[1]
     # load training and validation tfrecords
@@ -69,15 +85,21 @@ def main():
     with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
         reads_of_interest = manager.dict()
-        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest)) for i in range(num_processes)]
+        reads_in_training = manager.dict()
+        reads_in_validation = manager.dict()
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest, reads_in_training, reads_in_validation)) for i in range(num_processes)]
         for p in processes_compare_train:
             p.start()
         for p in processes_compare_train:
             p.join()
         print('compare linclust output to training set')
         start = get_time(start, datetime.datetime.now())
-        for key, value in reads_of_interest.items():
-            print(f'{key}\t{len(value)}\t{type(key)}')
+        print('number of reads in training set with reference read in validation set and vice versa')
+        get_num_reads(reads_of_interest)
+        print('number of reads in training set with reference read also in training set')
+        get_num_reads(reads_in_training)
+        print('number of reads in validation set with reference read also in validation set')
+        get_num_reads(reads_in_validation)
         val_set = get_read_ids(train_files)
         print('get validation set')
         start = get_time(start, datetime.datetime.now())
