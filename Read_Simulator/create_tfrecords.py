@@ -90,7 +90,8 @@ def get_tfrecords(args, fq_file):
             serialized = example.SerializeToString()
             writer.write(serialized)
     # report the number of reads
-    with open(os.path.join(args.output_path, '-'.join([fq_file.split('-')[:2], 'num-reads'])), 'w') as f:
+    output_num_reads = os.path.join(args.output_path, '-'.join([fq_file.split('-')[0], fq_file.split('-')[1], 'num-reads']))
+    with open(output_num_reads, 'w') as f:
         f.write(f'{label}\t{len(list_reads)}\n')
 
 def main():
