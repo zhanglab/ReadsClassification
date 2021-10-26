@@ -54,10 +54,12 @@ def get_time(start, end):
 
 def main():
     input_dir = sys.argv[1]
-    linclust_out = sys.argv[2]
     # load training and validation tfrecords
     train_files = sorted(glob.glob(os.path.join(input_dir, 'training_data_cov_7x', '*.fq')))
     val_files = sorted(glob.glob(os.path.join(input_dir, 'validation_data_cov_7x', '*.fq')))
+    # define the number of processes required
+    num_processes = len(glob.glob(os.path.join(input)dir, 'linclust-subset-*')))
+    print(f'Number of processes: {num_processes}')
 
     start = datetime.datetime.now()
     # get training dataset
@@ -65,8 +67,6 @@ def main():
     print('get training dataset')
     start = get_time(start, datetime.datetime.now())
     # parse linclust output, compare reads to training set
-    num_processes = mp.cpu_count()
-    print(f'Number of processes: {num_processes}')
     with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
         reads_of_interest = manager.dict()
