@@ -77,11 +77,8 @@ def get_tfrecords(args, fq_file):
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for read in list_reads:
             rec = read.split('\n')
-            print(rec[0])
-            print(rec[1])
-            print(rec, len(rec))
             read_seq = str(rec[1])
-            label = int(rec[0].split('-')[1])
+            label = int(rec[0].split('-')[2])
             kmer_array = get_kmer_vector(read_seq, args.k_value, args.dict_kmers, args.kmer_vector_length)
             data = \
                 {
