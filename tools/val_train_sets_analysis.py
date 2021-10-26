@@ -13,7 +13,6 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest):
     curr_process = mp.current_process()
     curr_process_name = str(curr_process.name)
     curr_process_num = curr_process_name.split('-')[1]
-    print(f'process id: {curr_process_num} - {type(curr_process_num)}')
     local_dict = {}
     df = pd.read_csv(linclust_subset, delimiter='\t', header=None)
     print(f'process id: {curr_process_num} - # reads: {len(df)}')
@@ -79,12 +78,11 @@ def main():
         start = get_time(start, datetime.datetime.now())
         for key, value in reads_of_interest.items():
             print(f'{key}\t{len(value)}\t{type(key)}')
-        print(f'number of processes: {len(reads_of_interest)}')
         val_set = get_read_ids(train_files)
         print('get validation set')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val = [mp.Process(target=verify_reads, args=(reads_of_interest[str(i)], val_set, os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
+        processes_compare_val = [mp.Process(target=verify_reads, args=(value, val_set, os.path.join(input_dir, f'linclust-subset-{key}-results'))) for key, value in reads_of_interest.items()]
         for p in processes_compare_val:
             p.start()
         for p in processes_compare_val:
