@@ -13,7 +13,7 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest):
     curr_process = mp.current_process()
     curr_process_id = curr_process._identity
     local_dict = {}
-    df = pd.read_csv(linclust_out, delimiter='\t', header=None)
+    df = pd.read_csv(linclust_subset, delimiter='\t', header=None)
     print(f'process id: {curr_process_id} - # reads: {len(df)}')
     # add read that is not in the training set as a key to reads_of_interest dictionary
     for row in df.itertuples():
