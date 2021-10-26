@@ -28,6 +28,7 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest):
 
 def verify_reads(reads_of_interest, validation_set, output_file):
     f = open(output_file, 'w')
+    f.write(f'{len(reads_of_interest)}\n')
     for read, ref_read in reads_of_interest.items():
         if read in validation_set:
             f.write(f'{read}\t{ref_read}\n')
@@ -67,7 +68,7 @@ def main():
     with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
         reads_of_interest = manager.dict()
-        processes_compare_train = [mp.Process(target=verify_reads, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest)) for i in range(num_processes)]
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest)) for i in range(num_processes)]
         for p in processes_compare_train:
             p.start()
         for p in processes_compare_train:
@@ -79,7 +80,7 @@ def main():
         print('get validation set')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val = [mp.Process(target=parse_linclust, args=(reads_of_interest[i], val_set, os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
+        processes_compare_val = [mp.Process(target=verify_reads, args=(reads_of_interest[i], val_set, os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
         for p in processes_compare_val:
             p.start()
         for p in processes_compare_val:
