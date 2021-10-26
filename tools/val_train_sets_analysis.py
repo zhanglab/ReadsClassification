@@ -11,7 +11,11 @@ from collections import defaultdict
 
 def parse_linclust(linclust_subset, training_set, reads_of_interest):
     curr_process = mp.current_process()
-    curr_process_id = curr_process._identity
+    curr_process_id = str(curr_process._identity)
+    curr_process_name = str(curr_process.name)
+    curr_process_num_1 = curr_process_id.split('(')[1].split(',')[0]
+    curr_process_num_2 = curr_process_name.split('-')[1]
+    print(f'process id: {curr_process_id} - {curr_process_num_1} - {curr_process_num_2}')
     local_dict = {}
     df = pd.read_csv(linclust_subset, delimiter='\t', header=None)
     print(f'process id: {curr_process_id} - # reads: {len(df)}')
@@ -24,7 +28,7 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest):
         else:
             continue
 
-    reads_of_interest[curr_process_id] = local_dict
+    reads_of_interest[curr_process_num_1] = local_dict
 
 def verify_reads(reads_of_interest, validation_set, output_file):
     f = open(output_file, 'w')
@@ -64,6 +68,7 @@ def main():
     start = get_time(start, datetime.datetime.now())
     # parse linclust output, compare reads to training set
     num_processes = mp.cpu_count()
+    print(f'Number of processes: {num_processes}')
     with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
         reads_of_interest = manager.dict()
@@ -74,12 +79,12 @@ def main():
             p.join()
         print('compare linclust output to training set')
         start = get_time(start, datetime.datetime.now())
-        print(f'number of reads of interest: {len(reads_of_interest)}')
+        print(f'number of processes: {len(reads_of_interest)}')
         val_set = get_read_ids(train_files)
         print('get validation set')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val = [mp.Process(target=verify_reads, args=(reads_of_interest[i], val_set, os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
+        processes_compare_val = [mp.Process(target=verify_reads, args=(reads_of_interest[str(i)], val_set, os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
         for p in processes_compare_val:
             p.start()
         for p in processes_compare_val:
