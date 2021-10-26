@@ -52,8 +52,7 @@ def get_time(start, end):
 
 def main():
     input_dir = sys.argv[1]
-    dataset_name = sys.argv[2]
-    linclust_out = sys.argv[3]
+    linclust_out = sys.argv[2]
     # load training and validation tfrecords
     train_files = sorted(glob.glob(os.path.join(input_dir, 'training_data_cov_7x', '*.fq')))
     val_files = sorted(glob.glob(os.path.join(input_dir, 'validation_data_cov_7x', '*.fq')))
