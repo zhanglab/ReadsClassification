@@ -28,7 +28,6 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest, reads_in_tr
             local_set_rit.add(row[1])
             local_set_rit.add(row[2])
         elif row[1] not in training_set and row[2] not in training_set:
-            print(row[2], row[1])
             local_set_riv.add(row[2])
             local_set_riv.add(row[1])
         else:
@@ -53,7 +52,9 @@ def get_read_ids(list_fq_files):
         with open(fq_file, 'r') as infile:
             content = infile.readlines()
             reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-            dataset += [j[0] for j in reads]
+            print(f'Number of reads in fq file {fq_file}: {len(reads)}')
+            dataset += [j.split('\n')[0] for j in reads]
+    print(dataset[0])
     return set(dataset)
 
 def get_time(start, end):
@@ -82,7 +83,7 @@ def main():
     start = datetime.datetime.now()
     # get training dataset
     train_set = get_read_ids(train_files)
-    print('get training dataset')
+    print(f'get training dataset - {len(train_set)}')
     start = get_time(start, datetime.datetime.now())
     # parse linclust output, compare reads to training set
     with mp.Manager() as manager:
@@ -104,10 +105,10 @@ def main():
         print('number of reads in validation set with reference read also in validation set')
         get_num_reads(reads_in_validation)
         val_set = get_read_ids(val_files)
-        print('get validation set')
+        print(f'get validation set - {len(val_set)}')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val = [mp.Process(target=verify_reads, args=(value, val_set, os.path.join(input_dir, f'linclust-subset-results-{key}'))) for key, value in reads_of_interest.items()]
+        processes_compare_val = [mp.Process(target=verify_reads, args=(value, val_set, os.path.join(input_dir, f'linclust-results-subset-{key}'))) for key, value in reads_of_interest.items()]
         for p in processes_compare_val:
             p.start()
         for p in processes_compare_val:
