@@ -28,6 +28,7 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest, reads_in_tr
             local_set_rit.add(row[1])
             local_set_rit.add(row[2])
         elif row[1] not in training_set and row[2] not in training_set:
+            print(row[2], row[1])
             local_set_riv.add(row[2])
             local_set_riv.add(row[1])
         else:
