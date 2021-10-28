@@ -9,52 +9,60 @@ import pandas as pd
 import multiprocess as mp
 from collections import defaultdict
 
-def parse_linclust(linclust_subset, training_set, reads_of_interest, reads_in_training, reads_in_validation):
+def parse_linclust(linclust_subset, training_set, reads_of_interest_val, reads_of_interest_train, reads_in_training, reads_in_validation):
     curr_process = mp.current_process()
     curr_process_name = str(curr_process.name)
     curr_process_num = curr_process_name.split('-')[1]
-    local_dict_roi = {}
-    local_set_rit = set()
-    local_set_riv = set()
+    local_dict_roi_val = {} # key = read in validation set
+    local_dict_roi_train = {} # key = read in training set
+    local_dict_rit = {}
+    local_dict_riv = {}
     df = pd.read_csv(linclust_subset, delimiter='\t', header=None)
     print(f'process id: {curr_process_num} - # reads: {len(df)}')
     # add read that is not in the training set as a key to reads_of_interest dictionary
+
     for row in df.itertuples():
         if row[1] in training_set and row[2] not in training_set:
-            local_dict_roi[row[2]] = row[1]
+            local_dict_roi_val[row[2]] = row[1]
         elif row[1] not in training_set and row[2] in training_set:
-            local_dict_roi[row[1]] = row[2]
+            local_dict_roi_train[row[2]] = row[1]
         elif row[1] in training_set and row[2] in training_set:
-            local_set_rit.add(row[1])
-            local_set_rit.add(row[2])
+            local_dict_rit[row[2]] = row[1]
         elif row[1] not in training_set and row[2] not in training_set:
-            local_set_riv.add(row[2])
-            local_set_riv.add(row[1])
+            local_dict_riv[row[2]] = row[1]
         else:
             continue
 
-    reads_of_interest[str(curr_process_num)] = local_dict_roi
+    reads_of_interest_val[str(curr_process_num)] = local_dict_roi_val
+    reads_of_interest_train[str(curr_process_num)] = local_dict_roi_train
     reads_in_training[str(curr_process_num)] = local_set_rit
     reads_in_validation[str(curr_process_num)] = local_set_riv
 
-
-def verify_reads(reads_of_interest, validation_set, output_file):
+def verify_reads_v1(reads_of_interest, validation_set, training_set, output_file):
     f = open(output_file, 'w')
     f.write(f'{len(reads_of_interest)}\n')
-    for read, ref_read in reads_of_interest.items():
-        if read in validation_set:
-            f.write(f'{read}\t{ref_read}\n')
+    for t_read, v_read in reads_of_interest.items():
+        if v_read in validation_set:
+            f.write(f'{v_read}\t{validation_set[v_read]}\t{t_read}\t{training_set[t_read]}\n')
+    f.close()
+
+def verify_reads_v2(reads_of_interest, validation_set, training_set, output_file):
+    f = open(output_file, 'w')
+    f.write(f'{len(reads_of_interest)}\n')
+    for v_read, t_read in reads_of_interest.items():
+        if v_read in validation_set:
+            f.write(f'{v_read}\t{validation_set[v_read]}\t{t_read}\t{training_set[t_read]}\n')
     f.close()
 
 def get_read_ids(list_fq_files):
-    dataset = []
+    dataset = {}
     for fq_file in list_fq_files:
         with open(fq_file, 'r') as infile:
             content = infile.readlines()
             reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-            dataset += [j.split('\n')[0].rstrip()[1:] for j in reads]
-    print(dataset[0], len(dataset[0]))
-    return set(dataset)
+            for j in reads:
+                dataset[j.split('\n')[0].rstrip()[1:]] = j.split('\n')[1].rstrip()
+    return dataset
 
 def get_time(start, end):
     total_time = end - start
@@ -87,18 +95,21 @@ def main():
     # parse linclust output, compare reads to training set
     with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
-        reads_of_interest = manager.dict()
+        reads_of_interest_val = manager.dict()
+        reads_of_interest_train = manager.dict()
         reads_in_training = manager.dict()
         reads_in_validation = manager.dict()
-        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest, reads_in_training, reads_in_validation)) for i in range(num_processes)]
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), train_set, reads_of_interest_val, reads_of_interest_train, reads_in_training, reads_in_validation)) for i in range(num_processes)]
         for p in processes_compare_train:
             p.start()
         for p in processes_compare_train:
             p.join()
         print('compare linclust output to training set')
         start = get_time(start, datetime.datetime.now())
-        print('number of reads in training set with reference read in validation set and vice versa')
-        get_num_reads(reads_of_interest)
+        print('number of reads in training set with reference read in validation set')
+        get_num_reads(reads_of_interest_train)
+        print('number of reads in validation set with reference read in training set')
+        get_num_reads(reads_of_interest_val)
         print('number of reads in training set with reference read also in training set')
         get_num_reads(reads_in_training)
         print('number of reads in validation set with reference read also in validation set')
@@ -107,12 +118,20 @@ def main():
         print(f'get validation set - {len(val_set)}')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val = [mp.Process(target=verify_reads, args=(value, val_set, os.path.join(input_dir, f'linclust-results-subset-{key}'))) for key, value in reads_of_interest.items()]
-        for p in processes_compare_val:
+        processes_compare_val_1 = [mp.Process(target=verify_reads_v1, args=(value, val_set, train_set, os.path.join(input_dir, f'linclust-results-subset-{key}'))) for key, value in reads_of_interest_train.items()]
+        for p in processes_compare_val_1:
             p.start()
-        for p in processes_compare_val:
+        for p in processes_compare_val_1:
             p.join()
-        print('check reads in validation set')
+        print('check reads in validation set - 1')
+        start = get_time(start, datetime.datetime.now())
+        # verify that reads of interest are part of the validation sets
+        processes_compare_val_2 = [mp.Process(target=verify_reads_v2, args=(value, val_set, train_set, os.path.join(input_dir, f'linclust-results-subset-{key}'))) for key, value in reads_of_interest_val.items()]
+        for p in processes_compare_val_2:
+            p.start()
+        for p in processes_compare_val_2:
+            p.join()
+        print('check reads in validation set - 1')
         end = get_time(start, datetime.datetime.now())
     #
     #
