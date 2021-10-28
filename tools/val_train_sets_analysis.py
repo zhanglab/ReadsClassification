@@ -20,6 +20,7 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest, reads_in_tr
     print(f'process id: {curr_process_num} - # reads: {len(df)}')
     # add read that is not in the training set as a key to reads_of_interest dictionary
     for row in df.itertuples():
+        print(row[1], len(row[1]))
         if row[1] in training_set and row[2] not in training_set:
             local_dict_roi[row[2]] = row[1]
         elif row[1] not in training_set and row[2] in training_set:
@@ -52,9 +53,8 @@ def get_read_ids(list_fq_files):
         with open(fq_file, 'r') as infile:
             content = infile.readlines()
             reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-            print(f'Number of reads in fq file {fq_file}: {len(reads)}')
-            dataset += [j.split('\n')[0] for j in reads]
-    print(dataset[0])
+            dataset += [j.split('\n')[0].rstrip() for j in reads]
+    print(dataset[0], len(dataset[0]))
     return set(dataset)
 
 def get_time(start, end):
