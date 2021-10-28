@@ -35,8 +35,8 @@ def parse_linclust(linclust_subset, training_set, reads_of_interest_val, reads_o
 
     reads_of_interest_val[str(curr_process_num)] = local_dict_roi_val
     reads_of_interest_train[str(curr_process_num)] = local_dict_roi_train
-    reads_in_training[str(curr_process_num)] = local_set_rit
-    reads_in_validation[str(curr_process_num)] = local_set_riv
+    reads_in_training[str(curr_process_num)] = local_dict_rit
+    reads_in_validation[str(curr_process_num)] = local_dict_riv
 
 def verify_reads_v1(reads_of_interest, validation_set, training_set, output_file):
     f = open(output_file, 'w')
@@ -118,7 +118,7 @@ def main():
         print(f'get validation set - {len(val_set)}')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val_1 = [mp.Process(target=verify_reads_v1, args=(value, val_set, train_set, os.path.join(input_dir, f'linclust-results-subset-{key}'))) for key, value in reads_of_interest_train.items()]
+        processes_compare_val_1 = [mp.Process(target=verify_reads_v1, args=(value, val_set, train_set, os.path.join(input_dir, f'linclust-results-subset-{key}-train'))) for key, value in reads_of_interest_train.items()]
         for p in processes_compare_val_1:
             p.start()
         for p in processes_compare_val_1:
@@ -126,25 +126,13 @@ def main():
         print('check reads in validation set - 1')
         start = get_time(start, datetime.datetime.now())
         # verify that reads of interest are part of the validation sets
-        processes_compare_val_2 = [mp.Process(target=verify_reads_v2, args=(value, val_set, train_set, os.path.join(input_dir, f'linclust-results-subset-{key}'))) for key, value in reads_of_interest_val.items()]
+        processes_compare_val_2 = [mp.Process(target=verify_reads_v2, args=(value, val_set, train_set, os.path.join(input_dir, f'linclust-results-subset-{key}-val'))) for key, value in reads_of_interest_val.items()]
         for p in processes_compare_val_2:
             p.start()
         for p in processes_compare_val_2:
             p.join()
-        print('check reads in validation set - 1')
+        print('check reads in validation set - 2')
         end = get_time(start, datetime.datetime.now())
-    #
-    #
-    #
-    # total_time = end - start
-    # hours, seconds = divmod(total_time.seconds, 3600)
-    # minutes, seconds = divmod(seconds, 60)
-    # # get true and predicted classes
-    # f.write(f'Testing accuracy: {test_accuracy.result().numpy()*100}\n')
-    # f.write(f'Testing loss: {test_loss.result().numpy()}\n')
-    # f.write("Testing took %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-    # print("\nTesting took %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-
 
 
 if __name__ == "__main__":
