@@ -102,8 +102,8 @@ def main():
     #ranks = ['species', 'genus', 'family', 'order', 'class']
     # define output path
     args.output_path = os.path.join(args.input_test, 'png')
-    if not os.path.isdir(output_path):
-        os.makedirs(output_path)
+    if not os.path.isdir(args.output_path):
+        os.makedirs(args.output_path)
 
     # get testing results
     dict_metrics = get_test_results(args)
