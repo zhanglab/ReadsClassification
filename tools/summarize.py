@@ -32,7 +32,7 @@ def get_test_results(args):
 
 
 def get_mash_distances(args):
-    list_mash_dist_files = glob.glob(args.path_mash_dist, '*-avg-mash-dist')
+    list_mash_dist_files = glob.glob(os.path.join(args.path_mash_dist, '*-avg-mash-dist'))
     dict_data = {}
     for mash_dist_file in list_mash_dist_files:
         with open(mash_dist_file, 'r') as f:
