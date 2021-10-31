@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import statistics
 import os
 import sys
 import argparse
@@ -12,10 +13,19 @@ def get_plot(args, m, dict_metrics):
     genomes = list(dict_metrics.keys())
     list_metrics = [dict_metrics[i][index] for i in genomes]
     list_data = [args.dict_data[i] for i in genomes]
-    plt.scatter(list_data, list_metrics)
+    plt.clf()
+    plt.scatter(list_data, list_metrics, color='black')
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     plt.savefig(os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png'))
+
+def get_stats(args, m, dict_metrics):
+    outfile = os.path.join(args.output_path, f'{args.dataset_type}-stats-', '-'.join([args.parameter]))
+    with open(outfile, 'w') as f:
+        f.write(f'mean:\t{statistcs.mean(list(args.dict_data.values()))}\n
+        median\t{statistics.median(list(args.dict_data.values()))}\n
+        min\t{min(list(args.dict_data.values()))}\n
+        max\t{max(list(args.dict_data.values()))}\n')
 
 # def get_tsv():
 
