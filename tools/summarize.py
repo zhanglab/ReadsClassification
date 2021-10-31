@@ -21,6 +21,7 @@ def get_plot(args, m, dict_metrics):
 
 def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
+        f.write(f'data:\t{args.parameter}')
         f.write(f'mean:\t{statistics.mean(list(args.dict_data.values()))}\nmedian\t{statistics.median(list(args.dict_data.values()))}\nmin\t{min(list(args.dict_data.values()))}\nmax\t{max(list(args.dict_data.values()))}\n')
 
 # def get_tsv():
