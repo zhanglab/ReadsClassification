@@ -22,10 +22,7 @@ def get_plot(args, m, dict_metrics):
 def get_stats(args, m, dict_metrics):
     outfile = os.path.join(args.output_path, f'{args.dataset_type}-stats-', '-'.join([args.parameter]))
     with open(outfile, 'w') as f:
-        f.write(f'mean:\t{statistcs.mean(list(args.dict_data.values()))}\n
-        median\t{statistics.median(list(args.dict_data.values()))}\n
-        min\t{min(list(args.dict_data.values()))}\n
-        max\t{max(list(args.dict_data.values()))}\n')
+        f.write(f'mean:\t{statistcs.mean(list(args.dict_data.values()))}\nmedian\t{statistics.median(list(args.dict_data.values()))}\nmin\t{min(list(args.dict_data.values()))}\nmax\t{max(list(args.dict_data.values()))}\n')
 
 # def get_tsv():
 
