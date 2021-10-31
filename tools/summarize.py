@@ -19,7 +19,7 @@ def get_plot(args, m, dict_metrics):
     plt.ylabel(f'{m}')
     plt.savefig(os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png'))
 
-def get_stats(args, m, dict_metrics):
+def get_stats(args):
     outfile = os.path.join(args.output_path, f'{args.dataset_type}-stats-', '-'.join([args.parameter]))
     with open(outfile, 'w') as f:
         f.write(f'mean:\t{statistcs.mean(list(args.dict_data.values()))}\nmedian\t{statistics.median(list(args.dict_data.values()))}\nmin\t{min(list(args.dict_data.values()))}\nmax\t{max(list(args.dict_data.values()))}\n')
@@ -119,6 +119,8 @@ def main():
     metrics = ['precision', 'recall']
     for m in metrics:
         get_plot(args, m, dict_metrics)
+    # get statistics on data
+    get_stats(args)
 
 
 
