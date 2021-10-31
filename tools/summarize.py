@@ -4,20 +4,46 @@ import matplotlib.pyplot as plt
 import statistics
 import os
 import sys
+import numpy as np
 import argparse
 import glob
+import pandas as pd
+import json
 
-def get_plot(args, m, dict_metrics):
-    dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set'}
+def get_plot(args, m, r, dict_metrics):
+    dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set', 'training genomes': 'number of training genomes'}
     index = 0 if m == 'precision' else 1
+    # define x and y data
     genomes = list(dict_metrics.keys())
     list_metrics = [dict_metrics[i][index] for i in genomes]
     list_data = [args.dict_data[i] for i in genomes]
+
+    # assign colors
+    if r is not None:
+        # define colors
+        taxa = set(args.taxa_rank.values())
+        random_colors = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
+             for i in range(len(taxa))]
+        rank_colors = zip(dict(list(taxa), random_colors))
+        colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
+        figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
+        legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
+    else:
+        colors = 'black'
+        figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png')
+        legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-legend.png')
+
+    # generate plot
     plt.clf()
-    plt.scatter(list_data, list_metrics, color='black')
+    ax = plt.gca()
+    plt.figure()
+    plt.scatter(list_data, list_metrics, color=colors)
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
-    plt.savefig(os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png'))
+    plt.savefig(figname, bbox_inches='tight')
+    figlegend = plt.figure()
+    plt.figlegend(*ax.get_legend_handles_labels())
+    figlegend.savefig(legendname, bbox_inches='tight')
 
 def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
@@ -25,6 +51,17 @@ def get_stats(args):
         f.write(f'mean:\t{statistics.mean(list(args.dict_data.values()))}\nmedian\t{statistics.median(list(args.dict_data.values()))}\nmin\t{min(list(args.dict_data.values()))}\nmax\t{max(list(args.dict_data.values()))}\n')
 
 # def get_tsv():
+
+def get_taxonomy(args):
+    # load gtdb information
+    gtdb_df = pd.read_csv(args.gtdb_info, delimiter='\t', low_memory=False)
+    # get species in database
+    taxonomy = [i.split(';') for i in list(gtdb_df['gtdb_taxonomy'])]
+    # get genome accession ids
+    accession_id_list = [i[3:] for i in list(gtdb_df.accession)]
+    # get taxonomy
+    genomes_taxonomy = {i: taxonomy[i][::-1] if i in args.dict_data}
+    return genomes_taxonomy
 
 def get_test_results(args):
     reports = glob.glob(os.path.join(args.input_test, 'classification-report-species-*'))
@@ -38,7 +75,6 @@ def get_test_results(args):
                     dict_data[genome] = [float(i.rstrip().split('\t')[1]), float(i.rstrip().split('\t')[2])]
                     break
     return dict_data
-
 
 def get_mash_distances(args):
     list_mash_dist_files = glob.glob(os.path.join(args.path_mash_dist, '*-avg-mash-dist'))
@@ -86,13 +122,16 @@ def main():
     parser.add_argument('--input_test', help="Path to testing results")
     parser.add_argument('--dataset_type', help="type of dataset", choices=['training', 'testing', 'validation'])
     parser.add_argument('--genomes', help="File with list of genomes ID and path to fasta files")
-    parser.add_argument('--parameter', help="Parameter used for x-axis", choices=['average mash distance', 'GC content', 'genome size', 'training size', 'taxonomy'])
+    parser.add_argument('--parameter', help="Parameter used for x-axis", choices=['average mash distance', 'GC content', 'genome size', 'training size', 'training genomes', 'taxonomy'])
     parser.add_argument('--file_num_reads', help="Path to file with number of reads in datasets", required=('training size' in sys.argv))
     parser.add_argument('--path_mash_dist', help="Path to directory with files containing average mash distances", required=('mash distance' in sys.argv and 'testing' in sys.argv))
-    parser.add_argument('--file_taxonomy', help="Path to file containing taxonomy information", required=('taxonomy' in sys.argv))
+    parser.add_argument('--gtdb_info', help="File with information on GTDB database", required=('taxonomy' in sys.argv or 'training size' in sys.argv))
+    # parser.add_argument('--class_mapping_file', help="File containing json dictionary with labels mapped to species", required=('taxonomy'))
     args = parser.parse_args()
-
     if args.parameter == 'training size':
+        # load dictionary mapping species to labels
+        # with open(args.class_mapping_file) as f:
+        #     args.class_mapping = json.load(f)
         # get number of reads
         args.dict_data = get_read_num(args)
     elif args.parameter == 'GC content' or args.parameter == 'genome size':
@@ -101,14 +140,15 @@ def main():
     elif args.parameter == 'average mash distance':
         # get average mash distance between each testing genome and all training genomes
         args.dict_data = get_mash_distances(args)
-
+    # get taxonomy
+    args.genomes_taxonomy = get_taxonomy(args)
     # with open(args.genomes, 'r') as infile:
     #     for line in infile:
     #         genome = line.rstrip().split('\t')[0]
     #         GC_count, genome_size = get_GC_content(line.rstrip().split('\t')[1]))
     #         outfile.write(f'{line.rstrip()}\t{GC_count}\t{genome_size}\t{dict_num_reads[genome][0]}\t{dict_num_reads[genome][1]}\t{dict_num_reads[genome][2]}\n')
 
-    #ranks = ['species', 'genus', 'family', 'order', 'class']
+    ranks = {'0': 'species', '1': 'genus', '2': 'family', '3': 'order', '4': 'class'}
     # define output path
     args.output_path = os.path.join(args.input_test, 'results', '-'.join(args.parameter.split(' ')))
     if not os.path.isdir(args.output_path):
@@ -118,7 +158,10 @@ def main():
     dict_metrics = get_test_results(args)
     metrics = ['precision', 'recall']
     for m in metrics:
-        get_plot(args, m, dict_metrics)
+        for r_index, r_name in ranks.items():
+            # get taxa
+            args.taxa_rank = {genome: genome_taxonomy[r_index].split('__')[1] for genome, genome_taxonomy in args.genomes_taxonomy.items()}
+            get_plot(args, m, r_name, dict_metrics)
     # get statistics on data
     get_stats(args)
 
