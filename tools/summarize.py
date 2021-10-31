@@ -8,7 +8,7 @@ import argparse
 import glob
 
 def get_plot(args, m, dict_metrics):
-    dict_labels = {'average mash distance': 'average mash distance', 'GC content': '%GC content', 'genome size': 'Genome size (bp)', 'training size': 'number of reads in training set'}
+    dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set'}
     index = 0 if m == 'precision' else 1
     genomes = list(dict_metrics.keys())
     list_metrics = [dict_metrics[i][index] for i in genomes]
