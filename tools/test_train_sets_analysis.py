@@ -11,8 +11,9 @@ def get_taxonomy(gtdb_info, test_genomes, train_genomes):
     # get genome accession ids
     accession_id_list = [i[3:] for i in list(gtdb_df.accession)]
     # get taxonomy
-    genomes_taxonomy = {i: taxonomy[i][::-1] for i in accession_id_list if i in test_genomes or i in train_genomes}
+    genomes_taxonomy = {accession_id_list[i]: taxonomy[i] for i in range(len(accession_id_list)) if accession_id_list[i] in test_genomes or accession_id_list[i] in train_genomes}
     print(f'{len(taxonomy)} - {len(accession_id_list)} - {len(genomes_taxonomy)} - {len(test_genomes)+len(train_genomes)}')
+    print(taxonomy)
     return genomes_taxonomy
 
 def get_genomes(filename):
