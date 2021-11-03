@@ -75,7 +75,6 @@ def get_test_results(args):
     dict_data = {}
     for r in reports:
         genome = r.split('-')[-1]
-        print(genome, len(genome))
         with open(r, 'r') as infile:
             content = infile.readlines()
             for line in content[1:-1]:
@@ -91,6 +90,7 @@ def get_mash_distances(args):
         with open(mash_dist_file, 'r') as f:
             msh_dist = float(f.readlines()[0].split('\t')[1])
             genome = f.readlines()[0].split('\t')[0]
+            print(genome, msh_dist)
             dict_data[genome] = msh_dist
     return dict_data
 
