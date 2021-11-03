@@ -38,8 +38,6 @@ def get_plot(args, m, r, dict_metrics):
             wr.writerow(['genomes', m, dict_labels[args.parameter], 'taxa'])
             for i in range(len(genomes)):
                 wr.writerow([genomes[i], list_metrics[i], list_data[i], args.taxa_rank[genomes[i]]])
-        # get statistics on data
-        get_stats(args)
         # report testing genomes with unusual results (average mash distance to training genomes of 0 and low recall)
     else:
         colors = 'black'
@@ -48,15 +46,17 @@ def get_plot(args, m, r, dict_metrics):
 
     # generate plot
     plt.clf()
-    ax = plt.gca()
-    plt.figure()
-    plt.scatter(list_data, list_metrics, color=colors, label=labels)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter(list_data, list_metrics, color=colors, label=labels)
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
-    plt.savefig(figname, bbox_inches='tight')
-    figlegend = plt.figure()
-    figlegend.legend(*ax.get_legend_handles_labels())
-    figlegend.savefig(legendname, bbox_inches='tight')
+    fig.savefig(figname, bbox_inches='tight')
+    fig_legend = plt.figure()
+    ax_legend = fig_legend.add_subplot(111)
+    ax_legend.legend(*ax.get_legend_handles_labels(), loc='center')
+    ax_legend.axis('off')
+    fig_legend.savefig(legendname, bbox_inches='tight')
 
 def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
@@ -175,6 +175,8 @@ def main():
             # get taxa
             args.taxa_rank = {genome: genome_taxonomy[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
             get_plot(args, m, r_name, dict_metrics)
+    # get statistics on data
+    get_stats(args)
 
 
 
