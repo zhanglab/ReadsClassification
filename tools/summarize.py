@@ -33,12 +33,13 @@ def get_plot(args, m, r, dict_metrics):
         # create tsv file to store results for R plots
         tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.tsv')
         with open(tsv_filename, 'w') as f:
-            wr = csv.writer(f, delimiter=' ')
+            wr = csv.writer(f, delimiter='\t')
             wr.writerow(['genomes', m, dict_labels[args.parameter], 'taxa'])
             for i in range(len(genomes)):
                 wr.writerow([genomes[i], list_metrics[i], list_data[i], args.taxa_rank[genomes[i]]])
         # get statistics on data
         get_stats(args)
+        # report testing genomes with unusual results (average mash distance to training genomes of 0 and low recall)
     else:
         colors = 'black'
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png')
@@ -53,7 +54,7 @@ def get_plot(args, m, r, dict_metrics):
     plt.ylabel(f'{m}')
     plt.savefig(figname, bbox_inches='tight')
     figlegend = plt.figure()
-    plt.figlegend(*ax.get_legend_handles_labels())
+    figlegend.legend(*ax.get_legend_handles_labels())
     figlegend.savefig(legendname, bbox_inches='tight')
 
 def get_stats(args):
