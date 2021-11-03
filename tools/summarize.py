@@ -60,7 +60,7 @@ def get_taxonomy(args):
     # get genome accession ids
     accession_id_list = [i[3:] for i in list(gtdb_df.accession)]
     # get taxonomy
-    genomes_taxonomy = {accession_id_list[i]: taxonomy[i][::-1] if accession_id_list[i] in args.dict_data}
+    genomes_taxonomy = {accession_id_list[i]: taxonomy[i][::-1] if accession_id_list[i] in args.dict_data for i in range(len(accession_id_list))}
     return genomes_taxonomy
 
 def get_test_results(args):
@@ -162,8 +162,11 @@ def main():
             # get taxa
             args.taxa_rank = {genome: genome_taxonomy[genome].split(';')[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
             get_plot(args, m, r_name, dict_metrics)
+            # generate tsv file for plots in R
+            get_tsv(args)
     # get statistics on data
     get_stats(args)
+
 
 
 
