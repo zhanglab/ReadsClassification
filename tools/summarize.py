@@ -9,6 +9,7 @@ import argparse
 import glob
 import pandas as pd
 import json
+import csv
 
 def get_plot(args, m, r, dict_metrics):
     dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set', 'training genomes': 'number of training genomes'}
@@ -28,6 +29,12 @@ def get_plot(args, m, r, dict_metrics):
         colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
         legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
+        tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.tsv')
+        with open(tsv_filename, 'w') as f:
+            fieldnames = ['genomes', m, dict_labels[args.parameter], 'taxa']
+            wr = csv.writer(f, delimiter=' ', fieldnames=fieldnames)
+            for i in range(len(genomes)):
+                wr.writerow([genomes[i], list_metrics[i], list_data[i], args.taxa_rank[genomes[i]]])
     else:
         colors = 'black'
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png')
@@ -60,7 +67,7 @@ def get_taxonomy(args):
     # get genome accession ids
     accession_id_list = [i[3:] for i in list(gtdb_df.accession)]
     # get taxonomy
-    genomes_taxonomy = {accession_id_list[i]: taxonomy[i][::-1] if accession_id_list[i] in args.dict_data for i in range(len(accession_id_list))}
+    genomes_taxonomy = {accession_id_list[i]: taxonomy[i][::-1] for i in range(len(accession_id_list)) if accession_id_list[i] in args.dict_data}
     return genomes_taxonomy
 
 def get_test_results(args):
@@ -162,8 +169,6 @@ def main():
             # get taxa
             args.taxa_rank = {genome: genome_taxonomy[genome].split(';')[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
             get_plot(args, m, r_name, dict_metrics)
-            # generate tsv file for plots in R
-            get_tsv(args)
     # get statistics on data
     get_stats(args)
 
