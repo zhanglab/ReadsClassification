@@ -52,11 +52,11 @@ def get_plot(args, m, r, dict_metrics):
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
-    fig_legend = plt.figure(10,13)
+    fig_legend = plt.figure(figsize=(10,13))
     ax_legend = fig_legend.add_subplot(111)
     ax_legend.legend(*ax.get_legend_handles_labels(), loc='center')
     ax_legend.axis('off')
-    fig_legend.savefig(legendname)
+    fig_legend.savefig(legendname, bbox_inches='tight')
 
 def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
