@@ -28,6 +28,7 @@ def get_plot(args, m, r, dict_metrics):
              for i in range(len(taxa))]
         rank_colors = dict(zip(list(taxa), random_colors))
         colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
+        labels = [args.taxa_rank[i] for i in genomes]
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
         legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
         # create tsv file to store results for R plots
@@ -49,7 +50,7 @@ def get_plot(args, m, r, dict_metrics):
     plt.clf()
     ax = plt.gca()
     plt.figure()
-    plt.scatter(list_data, list_metrics, color=colors)
+    plt.scatter(list_data, list_metrics, color=colors, label=labels)
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     plt.savefig(figname, bbox_inches='tight')
@@ -61,8 +62,6 @@ def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
         f.write(f'data:\t{args.parameter}\n')
         f.write(f'mean:\t{statistics.mean(list(args.dict_data.values()))}\nmedian\t{statistics.median(list(args.dict_data.values()))}\nmin\t{min(list(args.dict_data.values()))}\nmax\t{max(list(args.dict_data.values()))}\n')
-
-# def get_tsv():
 
 def get_taxonomy(args):
     # load gtdb information
