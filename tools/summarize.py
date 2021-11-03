@@ -5,6 +5,7 @@ import statistics
 import os
 import sys
 import numpy as np
+import random
 import argparse
 import glob
 import pandas as pd
