@@ -52,7 +52,7 @@ def get_plot(args, m, r, dict_metrics):
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
-    fig_legend = plt.figure()
+    fig_legend = plt.figure(10,13)
     ax_legend = fig_legend.add_subplot(111)
     ax_legend.legend(*ax.get_legend_handles_labels(), loc='center')
     ax_legend.axis('off')
