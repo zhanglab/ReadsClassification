@@ -6,6 +6,7 @@ import argparse
 import sys
 import random
 import glob
+import math
 from utils import *
 
 def get_rev_complement(read):
@@ -59,18 +60,35 @@ def wrap_read(value):
 def wrap_label(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-def shuffle_reads(args, fq_file):
+def get_reads(args, fq_file, fq_type=None, count=False):
     """ Loads and shuffle reads """
     with open(os.path.join(args.input_path, fq_file), 'r') as infile:
         content = infile.readlines()
         reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-        random.shuffle(reads)
+        if fq_type == 'train' or fq_type == 'val':
+            random.shuffle(reads)
+        if count == True:
+            if len(reads) > 25000000:
+                list_new_fq_files = []
+                # split fastq file into smaller fastq files
+                num_new_fq = math.ceil(len(reads)/25000000)
+                start = 0
+                for i in range(1, num_new_fq+1, 1):
+                    new_fq_filename = os.path.join(args.input_path, '-'.join([fq_file.split('-')[0], fq_file.split('-')[1], f'{i}-reads.fq']))
+                    end = start + 25000000 if i < num_new_fq else start + (len(reads) - (i-1)*25000000)
+                    with open(new_fq_filename) as outfile:
+                        outfile.write(''.join(reads[start:end]))
+                    start = end
+                    list_new_fq_files.append(new_fq_filename.split('/')[-1])
+                return list_new_fq_files, fq_file
         return reads
 
 def get_tfrecords(args, fq_file):
     """ Converts reads to tfrecords """
+    # get type of fastq file
+    fq_type = fq_file.split('-')[1]
     # get reads
-    list_reads = shuffle_reads(args, fq_file)
+    list_reads = get_reads(args, fq_file, fq_type)
     # define tfrecords filename
     output_tfrec = os.path.join(args.output_path, '.'.join([fq_file.split('.')[0], 'tfrec']))
     print(output_tfrec)
@@ -132,6 +150,16 @@ def main():
             tfrec_completed = set(tfrec_present).intersection(set(num_reads_files))
             # define final list of fastq files to convert
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
+            # count number of reads per file missing (in case there are too many reads to convert in the time limit given)
+            extra_fq_files = []
+            fq_files_to_rm = []
+            for fq_file in final_fq_files:
+                extra_fq_files, fq_files_to_rm += get_reads(args, fq_file, fq_type=None, count=True)
+            if len(extra_fq_files) != 0:
+                for fftrm in fq_files_to_rm:
+                    final_fq_files.remove(fftrm)
+                for eff in extra_fq_files:
+                    final_fq_files.append(eff)
             print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
         else:
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in list_fq_files]
