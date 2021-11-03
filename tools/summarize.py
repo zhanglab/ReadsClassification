@@ -75,11 +75,12 @@ def get_test_results(args):
     dict_data = {}
     for r in reports:
         genome = r.split('-')[-1]
+        print(genome, len(genome))
         with open(r, 'r') as infile:
             content = infile.readlines()
-            for i in content[1:]:
-                if float(i.rstrip().split('\t')[3]) != 0.0:
-                    dict_data[genome] = [float(i.rstrip().split('\t')[1]), float(i.rstrip().split('\t')[2])]
+            for line in content[1:-1]:
+                if float(line.rstrip().split('\t')[3]) != 0.0:
+                    dict_data[genome] = [float(line.rstrip().split('\t')[1]), float(line.rstrip().split('\t')[2])]
                     break
     return dict_data
 
