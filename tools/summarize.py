@@ -88,8 +88,10 @@ def get_mash_distances(args):
     dict_data = {}
     for mash_dist_file in list_mash_dist_files:
         with open(mash_dist_file, 'r') as f:
-            msh_dist = float(f.readlines()[0].split('\t')[1])
-            genome = f.readlines()[0].split('\t')[0]
+            content = f.readlines()
+            print(content[0])
+            msh_dist = float(content[0].split('\t')[1])
+            genome = content[0].split('\t')[0]
             print(genome, msh_dist)
             dict_data[genome] = msh_dist
     return dict_data
