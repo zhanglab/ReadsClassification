@@ -26,7 +26,7 @@ def get_plot(args, m, r, dict_metrics):
         taxa = set(args.taxa_rank.values())
         random_colors = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
              for i in range(len(taxa))]
-        rank_colors = zip(dict(list(taxa), random_colors))
+        rank_colors = dict(zip(list(taxa), random_colors))
         colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
         legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
