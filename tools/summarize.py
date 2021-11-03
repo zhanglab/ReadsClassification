@@ -172,7 +172,7 @@ def main():
     for m in metrics:
         for r_index, r_name in ranks.items():
             # get taxa
-            args.taxa_rank = {genome: genome_taxonomy.split(';')[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
+            args.taxa_rank = {genome: genome_taxonomy[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
             get_plot(args, m, r_name, dict_metrics)
 
 
