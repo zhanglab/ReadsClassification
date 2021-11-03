@@ -60,7 +60,7 @@ def get_taxonomy(args):
     # get genome accession ids
     accession_id_list = [i[3:] for i in list(gtdb_df.accession)]
     # get taxonomy
-    genomes_taxonomy = {i: taxonomy[i][::-1] if i in args.dict_data}
+    genomes_taxonomy = {accession_id_list[i]: taxonomy[i][::-1] if accession_id_list[i] in args.dict_data}
     return genomes_taxonomy
 
 def get_test_results(args):
@@ -141,7 +141,7 @@ def main():
         # get average mash distance between each testing genome and all training genomes
         args.dict_data = get_mash_distances(args)
     # get taxonomy
-    args.genomes_taxonomy = get_taxonomy(args)
+    args.taxonomy = get_taxonomy(args)
     # with open(args.genomes, 'r') as infile:
     #     for line in infile:
     #         genome = line.rstrip().split('\t')[0]
@@ -160,7 +160,7 @@ def main():
     for m in metrics:
         for r_index, r_name in ranks.items():
             # get taxa
-            args.taxa_rank = {genome: genome_taxonomy[r_index].split('__')[1] for genome, genome_taxonomy in args.genomes_taxonomy.items()}
+            args.taxa_rank = {genome: genome_taxonomy[genome].split(';')[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
             get_plot(args, m, r_name, dict_metrics)
     # get statistics on data
     get_stats(args)
