@@ -29,12 +29,15 @@ def get_plot(args, m, r, dict_metrics):
         colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
         legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
+        # create tsv file to store results for R plots
         tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.tsv')
         with open(tsv_filename, 'w') as f:
             fieldnames = ['genomes', m, dict_labels[args.parameter], 'taxa']
             wr = csv.writer(f, delimiter=' ', fieldnames=fieldnames)
             for i in range(len(genomes)):
                 wr.writerow([genomes[i], list_metrics[i], list_data[i], args.taxa_rank[genomes[i]]])
+        # get statistics on data
+        get_stats(args)
     else:
         colors = 'black'
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png')
@@ -89,10 +92,8 @@ def get_mash_distances(args):
     for mash_dist_file in list_mash_dist_files:
         with open(mash_dist_file, 'r') as f:
             content = f.readlines()
-            print(content[0])
             msh_dist = float(content[0].split('\t')[1])
             genome = content[0].split('\t')[0]
-            print(genome, msh_dist)
             dict_data[genome] = msh_dist
     return dict_data
 
@@ -171,10 +172,8 @@ def main():
     for m in metrics:
         for r_index, r_name in ranks.items():
             # get taxa
-            args.taxa_rank = {genome: genome_taxonomy[genome].split(';')[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
+            args.taxa_rank = {genome: genome_taxonomy.split(';')[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
             get_plot(args, m, r_name, dict_metrics)
-    # get statistics on data
-    get_stats(args)
 
 
 
