@@ -56,7 +56,7 @@ def get_plot(args, m, r, dict_metrics):
     ax_legend = fig_legend.add_subplot(111)
     ax_legend.legend(*ax.get_legend_handles_labels(), loc='center')
     ax_legend.axis('off')
-    fig_legend.savefig(legendname, bbox_inches='tight')
+    fig_legend.savefig(legendname)
 
 def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
