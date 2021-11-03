@@ -33,8 +33,8 @@ def get_plot(args, m, r, dict_metrics):
         # create tsv file to store results for R plots
         tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.tsv')
         with open(tsv_filename, 'w') as f:
-            fieldnames = ['genomes', m, dict_labels[args.parameter], 'taxa']
-            wr = csv.writer(f, delimiter=' ', fieldnames=fieldnames)
+            wr = csv.writer(f, delimiter=' ')
+            wr.writerow(['genomes', m, dict_labels[args.parameter], 'taxa'])
             for i in range(len(genomes)):
                 wr.writerow([genomes[i], list_metrics[i], list_data[i], args.taxa_rank[genomes[i]]])
         # get statistics on data
