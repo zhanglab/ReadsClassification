@@ -26,7 +26,16 @@ def get_tsv(args, m, dict_metrics, index):
             wr.writerow([genomes[i], list_metrics[i], list_data[i], taxonomy[4].split('__')[1], taxonomy[3].split('__')[1],
             taxonomy[2].split('__')[1], taxonomy[1].split('__')[1], taxonomy[0].split('__')[1]])
 
-def get_plot(args, m, r_name, r_index, dict_metrics, index):
+def get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color):
+    figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-{'-'.join(taxon.split(' '))}.png')
+    plt.clf()
+    fig, ax = plt.subplots()
+    ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon, )
+    plt.xlabel(f'{args.dict_labels[args.parameter]}')
+    plt.ylabel(f'{m}')
+    fig.savefig(figname, bbox_inches='tight')
+
+def get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index):
     # get taxa
     taxa_rank = {genome: genome_taxonomy[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
     taxa = set(taxa_rank.values())
@@ -37,6 +46,14 @@ def get_plot(args, m, r_name, r_index, dict_metrics, index):
     # define name of figures
     figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}.png')
     legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-legend.png')
+
+    # generate a plot for each taxon
+    for taxon, color in rank_colors.items():
+        # get testing genomes with given taxon
+        genomes = [genome_id for genome_id, genome_taxon in taxa_rank.items() if genome_taxon == taxon]
+        taxon_metrics = [dict_metrics[g][index] for g in genomes]
+        taxon_data = [args.dict_data[g] for g in genomes]
+        get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color)
 
     # generate plot
     plt.clf()
@@ -51,7 +68,7 @@ def get_plot(args, m, r_name, r_index, dict_metrics, index):
     plt.xlabel(f'{args.dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
-    fig_legend = plt.figure(figsize=(10,13))
+    fig_legend = plt.figure()
     ax_legend = fig_legend.add_subplot(111)
     ax_legend.legend(*ax.get_legend_handles_labels(), loc='center')
     ax_legend.axis('off')
@@ -177,7 +194,7 @@ def main():
         get_tsv(args, m, dict_metrics, index)
         # generate a plot for each taxonomic level
         for r_index, r_name in ranks.items():
-            get_plot(args, m, r_name, r_index, dict_metrics, index)
+            get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index)
     # get statistics on data
     get_stats(args)
 
