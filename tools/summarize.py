@@ -12,6 +12,18 @@ import pandas as pd
 import json
 import csv
 
+def get_tsv(args, m, genomes, list_metrics, list_data, dict_labels):
+    # create tsv file to store results for R plots
+    tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.tsv')
+    with open(tsv_filename, 'w') as f:
+        wr = csv.writer(f, delimiter='\t')
+        wr.writerow(['genomes', m, dict_labels[args.parameter], 'class', 'order', 'family', 'genus', 'species'])
+        for i in range(len(genomes)):
+            taxonomy = args.taxonomy[genomes[i]]
+            wr.writerow([genomes[i], list_metrics[i], list_data[i], taxonomy[4].split('__')[1], taxonomy[3].split('__')[1],
+            taxonomy[2].split('__')[1], taxonomy[1].split('__')[1], taxonomy[0].split('__')[1]])
+
+
 def get_plot(args, m, r, dict_metrics):
     dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set', 'training genomes': 'number of training genomes'}
     index = 0 if m == 'precision' else 1
@@ -19,7 +31,7 @@ def get_plot(args, m, r, dict_metrics):
     genomes = list(dict_metrics.keys())
     list_metrics = [dict_metrics[i][index] for i in genomes]
     list_data = [args.dict_data[i] for i in genomes]
-
+    get_tsv(args, m, genomes, list_metrics, list_data, dict_labels)
     # assign colors
     if r is not None:
         # define colors
@@ -29,16 +41,10 @@ def get_plot(args, m, r, dict_metrics):
         rank_colors = dict(zip(list(taxa), random_colors))
         colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
         labels = [args.taxa_rank[i] for i in genomes]
+        print(labels)
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
         legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
-        # create tsv file to store results for R plots
-        tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.tsv')
-        with open(tsv_filename, 'w') as f:
-            wr = csv.writer(f, delimiter='\t')
-            wr.writerow(['genomes', m, dict_labels[args.parameter], 'taxa'])
-            for i in range(len(genomes)):
-                wr.writerow([genomes[i], list_metrics[i], list_data[i], args.taxa_rank[genomes[i]]])
-        # report testing genomes with unusual results (average mash distance to training genomes of 0 and low recall)
+
     else:
         colors = 'black'
         figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png')
@@ -85,7 +91,9 @@ def get_test_results(args):
                 if float(line.rstrip().split('\t')[3]) != 0.0:
                     dict_data[genome] = [float(line.rstrip().split('\t')[1]), float(line.rstrip().split('\t')[2])]
                     break
-    return dict_data
+    # sort dictionary by value
+    dict_data_sorted = {k: v for k, v in sorted(dict_data.items(), key=lambda item: item[1])}
+    return dict_data_sorted
 
 def get_mash_distances(args):
     list_mash_dist_files = glob.glob(os.path.join(args.path_mash_dist, '*-avg-mash-dist'))
