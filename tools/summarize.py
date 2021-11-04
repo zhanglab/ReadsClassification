@@ -20,7 +20,7 @@ def get_tsv(args, m, dict_metrics, index):
     tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.tsv')
     with open(tsv_filename, 'w') as f:
         wr = csv.writer(f, delimiter='\t')
-        wr.writerow(['genomes', m, dict_labels[args.parameter], 'class', 'order', 'family', 'genus', 'species'])
+        wr.writerow(['genomes', m, args.dict_labels[args.parameter], 'class', 'order', 'family', 'genus', 'species'])
         for i in range(len(genomes)):
             taxonomy = args.taxonomy[genomes[i]]
             wr.writerow([genomes[i], list_metrics[i], list_data[i], taxonomy[4].split('__')[1], taxonomy[3].split('__')[1],
@@ -48,7 +48,7 @@ def get_plot(args, m, r_name, r_index, dict_metrics, index):
         taxon_metrics = [dict_metrics[g][index] for g in genomes]
         taxon_data = [args.dict_data[g] for g in genomes]
         ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon)
-    plt.xlabel(f'{dict_labels[args.parameter]}')
+    plt.xlabel(f'{args.dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
     fig_legend = plt.figure(figsize=(10,13))
