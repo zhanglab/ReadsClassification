@@ -26,11 +26,11 @@ def get_tsv(args, m, dict_metrics, index):
             wr.writerow([genomes[i], list_metrics[i], list_data[i], taxonomy[4].split('__')[1], taxonomy[3].split('__')[1],
             taxonomy[2].split('__')[1], taxonomy[1].split('__')[1], taxonomy[0].split('__')[1]])
 
-def get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color):
+def get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color, m, r_name):
     figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-{"-".join(taxon.split(" "))}.png')
     plt.clf()
     fig, ax = plt.subplots()
-    ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon, )
+    ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon)
     plt.xlabel(f'{args.dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
@@ -53,7 +53,7 @@ def get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index):
         genomes = [genome_id for genome_id, genome_taxon in taxa_rank.items() if genome_taxon == taxon]
         taxon_metrics = [dict_metrics[g][index] for g in genomes]
         taxon_data = [args.dict_data[g] for g in genomes]
-        get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color)
+        get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color, m, r_name)
 
     # generate plot
     plt.clf()
