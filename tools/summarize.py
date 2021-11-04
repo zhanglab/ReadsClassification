@@ -27,7 +27,7 @@ def get_tsv(args, m, dict_metrics, index):
             taxonomy[2].split('__')[1], taxonomy[1].split('__')[1], taxonomy[0].split('__')[1]])
 
 def get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color):
-    figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-{'-'.join(taxon.split(' '))}.png')
+    figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-{"-".join(taxon.split(" "))}.png')
     plt.clf()
     fig, ax = plt.subplots()
     ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon, )
