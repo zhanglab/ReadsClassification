@@ -24,7 +24,7 @@ def get_genomes(filename):
 def get_avg_distance(test_genome, list_train_genomes, mash_dir, output_path, genomes_taxonomy, r_index):
     # get train genomes with same species as test genome
     train_genomes = [i for i in list_train_genomes if genomes_taxonomy[i][int(r_index)].split('__')[1] == genomes_taxonomy[test_genome][int(r_index)].split('__')[1]]
-    print(f'Number of train genomes associated with test genome {test_genome}: {len(train_genomes)} - taxon: {genomes_taxonomy[test_genome][int(r_index)].split('__')[1]}')
+    print(f'Number of train genomes associated with test genome {test_genome}: {len(train_genomes)} - taxon: {genomes_taxonomy[test_genome][int(r_index)].split("__")[1]}')
     avg_msh_dist = float()
     for train_g in train_genomes:
         with open(os.path.join(mash_dir, f'{test_genome}-{train_g}-mash-dist'), 'r') as f:
