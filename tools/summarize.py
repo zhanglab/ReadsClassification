@@ -12,7 +12,10 @@ import pandas as pd
 import json
 import csv
 
-def get_tsv(args, m, genomes, list_metrics, list_data, dict_labels):
+def get_tsv(args, m, dict_metrics, index):
+    genomes = list(dict_metrics.keys())
+    list_metrics = [dict_metrics[i][index] for i in genomes]
+    list_data = [args.dict_data[i] for i in genomes]
     # create tsv file to store results for R plots
     tsv_filename = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.tsv')
     with open(tsv_filename, 'w') as f:
@@ -23,38 +26,28 @@ def get_tsv(args, m, genomes, list_metrics, list_data, dict_labels):
             wr.writerow([genomes[i], list_metrics[i], list_data[i], taxonomy[4].split('__')[1], taxonomy[3].split('__')[1],
             taxonomy[2].split('__')[1], taxonomy[1].split('__')[1], taxonomy[0].split('__')[1]])
 
-
-def get_plot(args, m, r, dict_metrics):
-    dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set', 'training genomes': 'number of training genomes'}
-    index = 0 if m == 'precision' else 1
-    # define x and y data
-    genomes = list(dict_metrics.keys())
-    list_metrics = [dict_metrics[i][index] for i in genomes]
-    list_data = [args.dict_data[i] for i in genomes]
-    get_tsv(args, m, genomes, list_metrics, list_data, dict_labels)
-    # assign colors
-    if r is not None:
-        # define colors
-        taxa = set(args.taxa_rank.values())
-        random_colors = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
-             for i in range(len(taxa))]
-        rank_colors = dict(zip(list(taxa), random_colors))
-        colors = [rank_colors[args.taxa_rank[i]] for i in genomes]
-        labels = [args.taxa_rank[i] for i in genomes]
-        print(labels)
-        figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}.png')
-        legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r}-legend.png')
-
-    else:
-        colors = 'black'
-        figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}.png')
-        legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-legend.png')
+def get_plot(args, m, r_name, r_index, dict_metrics, index):
+    # get taxa
+    taxa_rank = {genome: genome_taxonomy[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
+    taxa = set(taxa_rank.values())
+    # define colors
+    random_colors = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
+         for i in range(len(taxa))]
+    rank_colors = dict(zip(list(taxa), random_colors))
+    # define name of figures
+    figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}.png')
+    legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-legend.png')
 
     # generate plot
     plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.scatter(list_data, list_metrics, color=colors, label=labels)
+    for taxon, color in rank_colors.items():
+        # get testing genomes with given taxon
+        genomes = [genome_id for genome_id, genome_taxon in taxa_rank.items() if genome_taxon == taxon]
+        taxon_metrics = [dict_metrics[g][index] for g in genomes]
+        taxon_data = [args.dict_data[g] for g in genomes]
+        ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon)
     plt.xlabel(f'{dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
@@ -168,7 +161,7 @@ def main():
     #         genome = line.rstrip().split('\t')[0]
     #         GC_count, genome_size = get_GC_content(line.rstrip().split('\t')[1]))
     #         outfile.write(f'{line.rstrip()}\t{GC_count}\t{genome_size}\t{dict_num_reads[genome][0]}\t{dict_num_reads[genome][1]}\t{dict_num_reads[genome][2]}\n')
-
+    args.dict_labels = {'average mash distance': 'average mash distance to training genomes', 'GC content': '%GC content in testing genome', 'genome size': 'Genome size (bp) of testing genome', 'training size': 'number of reads in training set', 'training genomes': 'number of training genomes'}
     ranks = {'0': 'species', '1': 'genus', '2': 'family', '3': 'order', '4': 'class'}
     # define output path
     args.output_path = os.path.join(args.input_test, 'results', '-'.join(args.parameter.split(' ')))
@@ -179,10 +172,12 @@ def main():
     dict_metrics = get_test_results(args)
     metrics = ['precision', 'recall']
     for m in metrics:
+        index = 0 if m == 'precision' else 1
+        # generate tsv file with information
+        get_tsv(args, m, dict_metrics, index)
+        # generate a plot for each taxonomic level
         for r_index, r_name in ranks.items():
-            # get taxa
-            args.taxa_rank = {genome: genome_taxonomy[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
-            get_plot(args, m, r_name, dict_metrics)
+            get_plot(args, m, r_name, r_index, dict_metrics, index)
     # get statistics on data
     get_stats(args)
 
