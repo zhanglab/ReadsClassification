@@ -72,7 +72,7 @@ def get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index):
     ax_legend = fig_legend.add_subplot(111)
     ax_legend.legend(*ax.get_legend_handles_labels(), loc='center')
     ax_legend.axis('off')
-    fig_legend.savefig(legendname)
+    fig_legend.savefig(legendname, bbox_inches='tight')
 
 def get_stats(args):
     with open(os.path.join(args.output_path,f'{args.dataset_type}-stats'), 'a') as f:
