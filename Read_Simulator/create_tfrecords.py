@@ -80,7 +80,9 @@ def get_reads(args, fq_file, fq_type=None, count=False):
                         outfile.write(''.join(reads[start:end]))
                     start = end
                     list_new_fq_files.append(new_fq_filename.split('/')[-1])
-                return list_new_fq_files, fq_file
+                return list_new_fq_files
+            else:
+                return [fq_file]
         return reads
 
 def get_tfrecords(args, fq_file):
@@ -149,17 +151,11 @@ def main():
             # find tfrecords missing
             tfrec_completed = set(tfrec_present).intersection(set(num_reads_files))
             # define final list of fastq files to convert
-            final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
+            pre_final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
             # count number of reads per file missing (in case there are too many reads to convert in the time limit given)
-            extra_fq_files = []
-            fq_files_to_rm = []
-            for fq_file in final_fq_files:
-                extra_fq_files, fq_files_to_rm += get_reads(args, fq_file, fq_type=None, count=True)
-            if len(extra_fq_files) != 0:
-                for fftrm in fq_files_to_rm:
-                    final_fq_files.remove(fftrm)
-                for eff in extra_fq_files:
-                    final_fq_files.append(eff)
+            final_fq_files = []
+            for fq_file in pre_final_fq_files:
+                final_fq_files += get_reads(args, fq_file, fq_type=None, count=True)
             print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
         else:
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in list_fq_files]
