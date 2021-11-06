@@ -9,6 +9,14 @@ import glob
 import math
 from utils import *
 
+# create a communicator consisting of all the processors
+comm = MPI.COMM_WORLD
+# get the number of processors
+size = comm.Get_size()
+# get the rank of each processor
+rank = comm.Get_rank()
+print(comm, size, rank)
+
 def get_rev_complement(read):
     """ Converts a k-mer to its reverse complement """
     translation_dict = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N",
@@ -80,6 +88,12 @@ def get_reads(args, fq_file, fq_type=None, count=False):
                         outfile.write(''.join(reads[start:end]))
                     start = end
                     list_new_fq_files.append(new_fq_filename.split('/')[-1])
+                # move original fastq file to new directory
+                if rank == 0:
+                    old_fq_new_path = os.path.join(args.input_path, 'prev-fq-files')
+                    if not os.path.isdir(old_fq_new_path ):
+                        os.makedirs(old_fq_new_path )
+                    os.rename(os.path.join(args.input_path, fq_file), os.path.join(old_fq_new_path, fq_file))
                 return list_new_fq_files
             else:
                 return [fq_file]
@@ -110,18 +124,14 @@ def get_tfrecords(args, fq_file):
             serialized = example.SerializeToString()
             writer.write(serialized)
     # report the number of reads
-    output_num_reads = os.path.join(args.output_path, '-'.join([fq_file.split('-')[0], fq_file.split('-')[1], 'num-reads']))
+    if len(fq_file.split('-')) > 3:
+        output_num_reads = os.path.join(args.output_path, '-'.join([fq_file.split('-')[0], fq_file.split('-')[1], fq_file.split('-')[2], 'num-reads']))
+    elif len(fq_file.split('-')) <= 3:
+        output_num_reads = os.path.join(args.output_path, '-'.join([fq_file.split('-')[0], fq_file.split('-')[1], 'num-reads']))
     with open(output_num_reads, 'w') as f:
         f.write(f'{label}\t{len(list_reads)}\n')
 
 def main():
-    # create a communicator consisting of all the processors
-    comm = MPI.COMM_WORLD
-    # get the number of processors
-    size = comm.Get_size()
-    # get the rank of each processor
-    rank = comm.Get_rank()
-    print(comm, size, rank)
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
@@ -144,8 +154,8 @@ def main():
         # resume converting reads to tfrecords if any were previously created
         if len(os.listdir(args.output_path)) != 0:
             # get tfrecords done
-            tfrec_present = ['-'.join(i.split('/')[-1].split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-reads.tfrec')))]
-            num_reads_files = ['-'.join(i.split('/')[-1].split('-')[:2]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-num-reads')))]
+            tfrec_present = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) <= 3 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-reads.tfrec'))) ]
+            num_reads_files = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) <= 3 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-num-reads')))]
             print(len(tfrec_present), len(num_reads_files), len(list_fq_files))
             print(tfrec_present[0], num_reads_files[0], list_fq_files[0])
             # find tfrecords missing
@@ -174,7 +184,6 @@ def main():
         print(f'Rank: {rank}\n{fq_files_per_processes}\n{len(fq_files_per_processes)}')
 
     else:
-        class_mapping = None
         fq_files_per_processes = None
     # scatter list of fastq files to all processes
     fq_files_per_processes = comm.scatter(fq_files_per_processes, root=0)
