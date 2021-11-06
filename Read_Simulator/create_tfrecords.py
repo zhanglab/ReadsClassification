@@ -76,7 +76,7 @@ def get_reads(args, fq_file, fq_type=None, count=False):
                 for i in range(1, num_new_fq+1, 1):
                     new_fq_filename = os.path.join(args.input_path, '-'.join([fq_file.split('-')[0], fq_file.split('-')[1], f'{i}-reads.fq']))
                     end = start + 25000000 if i < num_new_fq else start + (len(reads) - (i-1)*25000000)
-                    with open(new_fq_filename) as outfile:
+                    with open(new_fq_filename, 'w') as outfile:
                         outfile.write(''.join(reads[start:end]))
                     start = end
                     list_new_fq_files.append(new_fq_filename.split('/')[-1])
