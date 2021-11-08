@@ -11,6 +11,7 @@ import glob
 import pandas as pd
 import json
 import csv
+from collections import defaultdict
 
 def get_tsv(args, m, dict_metrics, index):
     genomes = list(dict_metrics.keys())
@@ -27,7 +28,7 @@ def get_tsv(args, m, dict_metrics, index):
             taxonomy[2].split('__')[1], taxonomy[1].split('__')[1], taxonomy[0].split('__')[1]])
 
 def get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color, m, r_name):
-    figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-{"-".join(taxon.split(" "))}.png')
+    figname = os.path.join(args.output_path, r_name, f'{args.dataset_type}-genomes-{m}-{r_name}-{"-".join(taxon.split(" "))}.png')
     plt.clf()
     fig, ax = plt.subplots()
     ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon)
@@ -38,15 +39,18 @@ def get_plot_taxon_level(args, taxon, genomes, taxon_metrics, taxon_data, color,
 def get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index):
     # get taxa
     taxa_rank = {genome: genome_taxonomy[int(r_index)].split('__')[1] for genome, genome_taxonomy in args.taxonomy.items()}
-    taxa = set(taxa_rank.values())
+    # get the taxa with 2 or more genomes
+    dict_taxa = defaultdict(list)
+    for g, t in taxa_rank.items():
+        dict_taxa[t].append(g)
+    taxa = [t for t, list_g in dict_taxa.items() if len(list_g) >= 2]
     # define colors
     random_colors = ["#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
          for i in range(len(taxa))]
     rank_colors = dict(zip(list(taxa), random_colors))
     # define name of figures
-    figname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}.png')
-    legendname = os.path.join(args.output_path, f'{args.dataset_type}-genomes-{m}-{r_name}-legend.png')
-
+    figname = os.path.join(args.output_path, r_name, f'{args.dataset_type}-genomes-{m}-{r_name}.png')
+    legendname = os.path.join(args.output_path, r_name, f'{args.dataset_type}-genomes-{m}-{r_name}-legend.png')
     # generate a plot for each taxon
     for taxon, color in rank_colors.items():
         # get testing genomes with given taxon
