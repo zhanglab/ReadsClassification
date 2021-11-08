@@ -198,6 +198,8 @@ def main():
         get_tsv(args, m, dict_metrics, index)
         # generate a plot for each taxonomic level
         for r_index, r_name in ranks.items():
+            if not os.path.isdir(os.path.join(args.output_path, r_name)):
+                os.makedirs(os.path.join(args.output_path, r_name))
             get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index)
     # get statistics on data
     get_stats(args)
