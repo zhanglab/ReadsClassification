@@ -150,7 +150,7 @@ def main():
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
         # get list of fastq files to convert
-        list_fq_files = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) <= 3 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.input_path, f'-reads*.fq')))]
+        list_fq_files = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) == 3 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.input_path, f'*-reads.fq')))]
         # resume converting reads to tfrecords if any were previously created
         if len(os.listdir(args.output_path)) != 0:
             # get tfrecords done
