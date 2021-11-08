@@ -155,7 +155,7 @@ def main():
         if len(os.listdir(args.output_path)) != 0:
             # get tfrecords done
             tfrec_present = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) == 3 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-reads.tfrec')))]
-            num_reads_files = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) == 3 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-num-reads')))]
+            num_reads_files = ['-'.join(i.split('/')[-1].split('-')[:2]) if len(i.split('/')[-1].split('-')) == 4 else '-'.join(i.split('/')[-1].split('-')[:3]) for i in sorted(glob.glob(os.path.join(args.output_path, f'*-num-reads')))]
             print(len(tfrec_present), len(num_reads_files), len(list_fq_files))
             print(tfrec_present[0], num_reads_files[0], list_fq_files[0])
             # find tfrecords missing
@@ -164,10 +164,10 @@ def main():
             pre_final_fq_files = ['-'.join([i, 'reads.fq']) for i in set(list_fq_files).difference(tfrec_completed)]
             print(f'# tfrecords completed: {tfrec_completed} - # pre final fq files: {pre_final_fq_files}')
             # count number of reads per file missing (in case there are too many reads to convert in the time limit given)
-            # final_fq_files = []
-            # for fq_file in pre_final_fq_files:
-            #     final_fq_files += get_reads(args, fq_file, fq_type=None, count=True)
-            # print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
+            final_fq_files = []
+            for fq_file in pre_final_fq_files:
+                final_fq_files += get_reads(args, fq_file, fq_type=None, count=True)
+            print(f'number of fq files to convert: {len(tfrec_completed)}\t{len(final_fq_files)}')
         else:
             final_fq_files = ['-'.join([i, 'reads.fq']) for i in list_fq_files]
         group_size = len(final_fq_files)//size
