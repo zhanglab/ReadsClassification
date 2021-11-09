@@ -132,6 +132,8 @@ def main():
     BATCH_SIZE = int(sys.argv[5])
     num_train_samples = int(sys.argv[6])
     num_val_samples = int(sys.argv[7])
+    init_lr = float(sys.argv[8])
+    lr_decay = int(sys.argv[9])
     print(f'{hvd.rank()}/{hvd.local_rank()} # train samples: {num_train_samples}')
     print(f'{hvd.rank()}/{hvd.local_rank()} # val samples: {num_val_samples}')
 
@@ -179,8 +181,6 @@ def main():
     val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='val_accuracy')
 
     # define initial learning rate
-    init_lr = float(sys.argv[9])
-    lr_decay = int(sys.argv[10])
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
     output_dir = os.path.join(input_dir, f'run-{run_num}')
