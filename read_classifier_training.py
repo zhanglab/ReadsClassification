@@ -13,7 +13,6 @@ import os
 import sys
 import json
 import glob
-import utils
 import datetime
 import numpy as np
 import math
