@@ -69,6 +69,7 @@ def get_plot_rank_level(args, m, r_name, r_index, dict_metrics, index):
         taxon_metrics = [dict_metrics[g][index] for g in genomes]
         taxon_data = [args.dict_data[g] for g in genomes]
         ax.scatter(taxon_data, taxon_metrics, color=color, label=taxon)
+    plt.ylim(0, 1.0)
     plt.xlabel(f'{args.dict_labels[args.parameter]}')
     plt.ylabel(f'{m}')
     fig.savefig(figname, bbox_inches='tight')
