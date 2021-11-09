@@ -193,5 +193,6 @@ def main():
     for fq_file in fq_files_per_processes:
         get_tfrecords(args, fq_file)
 
+
 if __name__ == '__main__':
     main()
