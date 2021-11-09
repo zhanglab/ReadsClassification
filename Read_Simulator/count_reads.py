@@ -1,8 +1,8 @@
 import os
+import sys
 
 def count_reads(input_path, type_reads):
     list_files = glob.glob(os.path.join(input_path, f'*-{type_reads}-num-reads'))
-
     total_num_reads = 0
 
     for nr_file in list_files:
