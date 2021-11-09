@@ -18,7 +18,7 @@ import numpy as np
 import math
 import io
 from models import AlexNet, VGG16, VDCNN
-from resnet50 import ResNet50
+
 
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
