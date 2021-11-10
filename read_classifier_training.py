@@ -17,6 +17,7 @@ import datetime
 import numpy as np
 import math
 import io
+import random
 from models import AlexNet, VGG16, VDCNN
 
 
@@ -149,13 +150,14 @@ def main():
     print('Variable dtype: %s' % policy.variable_dtype)
 
     # load training and validation tfrecords
-    train_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', f'*-train*.tfrec')))
-    train_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', f'*-train*.tfrec.idx')))
-    val_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', f'*-val*.tfrec')))
-    val_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', f'*-val*.tfrec.idx')))
-    print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)} - {len(train_idx_files)}')
-    print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)} - {len(val_idx_files)}')
-
+    train_files = random.shuffle(glob.glob(os.path.join(input_dir, 'tfrecords', f'*-train*.tfrec')))
+    train_files_ids = [i.split('-')[:3] if len(i.split('-')) == 4 else i.split('-')[:2] for i in train_files]
+    train_idx_files = [os.path.join(input_dir, 'tfrecords', 'idx_files', f'{i}-reads.tfrec.idx') for i in train_files_ids]
+    val_files = random.shuffle(glob.glob(os.path.join(input_dir, 'tfrecords', f'*-val*.tfrec')))
+    val_files_ids = [i.split('-')[:3] if len(i.split('-')) == 4 else i.split('-')[:2] for i in val_files]
+    val_idx_files = [os.path.join(input_dir, 'tfrecords', 'idx_files', f'{i}-reads.tfrec.idx') for i in val_files_ids]
+    print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)}\t{len(train_idx_files)}\t{train_files}')
+    print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)}\t{len(val_idx_files)}\t{val_files}')
 
     nstep_per_epoch = num_train_samples // (BATCH_SIZE*hvd.size())
     print(f'{hvd.rank()}/{hvd.local_rank()} # steps per epoch for whole train dataset: {nstep_per_epoch}')
