@@ -77,14 +77,14 @@ def get_reads(args, fq_file):
 def get_tfrecords(args, tfrec, shuffle=False):
     # define tfrecords filename
     output_tfrec_filename = tfrec.split('/')[-1] + '.tfrec'
-    output_tfrec = os.path.join(args.output_path, output_tfrec_filename))
+    output_tfrec = os.path.join(args.output_path, output_tfrec_filename)
     print(output_tfrec)
     # get list of fastq files
     list_fq_files = sorted(glob.glob(os.path.join(tfrec, f'*-{args.dataset}-reads.fq')))
     # get reads
     list_reads = []
     # report the number of reads
-    output_num_reads = os.path.join(tfrec, 'num-reads']))
+    output_num_reads = os.path.join(tfrec, 'num-reads'])
     for fq_file in list_fq_files:
         label_reads = get_reads(args, fq_file)
         label = fq_file.split('/')[-1].split('-')[0]
