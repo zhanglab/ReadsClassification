@@ -37,7 +37,7 @@ def split_fq_files(args, fq_file):
     reads_per_tfrec = [reads[i:i+chunk_size] for i in range(0, len(reads), chunk_size)]
     # create fastq files for each tfrecords
     for i in range(args.num_tfrec):
-        with open(os.path.join(args.input_path, 'fq_files', f'tfrec-{i}', f'{label}-reads.fq'), 'w') as f:
+        with open(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-{i}', f'{label}-{args.dataset}-reads.fq'), 'w') as f:
             f.write(''.join(reads_per_tfrec[i]))
 
 def main():
