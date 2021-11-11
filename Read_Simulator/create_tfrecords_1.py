@@ -28,7 +28,7 @@ def get_reads(args, fq_file, fq_type=None):
 
 def split_fq_files(args, fq_file):
     # get label
-    label = fq_file.split('-')[0]
+    label = fq_file.split('/')[-1].split('-')[0]
     # get reads
     reads = get_reads(args, fq_file, args.dataset)
     # compute size of chunks
