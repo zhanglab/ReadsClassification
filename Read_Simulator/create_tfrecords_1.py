@@ -53,7 +53,7 @@ def main():
         # create directory to store fastq files
         for i in range(args.num_tfrec):
             # define output directory
-            output_path = os.path.join(args.input_path, 'fq_files', f'tfrec-{i}')
+            output_path = os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-{i}')
             if not os.path.isdir(output_path):
                 os.makedirs(output_path)
         # get the list of fastq files
