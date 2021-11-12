@@ -23,7 +23,7 @@ print(f'Number of cpu: {pool_size}')
 current_process = mp.current_process()
 print(f'Current cpu: {current_process.name} - {current_process.pid}')
 process_rank = current_process.pid
-print(f'Number of cpus requested: {int(os.environ['SLURM_CPUS_ON_NODE'])}')
+print(f'Number of cpus requested: {pool_size}')
 print(f'Number of cpus on node: {mp.cpu_count()}')
 
 def get_rev_complement(read):
