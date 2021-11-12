@@ -147,21 +147,24 @@ def main():
     if not os.path.isdir(args.output_path):
         os.makedirs(args.output_path)
     # get the list of tfrecords directories
-    list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+    list_tfrecords = [i.split('/')[-1] for i in sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))]
+    print(f'total # tfrec: {len(list_tfrecords)} - {list_tfrecords}')
     # # get list of tfrecords done
     tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
+    print(f'tfrec done: {len(tfrec_done)} - {tfrec_done}')
     # get list of fastq files to convert
     list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list(set(list_tfrecords).difference(set(tfrec_done)))]
     print(len(list_tfrec_to_do))
     print(list_tfrec_to_do)
     data = [[args, i, True] for i in list_tfrec_to_do]
+    print(len(list_tfrec_to_do))
     # data = list(range(10))
     # print(f'input: {data}')
-    pool = mp.Pool(processes=pool_size, initializer=start_process,)
-    # pool_outputs = pool.map(test, data)
-    pool.map(get_tfrecords, data)
-    pool.close()
-    pool.join()
+    # pool = mp.Pool(processes=pool_size, initializer=start_process,)
+    # # pool_outputs = pool.map(test, data)
+    # pool.map(get_tfrecords, data)
+    # pool.close()
+    # pool.join()
     # print(f'output: {pool_outputs}')
     # if process_rank == 0:
     #     # create directory to store tfrecords
