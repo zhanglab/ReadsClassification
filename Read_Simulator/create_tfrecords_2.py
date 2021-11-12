@@ -157,14 +157,18 @@ def main():
     print(len(list_tfrec_to_do))
     print(list_tfrec_to_do)
     data = [[args, i, True] for i in list_tfrec_to_do]
-    print(len(list_tfrec_to_do))
     # data = list(range(10))
     # print(f'input: {data}')
     pool = mp.Pool(processes=pool_size, initializer=start_process,)
-    # # pool_outputs = pool.map(test, data)
-    pool.map(get_tfrecords, data)
+    # # # pool_outputs = pool.map(test, data)
+    pool.map_async(get_tfrecords, data)
     pool.close()
     pool.join()
+    # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrec_to_do]
+    # for p in processes:
+    #     p.start()
+    # for p in processes:
+    #     p.join()
     # print(f'output: {pool_outputs}')
     # if process_rank == 0:
     #     # create directory to store tfrecords
