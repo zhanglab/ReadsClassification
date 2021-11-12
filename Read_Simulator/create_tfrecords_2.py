@@ -21,9 +21,9 @@ pool_size = mp.cpu_count()
 print(f'Number of cpu: {pool_size}')
 current_process = mp.current_process()
 print(current_process)
-print(f'Current cpu: {current_process.name} - {current_process._identity} - {current_process.pid}')
-process_rank = current_process.name.split('-')[-1]
-print(f'Current cpu rank: {process_rank}')
+print(f'Current cpu: {current_process.name} - {current_process.pid}')
+process_rank = current_process.pid
+print(type(current_process.pid))
 
 def get_rev_complement(read):
     """ Converts a k-mer to its reverse complement """
@@ -121,6 +121,7 @@ def get_tfrecords(args, tfrec, shuffle=False):
     with open(output_num_reads, 'a') as f:
         f.write(f'{len(list_reads)}\n')
 
+
 def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
@@ -139,6 +140,17 @@ def main():
     # if rank == 0:
     # get the list of tfrecords directories
     list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+    # get list of tfrecords done
+    tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
+    # get list of fastq files to convert
+    list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list(set(list_tfrecords).difference(set(tfrec_done)))]
+    print(list_tfrec_to_do)
+    data = [[args, i, True] for i in list_tfrec_to_do]
+    print(data)
+    pool = mp.Pool(processes=pool_size)
+    pool.map(get_tfrecords, data)
+    pool.close()
+    pool.join()
     # if process_rank == 0:
     #     # create directory to store tfrecords
     #     if not os.path.isdir(args.output_path):
