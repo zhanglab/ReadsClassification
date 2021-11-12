@@ -164,7 +164,7 @@ def main():
     # pool.map_async(get_tfrecords, data)
     # pool.close()
     # pool.join()
-    processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrec_to_do]
+    processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, True)) for tfrec in list_tfrec_to_do]
     for p in processes:
         p.start()
     for p in processes:
