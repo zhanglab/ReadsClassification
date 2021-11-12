@@ -160,11 +160,11 @@ def main():
     print(len(list_tfrec_to_do))
     # data = list(range(10))
     # print(f'input: {data}')
-    # pool = mp.Pool(processes=pool_size, initializer=start_process,)
+    pool = mp.Pool(processes=pool_size, initializer=start_process,)
     # # pool_outputs = pool.map(test, data)
-    # pool.map(get_tfrecords, data)
-    # pool.close()
-    # pool.join()
+    pool.map(get_tfrecords, data)
+    pool.close()
+    pool.join()
     # print(f'output: {pool_outputs}')
     # if process_rank == 0:
     #     # create directory to store tfrecords
