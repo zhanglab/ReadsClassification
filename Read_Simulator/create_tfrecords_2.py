@@ -138,10 +138,15 @@ def main():
     # if rank == 0:
     # get the list of tfrecords directories
     list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
-    if process_rank == 0:
-        # create directory to store tfrecords
-        if not os.path.isdir(args.output_path):
-            os.makedirs(args.output_path)
+    # if process_rank == 0:
+    #     # create directory to store tfrecords
+    #     if not os.path.isdir(args.output_path):
+    #         os.makedirs(args.output_path)
+    #     else:
+    #         # get list of tfrecords done
+    #         tfrec_done = sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))
+            # get list of fastq files to convert
+
         # # get the list of tfrecords directories
         # list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
         # generate lists to store tfrecords filenames
@@ -165,11 +170,11 @@ def main():
     # for tfrec in tfrec_files_per_processes:
     #     get_tfrecords(args, tfrec, True)
 
-    processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
-    for p in processes:
-        p.start()
-    for p in processes:
-        p.join()
+    # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
+    # for p in processes:
+    #     p.start()
+    # for p in processes:
+    #     p.join()
 
 
 if __name__ == '__main__':
