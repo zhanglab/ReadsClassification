@@ -20,7 +20,8 @@ from utils import *
 pool_size = mp.cpu_count()
 print(f'Number of cpu: {pool_size}')
 current_process = mp.current_process()
-print(f'Current cpu: {current_process.name} - {current_process._identity}')
+print(current_process)
+print(f'Current cpu: {current_process.name} - {current_process._identity} - {current_process.pid}')
 process_rank = current_process.name.split('-')[-1]
 print(f'Current cpu rank: {process_rank}')
 
