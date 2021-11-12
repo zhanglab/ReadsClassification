@@ -20,10 +20,8 @@ from utils import *
 pool_size = mp.cpu_count()
 print(f'Number of cpu: {pool_size}')
 current_process = mp.current_process()
-print(current_process)
 print(f'Current cpu: {current_process.name} - {current_process.pid}')
 process_rank = current_process.pid
-print(type(current_process.pid))
 
 def get_rev_complement(read):
     """ Converts a k-mer to its reverse complement """
@@ -121,6 +119,9 @@ def get_tfrecords(args, tfrec, shuffle=False):
     with open(output_num_reads, 'a') as f:
         f.write(f'{len(list_reads)}\n')
 
+def start_process():
+    print(f'Starting {mp.current_process().name}')
+
 def test(x):
     return x*x
 
@@ -150,7 +151,7 @@ def main():
     # data = [[args, i, True] for i in list_tfrec_to_do]
     data = list(range(10))
     print(f'input: {data}')
-    pool = mp.Pool(processes=pool_size)
+    pool = mp.Pool(processes=pool_size, initializer=start_process,)
     pool_outputs = pool.map(test, data)
     pool.close()
     pool.join()
