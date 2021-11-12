@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import tensorflow as tf
-from mpi4py import MPI
+# from mpi4py import MPI
+import multiprocess as mp
 import argparse
 import sys
 import random
@@ -9,13 +10,19 @@ import glob
 import math
 from utils import *
 
-# create a communicator consisting of all the processors
-comm = MPI.COMM_WORLD
-# get the number of processors
-size = comm.Get_size()
-# get the rank of each processor
-rank = comm.Get_rank()
-print(comm, size, rank)
+# # create a communicator consisting of all the processors
+# comm = MPI.COMM_WORLD
+# # get the number of processors
+# size = comm.Get_size()
+# # get the rank of each processor
+# rank = comm.Get_rank()
+# print(comm, size, rank)
+pool_size = mp.cpu_count()
+print(f'Number of cpu: {pool_size}')
+current_process = mp.current_process()
+print(f'Current cpu: {current_process.name} - {current_process._identity}')
+process_rank = current_process.name.split('-')[-1]
+print(f'Current cpu rank: {process_rank}')
 
 def get_rev_complement(read):
     """ Converts a k-mer to its reverse complement """
@@ -128,32 +135,41 @@ def main():
     args.dict_kmers = get_voc_dict(args.voc)
     # define output directory
     args.output_path = os.path.join(args.input_path, 'tfrecords')
-    if rank == 0:
+    # if rank == 0:
+    # get the list of tfrecords directories
+    list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+    if process_rank == 0:
         # create directory to store tfrecords
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
-        # get the list of tfrecords directories
-        list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+        # # get the list of tfrecords directories
+        # list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
         # generate lists to store tfrecords filenames
-        tfrec_files_per_processes = [[] for i in range(size)]
-        # divide tfrec files into number of processes available
-        group_size = len(list_tfrecords)//size
-        print(f'group size: {group_size}')
-        print(list_tfrecords)
-        num_process = 0
-        for i in range(len(list_tfrecords)):
-            tfrec_files_per_processes[num_process].append(list_tfrecords[i])
-            num_process += 1
-            if num_process == size:
-                num_process = 0
-    else:
-        tfrec_files_per_processes = None
+    #     tfrec_files_per_processes = [[] for i in range(size)]
+    #     # divide tfrec files into number of processes available
+    #     group_size = len(list_tfrecords)//size
+    #     print(f'group size: {group_size}')
+    #     print(list_tfrecords)
+    #     num_process = 0
+    #     for i in range(len(list_tfrecords)):
+    #         tfrec_files_per_processes[num_process].append(list_tfrecords[i])
+    #         num_process += 1
+    #         if num_process == size:
+    #             num_process = 0
+    # else:
+    #     tfrec_files_per_processes = None
     # scatter list of fastq files to all processes
-    tfrec_files_per_processes = comm.scatter(tfrec_files_per_processes, root=0)
-    print(f'Rank: {rank}\n{tfrec_files_per_processes}\n')
+    # tfrec_files_per_processes = comm.scatter(tfrec_files_per_processes, root=0)
+    # print(f'Rank: {rank}\n{tfrec_files_per_processes}\n')
     # create
-    for tfrec in tfrec_files_per_processes:
-        get_tfrecords(args, tfrec, True)
+    # for tfrec in tfrec_files_per_processes:
+    #     get_tfrecords(args, tfrec, True)
+
+    processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
 
 
 if __name__ == '__main__':
