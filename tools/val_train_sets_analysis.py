@@ -9,34 +9,34 @@ import pandas as pd
 import multiprocess as mp
 from collections import defaultdict
 
-def parse_linclust(linclust_subset, outfilename, training_set, validation_set, reads_of_interest_val, reads_of_interest_train, reads_in_training, reads_in_validation):
+def parse_linclust(linclust_subset, outfilename, set_1, set_2, reads_of_interest_set_1, reads_of_interest_set_2, reads_in_set_1, reads_in_set_2):
     curr_process = mp.current_process()
     curr_process_name = str(curr_process.name)
     curr_process_num = curr_process_name.split('-')[1]
     outfile = open(outfilename, 'w')
-    local_dict_roi_val = {} # key = read in validation set
-    local_dict_roi_train = {} # key = read in training set
-    local_dict_rit = {}
-    local_dict_riv = {}
+    local_dict_roi_set_2 = {} # key = read in set 2
+    local_dict_roi_set_1 = {} # key = read in set 1
+    local_dict_ri_set_1 = {}
+    local_dict_ri_set_2 = {}
     df = pd.read_csv(linclust_subset, delimiter='\t', header=None)
     print(f'process id: {curr_process_num} - # reads: {len(df)}')
-    # add read that is not in the training set as a key to reads_of_interest dictionary
+    # add reads that is not in the training set as a key to reads_of_interest dictionary
     for row in df.itertuples():
-        if row[1] in training_set and row[2] in validation_set:
-            local_dict_roi_val[row[2]] = row[1]
-            outfile.write(f'{row[1]}\t{training_set[row[1]]}\t{row[2]}\t{validation_set[row[2]]}\n')
-        elif row[1] in validation_set and row[2] in training_set:
-            local_dict_roi_train[row[2]] = row[1]
-            outfile.write(f'{row[2]}\t{training_set[row[2]]}\t{row[1]}\t{validation_set[row[1]]}\n')
-        elif row[1] in training_set and row[2] in training_set:
-            local_dict_rit[row[2]] = row[1]
-        elif row[1] not in training_set and row[2] not in training_set:
-            local_dict_riv[row[2]] = row[1]
+        if row[1] in set_1 and row[2] in set_2:
+            local_dict_roi_set_2[row[2]] = row[1]
+            outfile.write(f'{row[1]}\t{set_1[row[1]]}\t{row[2]}\t{set_2[row[2]]}\n')
+        elif row[1] in set_2 and row[2] in set_1:
+            local_dict_roi_set_1[row[2]] = row[1]
+            outfile.write(f'{row[2]}\t{set_1[row[2]]}\t{row[1]}\t{set_2[row[1]]}\n')
+        elif row[1] in set_1 and row[2] in set_1:
+            local_dict_ri_set_1[row[2]] = row[1]
+        elif row[1] in set_2 and row[2] in set_2:
+            local_dict_ri_set_2[row[2]] = row[1]
 
-    reads_of_interest_val[str(curr_process_num)] = local_dict_roi_val
-    reads_of_interest_train[str(curr_process_num)] = local_dict_roi_train
-    reads_in_training[str(curr_process_num)] = local_dict_rit
-    reads_in_validation[str(curr_process_num)] = local_dict_riv
+    reads_of_interest_set_2[str(curr_process_num)] = local_dict_roi_set_2
+    reads_of_interest_set_1[str(curr_process_num)] = local_dict_roi_set_1
+    reads_in_set_1[str(curr_process_num)] = local_dict_ri_set_1
+    reads_in_set_2[str(curr_process_num)] = local_dict_ri_set_2
 
 # def verify_reads_v1(reads_of_interest, validation_set, training_set, output_file):
 #     f = open(output_file, 'w')
@@ -71,8 +71,9 @@ def get_time(start, end):
     print("\n%02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
     return end
 
-def get_num_reads(data):
+def get_num_reads(data, set_name):
     num_reads = 0
+    print(f'Number of reads in {set_name} dataset:')
     for key, value in data.items():
         print(f'{key}\t{len(value)}')
         num_reads += len(value)
@@ -80,30 +81,34 @@ def get_num_reads(data):
 
 def main():
     input_dir = sys.argv[1]
+    path_set_1 = sys.argv[2]
+    path_set_2 = sys.argv[2]
+    set_1_name = sys.argv[3]
+    set_2_name = sys.argv[4]
     # load training and validation tfrecords
-    train_files = sorted(glob.glob(os.path.join(input_dir, 'training_data_cov_7x', '*.fq')))
-    val_files = sorted(glob.glob(os.path.join(input_dir, 'validation_data_cov_7x', '*.fq')))
+    set_1_files = sorted(glob.glob(os.path.join(path_set_1 '*.fq')))
+    set_2_files = sorted(glob.glob(os.path.join(path_set_2 '*.fq')))
     # define the number of processes required
     num_processes = len(glob.glob(os.path.join(input_dir, 'linclust-subset-*')))
     print(f'Number of processes: {num_processes}')
 
     start = datetime.datetime.now()
-    # get training dataset
-    train_set = get_read_ids(train_files)
-    print(f'get training dataset - {len(train_set)}')
+    # get reads from set #1
+    set_1 = get_read_ids(set_1_files)
+    print(f'get set #1 - {len(set_1)}')
     start = get_time(start, datetime.datetime.now())
-    # get validation dataset
-    val_set = get_read_ids(val_files)
-    print(f'get validation set - {len(val_set)}')
+    # get reads from set #2
+    set_2 = get_read_ids(set_2_files)
+    print(f'get set #2 - {len(set_2)}')
     start = get_time(start, datetime.datetime.now())
     # parse linclust output, compare reads to training set
     with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
-        reads_of_interest_val = manager.dict()
-        reads_of_interest_train = manager.dict()
-        reads_in_training = manager.dict()
-        reads_in_validation = manager.dict()
-        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), os.path.join(input_dir, f'linclust-results-subset-{i}'), train_set, val_set, reads_of_interest_val, reads_of_interest_train, reads_in_training, reads_in_validation)) for i in range(num_processes)]
+        reads_of_interest_set_1 = manager.dict()
+        reads_of_interest_set_2 = manager.dict()
+        reads_in_set_1 = manager.dict()
+        reads_in_set_2 = manager.dict()
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), os.path.join(input_dir, f'linclust-subset-{i}'), set_1, set_2, reads_of_interest_set_1, reads_of_interest_set_2, reads_in_set_1, reads_in_set_2)) for i in range(num_processes)]
         for p in processes_compare_train:
             p.start()
         for p in processes_compare_train:
@@ -111,13 +116,13 @@ def main():
         print('compare linclust output to training set')
         start = get_time(start, datetime.datetime.now())
         print('number of reads in training set with reference read in validation set')
-        get_num_reads(reads_of_interest_train)
+        get_num_reads(reads_of_interest_set_1, set_1_name)
         print('number of reads in validation set with reference read in training set')
-        get_num_reads(reads_of_interest_val)
+        get_num_reads(reads_of_interest_set_2, set_2_name)
         print('number of reads in training set with reference read also in training set')
-        get_num_reads(reads_in_training)
+        get_num_reads(reads_in_set_1, set_1_name)
         print('number of reads in validation set with reference read also in validation set')
-        get_num_reads(reads_in_validation)
+        get_num_reads(reads_in_set_2, set_2_name)
         # val_set = get_read_ids(val_files)
         # print(f'get validation set - {len(val_set)}')
         end = get_time(start, datetime.datetime.now())
