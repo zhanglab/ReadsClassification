@@ -123,7 +123,7 @@ def main():
         # reads_in_set_1 = manager.dict()
         # reads_in_set_2 = manager.dict()
         # processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), os.path.join(input_dir, f'linclust-subset-{i}'), set_1, set_2, reads_of_interest_set_1, reads_of_interest_set_2, reads_in_set_1, reads_in_set_2)) for i in range(num_processes)]
-        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), os.path.join(input_dir, f'linclust-subset-{i}'))) for i in range(num_processes)]
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), os.path.join(input_dir, f'linclust-subset-{i}-parsing-results'))) for i in range(num_processes)]
         for p in processes_compare_train:
             p.start()
         for p in processes_compare_train:
