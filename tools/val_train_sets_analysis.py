@@ -86,12 +86,13 @@ def main():
     set_1_name = sys.argv[3]
     set_2_name = sys.argv[4]
     # load training and validation tfrecords
-    set_1_files = sorted(glob.glob(os.path.join(path_set_1 '*.fq')))
-    set_2_files = sorted(glob.glob(os.path.join(path_set_2 '*.fq')))
+    set_1_files = sorted(glob.glob(os.path.join(path_set_1 '*-reads.fq')))
+    set_2_files = sorted(glob.glob(os.path.join(path_set_2 '*-reads.fq')))
     # define the number of processes required
     num_processes = len(glob.glob(os.path.join(input_dir, 'linclust-subset-*')))
     print(f'Number of processes: {num_processes}')
-
+    print(f'Number of fastq files in set #1: {len(set_1_files)}')
+    print(f'Number of fastq files in set #2: {len(set_2_files)}')
     start = datetime.datetime.now()
     # get reads from set #1
     set_1 = get_read_ids(set_1_files)
