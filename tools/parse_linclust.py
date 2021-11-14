@@ -100,21 +100,21 @@ def main():
     # pool_size = int(os.environ['SLURM_CPUS_ON_NODE'])
     # # load training and validation tfrecords
     set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
-    set_2_files = sorted(glob.glob(os.path.join(path_set_2, '*-reads.fq')))
+    # set_2_files = sorted(glob.glob(os.path.join(path_set_2, '*-reads.fq')))
     # # define the number of processes required
     # num_processes = len(glob.glob(os.path.join(input_dir, f'linclust-subset-*')))
     # print(f'Number of processes: {num_processes}')
     print(f'Number of fastq files in set #1: {len(set_1_files)}')
-    print(f'Number of fastq files in set #2: {len(set_2_files)}')
+    # print(f'Number of fastq files in set #2: {len(set_2_files)}')
     start = datetime.datetime.now()
     # get reads from set #1
     set_1 = get_read_ids(set_1_files)
     print(f'get set #1 - {len(set_1)}')
     start = get_time(start, datetime.datetime.now())
     # get reads from set #2
-    set_2 = get_read_ids(set_2_files)
-    print(f'get set #2 - {len(set_2)}')
-    start = get_time(start, datetime.datetime.now())
+    # set_2 = get_read_ids(set_2_files)
+    # print(f'get set #2 - {len(set_2)}')
+    # start = get_time(start, datetime.datetime.now())
     # parse linclust output, compare reads to training set
     # with mp.Manager() as manager:
         # store reads that haven't been found in the training set (key = read, value = reference read)
