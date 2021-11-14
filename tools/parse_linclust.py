@@ -95,17 +95,17 @@ def get_num_reads(data, set_name):
 
 def main():
     input_dir = sys.argv[1]
-    set_1 = sys.argv[2]
-    set_2 = sys.argv[3]
-    set_1_name = sys.argv[4]
-    set_2_name = sys.argv[5]
+    path_set_1 = sys.argv[2]
+    set_1_name = sys.argv[3]
+    # path_set_2 = sys.argv[3]
+    # set_2_name = sys.argv[5]
 
     # find the remaining reads (reads identical but with different read ids) in the training set
-    set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
-    print(f'Number of fastq files in set #1: {len(set_1_files)}')
-    set_1 = get_read_ids(set_1_files)
-    print(f'get set #1 - {len(set_1)}')
-    start = get_time(start, datetime.datetime.now())
+    # set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
+    # print(f'Number of fastq files in set #1: {len(set_1_files)}')
+    # set_1 = get_read_ids(set_1_files)
+    # print(f'get set #1 - {len(set_1)}')
+    # start = get_time(start, datetime.datetime.now())
 
     # filter reads in cluster results that are identical and with the same read ids
     linclust_data_dict = {}
