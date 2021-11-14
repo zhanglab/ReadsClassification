@@ -54,14 +54,15 @@ from collections import defaultdict
 #             f.write(f'{v_read}\t{validation_set[v_read]}\t{t_read}\t{training_set[t_read]}\n')
 #     f.close()
 
-def parse_linclust(linclust_subset, outfilename):
+def parse_linclust(linclust_subset, linclust_data_dict):
     outfile = open(outfilename, 'w')
     with open(linclust_subset, 'r') as infile:
         for line in infile:
             read_1 = line.rstrip().split('\t')[0]
             read_2 = line.rstrip().split('\t')[1]
             if read_1 != read_2:
-                outfile.write(f'{read_1}\t{read_2}\n')
+                linclust_data_dict[read_2] = read_1
+                # outfile.write(f'{read_1}\t{read_2}\n')
             else:
                 continue
 
@@ -92,25 +93,50 @@ def get_num_reads(data, set_name):
 
 def main():
     input_dir = sys.argv[1]
-    path_set_1 = sys.argv[2]
-    path_set_2 = sys.argv[2]
-    set_1_name = sys.argv[3]
-    set_2_name = sys.argv[4]
+    set_1 = sys.argv[2]
+    set_2 = sys.argv[3]
+    set_1_name = sys.argv[4]
+    set_2_name = sys.argv[5]
+
+    # find the remaining reads (reads identical but with different read ids) in the training set
+    # set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
+    # print(f'Number of fastq files in set #1: {len(set_1_files)}')
+    # set_1 = get_read_ids(set_1_files)
+    # print(f'get set #1 - {len(set_1)}')
+    # start = get_time(start, datetime.datetime.now())
+
+    # filter reads in cluster results that are identical and with the same read ids
+    with mp.Manager() as manager:
+        linclust_subset_data_dict = manager.dict()
+        num_processes = len(glob.glob(os.path.join(input_dir, f'linclust-subset-*')))
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), linclust_data_dict)) for i in range(num_processes)]
+        for p in processes_compare_train:
+            p.start()
+        for p in processes_compare_train:
+            p.join()
+    print(len(linclust_subset_data_dict))
+
+
+
+
+
+
+
     # # define number of processes requested
     # pool_size = int(os.environ['SLURM_CPUS_ON_NODE'])
     # # load training and validation tfrecords
-    set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
+    # set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
     # set_2_files = sorted(glob.glob(os.path.join(path_set_2, '*-reads.fq')))
     # # define the number of processes required
     # num_processes = len(glob.glob(os.path.join(input_dir, f'linclust-subset-*')))
     # print(f'Number of processes: {num_processes}')
-    print(f'Number of fastq files in set #1: {len(set_1_files)}')
+    # print(f'Number of fastq files in set #1: {len(set_1_files)}')
     # print(f'Number of fastq files in set #2: {len(set_2_files)}')
-    start = datetime.datetime.now()
+    # start = datetime.datetime.now()
     # get reads from set #1
-    set_1 = get_read_ids(set_1_files)
-    print(f'get set #1 - {len(set_1)}')
-    start = get_time(start, datetime.datetime.now())
+    # set_1 = get_read_ids(set_1_files)
+    # print(f'get set #1 - {len(set_1)}')
+    # start = get_time(start, datetime.datetime.now())
     # get reads from set #2
     # set_2 = get_read_ids(set_2_files)
     # print(f'get set #2 - {len(set_2)}')
