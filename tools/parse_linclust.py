@@ -62,7 +62,7 @@ def compare_to_sets(linclust_data, set_1, set_2, outfilename_1, outfilename_2):
     r_both_in_set_1 = 0
     r_both_in_set_2 = 0
     for read, cluster in linclust_data.items():
-        if read in set_1 and cluster not set_2:
+        if read in set_1 and cluster in set_2:
             outfile_1.write(f'{cluster}\t{set_2[cluster]}\t{read}\t{set_1[read]}\n')
             roi_1 += 1
         elif read in set_2 and cluster in set_1:
