@@ -54,11 +54,34 @@ from collections import defaultdict
 #             f.write(f'{v_read}\t{validation_set[v_read]}\t{t_read}\t{training_set[t_read]}\n')
 #     f.close()
 
-# def compare_to_set_1(linclust_data, set_1):
+def compare_to_set_1(linclust_data, set_1, outfilename_1, outfilename_2):
+    outfile_1 = open(outfilename_1, 'w') # store reads that are in training set but cluster is not
+    outfile_2 = open(outfilename_2, 'w') # store reads that are not in training set but cluster is
+    roi_1 = 0
+    roi_2 = 0
+    r_both_in_set_1 = 0
+    r_both_not_in_set_1 = 0
+    for read, cluster in linclust_data.items():
+        if read in set_1 and cluster not in set_1:
+            outfile_1.write(f'{cluster}\t{read}\n')
+            roi_1 += 1
+        elif read not in set_1 and cluster in set_1:
+            outfile_2.write(f'{cluster}\t{read}\n')
+            roi_2 += 1
+        elif read in set_1 and cluster in set_1:
+            r_both_in_set_1 += 1
+        elif read not in set_1 and cluster not in set_1:
+            r_both_not_in_set_1 += 1
+    print(f'# pair of reads in roi_1: {len(roi_1)}')
+    print(f'# pair of reads in roi_2: {len(roi_2)}')
+    print(f'# pair of reads in r_both_in_set_1: {len(r_both_in_set_1)}')
+    print(f'# pair of reads in r_both_not_in_set_1: {len(r_both_not_in_set_1)}')
 
-def parse_linclust(linclust_subset, linclust_data_dict):
+
+def parse_linclust(linclust_out):
     # outfile = open(outfilename, 'w')
-    with open(linclust_subset, 'r') as infile:
+    linclust_data_dict = {}
+    with open(linclust_out, 'r') as infile:
         for line in infile:
             read_1 = line.rstrip().split('\t')[0]
             read_2 = line.rstrip().split('\t')[1]
@@ -67,6 +90,7 @@ def parse_linclust(linclust_subset, linclust_data_dict):
                 # outfile.write(f'{read_1}\t{read_2}\n')
             else:
                 continue
+    return linclust_data_dict
 
 def get_read_ids(list_fq_files):
     dataset = {}
@@ -97,29 +121,32 @@ def main():
     input_dir = sys.argv[1]
     path_set_1 = sys.argv[2]
     set_1_name = sys.argv[3]
+    linclust_out = sys.argv[4]
     # path_set_2 = sys.argv[3]
     # set_2_name = sys.argv[5]
 
-    # find the remaining reads (reads identical but with different read ids) in the training set
-    # set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
-    # print(f'Number of fastq files in set #1: {len(set_1_files)}')
-    # set_1 = get_read_ids(set_1_files)
-    # print(f'get set #1 - {len(set_1)}')
-    # start = get_time(start, datetime.datetime.now())
-
     # filter reads in cluster results that are identical and with the same read ids
-    linclust_data_dict = {}
-    with mp.Manager() as manager:
-        linclust_subset_data_dict = manager.dict()
-        num_processes = len(glob.glob(os.path.join(input_dir, f'linclust-subset-*')))
-        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), linclust_subset_data_dict)) for i in range(num_processes)]
-        for p in processes_compare_train:
-            p.start()
-        for p in processes_compare_train:
-            p.join()
-        linclust_data_dict = linclust_subset_data_dict
+    linclust_data_dict = parse_linclust(linclust_out)
     print(len(linclust_data_dict))
-    print(len(linclust_subset_data_dict))
+    # find the remaining reads (reads identical but with different read ids) in the training set
+    set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
+    print(f'Number of fastq files in set #1: {len(set_1_files)}')
+    set_1 = get_read_ids(set_1_files)
+    print(f'get set #1 - {len(set_1)}')
+    # start = get_time(start, datetime.datetime.now())
+    compare_to_set_1(linclust_data_dict, set_1, os.path.join(input_dir, f'linclust-reads-in-{set_1_name}'), os.path.join(input_dir, f'linclust-reads-not-in-{set_1_name}'))
+
+
+    # with mp.Manager() as manager:
+    #     linclust_subset_data_dict = manager.dict()
+    #     num_processes = len(glob.glob(os.path.join(input_dir, f'linclust-subset-*')))
+    #     processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), linclust_subset_data_dict)) for i in range(num_processes)]
+    #     for p in processes_compare_train:
+    #         p.start()
+    #     for p in processes_compare_train:
+    #         p.join()
+    #     linclust_data_dict = linclust_subset_data_dict
+    # print(len(linclust_subset_data_dict))
 
 
 
