@@ -54,6 +54,8 @@ from collections import defaultdict
 #             f.write(f'{v_read}\t{validation_set[v_read]}\t{t_read}\t{training_set[t_read]}\n')
 #     f.close()
 
+# def compare_to_set_1(linclust_data, set_1):
+
 def parse_linclust(linclust_subset, linclust_data_dict):
     outfile = open(outfilename, 'w')
     with open(linclust_subset, 'r') as infile:
@@ -99,26 +101,25 @@ def main():
     set_2_name = sys.argv[5]
 
     # find the remaining reads (reads identical but with different read ids) in the training set
-    # set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
-    # print(f'Number of fastq files in set #1: {len(set_1_files)}')
-    # set_1 = get_read_ids(set_1_files)
-    # print(f'get set #1 - {len(set_1)}')
-    # start = get_time(start, datetime.datetime.now())
+    set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
+    print(f'Number of fastq files in set #1: {len(set_1_files)}')
+    set_1 = get_read_ids(set_1_files)
+    print(f'get set #1 - {len(set_1)}')
+    start = get_time(start, datetime.datetime.now())
 
     # filter reads in cluster results that are identical and with the same read ids
+    linclust_data_dict = {}
     with mp.Manager() as manager:
         linclust_subset_data_dict = manager.dict()
         num_processes = len(glob.glob(os.path.join(input_dir, f'linclust-subset-*')))
-        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), linclust_data_dict)) for i in range(num_processes)]
+        processes_compare_train = [mp.Process(target=parse_linclust, args=(os.path.join(input_dir, f'linclust-subset-{i}'), linclust_subset_data_dict)) for i in range(num_processes)]
         for p in processes_compare_train:
             p.start()
         for p in processes_compare_train:
             p.join()
+        linclust_data_dict = linclust_subset_data_dict
+    print(len(linclust_data_dict))
     print(len(linclust_subset_data_dict))
-
-
-
-
 
 
 
