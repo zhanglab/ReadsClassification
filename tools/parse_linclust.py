@@ -57,7 +57,7 @@ from collections import defaultdict
 # def compare_to_set_1(linclust_data, set_1):
 
 def parse_linclust(linclust_subset, linclust_data_dict):
-    outfile = open(outfilename, 'w')
+    # outfile = open(outfilename, 'w')
     with open(linclust_subset, 'r') as infile:
         for line in infile:
             read_1 = line.rstrip().split('\t')[0]
