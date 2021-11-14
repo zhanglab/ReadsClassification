@@ -63,19 +63,19 @@ def compare_to_set_1(linclust_data, set_1, outfilename_1, outfilename_2):
     r_both_not_in_set_1 = 0
     for read, cluster in linclust_data.items():
         if read in set_1 and cluster not in set_1:
-            outfile_1.write(f'{cluster}\t{read}\n')
+            outfile_1.write(f'{cluster}\t{read}\t{set_1[read]}\n')
             roi_1 += 1
         elif read not in set_1 and cluster in set_1:
-            outfile_2.write(f'{cluster}\t{read}\n')
+            outfile_2.write(f'{cluster}\t{set_1[cluster]}\t{read}\n')
             roi_2 += 1
         elif read in set_1 and cluster in set_1:
             r_both_in_set_1 += 1
         elif read not in set_1 and cluster not in set_1:
             r_both_not_in_set_1 += 1
-    print(f'# pair of reads in roi_1: {len(roi_1)}')
-    print(f'# pair of reads in roi_2: {len(roi_2)}')
-    print(f'# pair of reads in r_both_in_set_1: {len(r_both_in_set_1)}')
-    print(f'# pair of reads in r_both_not_in_set_1: {len(r_both_not_in_set_1)}')
+    print(f'# pair of reads in roi_1: {roi_1}')
+    print(f'# pair of reads in roi_2: {roi_2}')
+    print(f'# pair of reads in r_both_in_set_1: {r_both_in_set_1}')
+    print(f'# pair of reads in r_both_not_in_set_1: {r_both_not_in_set_1}')
 
 
 def parse_linclust(linclust_out):
