@@ -9,9 +9,10 @@ import pandas as pd
 import multiprocess as mp
 from collections import defaultdict
 
-def compare_to_sets(linclust_data, set_1, set_2, outfilename_1, outfilename_2):
+def compare_to_sets(linclust_data, set_1, set_2, outfilename_1, outfilename_2, outfilename_3, set_1_name, set_2_name):
     outfile_1 = open(outfilename_1, 'w') # store reads that are in training set but cluster is not
     outfile_2 = open(outfilename_2, 'w') # store reads that are not in training set but cluster is
+    outfile_3 = open(outfilename_3, 'w')
     roi_1 = 0
     roi_2 = 0
     r_both_in_set_1 = 0
@@ -19,17 +20,9 @@ def compare_to_sets(linclust_data, set_1, set_2, outfilename_1, outfilename_2):
     for read, cluster in linclust_data.items():
         if read in set_1 and cluster in set_2:
             outfile_1.write(f'{cluster}\t{set_2[cluster]}\t{read}\t{set_1[read]}\t')
-            if set_2[cluster] == set_1[read]:
-                outfile_1.write('identical\n')
-            else:
-                outfile_1.write('not identical\n')
             roi_1 += 1
         elif read in set_2 and cluster in set_1:
             outfile_2.write(f'{cluster}\t{set_1[cluster]}\t{read}\t{set_2[read]}\t')
-            if set_1[cluster] == set_2[read]:
-                outfile_2.write('identical\n')
-            else:
-                outfile_2.write('not identical\n')
             roi_2 += 1
         elif read in set_1 and cluster in set_1:
             r_both_in_set_1 += 1
@@ -39,6 +32,7 @@ def compare_to_sets(linclust_data, set_1, set_2, outfilename_1, outfilename_2):
     print(f'# pair of reads in roi_2: {roi_2}')
     print(f'# pair of reads in r_both_in_set_1: {r_both_in_set_1}')
     print(f'# pair of reads in r_both_not_in_set_1: {r_both_in_set_2}')
+    outfile_3.write(f'set 1: {set_1_name}\nset 2: {set_2_name}\nnumber of reads with identical sequences: {len(linclust_data)}\n# reads in set 1: {len(set_1)}\n# reads in set 2: {len(set_2)}\n# pair of reads in roi_1: {roi_1}\n# pair of reads in roi_2: {roi_2}\n# pair of reads in r_both_in_set_1: {r_both_in_set_1}\n# pair of reads in r_both_not_in_set_1: {r_both_in_set_2}\n')
 
 def parse_linclust(linclust_out):
     # outfile = open(outfilename, 'w')
@@ -86,7 +80,7 @@ def main():
     set_2 = get_read_ids(set_2_files)
     print(f'get set #2 - {len(set_2)}')
     # compare reads with set # 1 and set # 2
-    compare_to_sets(linclust_data_dict, set_1, set_2, os.path.join(input_dir, f'linclust-reads-in-{set_1_name}'), os.path.join(input_dir, f'linclust-reads-in-{set_2_name}'))
+    compare_to_sets(linclust_data_dict, set_1, set_2, os.path.join(input_dir, f'linclust-reads-in-{set_1_name}'), os.path.join(input_dir, f'linclust-reads-in-{set_2_name}', os.path.join(input_dir, f'linclust-summary-{set_1_name}-{set_2_name}', set_1_name, set_2_name))
 
 if __name__ == "__main__":
     main()
