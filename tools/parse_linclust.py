@@ -80,7 +80,7 @@ def main():
     set_2 = get_read_ids(set_2_files)
     print(f'get set #2 - {len(set_2)}')
     # compare reads with set # 1 and set # 2
-    compare_to_sets(linclust_data_dict, set_1, set_2, os.path.join(input_dir, f'linclust-reads-in-{set_1_name}'), os.path.join(input_dir, f'linclust-reads-in-{set_2_name}', os.path.join(input_dir, f'linclust-summary-{set_1_name}-{set_2_name}', set_1_name, set_2_name)))
+    compare_to_sets(linclust_data_dict, set_1, set_2, os.path.join(input_dir, f'linclust-reads-in-{set_1_name}'), os.path.join(input_dir, f'linclust-reads-in-{set_2_name}'), os.path.join(input_dir, f'linclust-summary-{set_1_name}-{set_2_name}'), set_1_name, set_2_name)
 
 if __name__ == "__main__":
     main()
