@@ -56,7 +56,7 @@ def get_dataset_info(args, genome_dict, list_species):
     plt.xlabel('number of genomes per species')
     plt.savefig(os.path.join(args.input_path, 'hist-num-genomes-per-species.png'))
 
-    return label_dict, int(mean(num_genomes_per_species))
+    return label_dict, int(statistics.mean(num_genomes_per_species))
 
 def load_class_mapping(filename):
     """ returns dictionary mapping labels to species stored in json file  """
