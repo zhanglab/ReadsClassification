@@ -52,6 +52,7 @@ def get_dataset_info(args, genome_dict, list_species):
     plt.hist(num_genomes_per_species, density=False, color='black')
     plt.ylabel('counts')
     plt.xlabel('number of genomes per species')
+    plt.savefig(os.path.join(args.input_path, 'hist-num-genomes-per-species.png'))
 
     return label_dict
 
