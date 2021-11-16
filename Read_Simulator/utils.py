@@ -27,17 +27,19 @@ def get_species(args):
 
 def get_dataset_info(args, genome_dict, list_species):
     """ returns dictionary mapping labels to species  """
+    # update dictionary of genomes based on teh number of genomes per species
+    updated_genome_dict = {key: value for key, value in genome_dict.items() if len(value) > 5}
     # report missing species
     with open(os.path.join(args.input_path, 'missing-species.txt'), 'w') as f:
         for s in list_species:
-            if s not in genome_dict.keys():
+            if s not in updated_genome_dict.keys():
                 f.write(f'{s}\n')
     # update list of species if necessary
-    list_species = list(genome_dict.keys())
+    list_species = list(updated_genome_dict.keys())
     # create dictionary mapping labels to species
     label_dict = dict(zip(list(range(len(list_species))), list_species))
     # get number of genomes per species
-    num_genomes_per_species = [len(value) for value in genome_dict.values()]
+    num_genomes_per_species = [len(value) for value in updated_genome_dict.values()]
     print(num_genomes_per_species)
     # create json file
     with open(os.path.join(args.input_path, 'class_mapping.json'), "w") as f:
