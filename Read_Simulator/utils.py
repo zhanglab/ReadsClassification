@@ -9,6 +9,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import statistics
 
 def get_genetic_code(args):
     """ returns dictionaries mapping codons to amino acids and inverse dictionary  """
@@ -35,6 +36,9 @@ def get_dataset_info(args, genome_dict, list_species):
     list_species = list(genome_dict.keys())
     # create dictionary mapping labels to species
     label_dict = dict(zip(list(range(len(list_species))), list_species))
+    # get number of genomes per species
+    num_genomes_per_species = [len(value) for value in genome_dict.values()]
+    print(num_genomes_per_species)
     # create json file
     with open(os.path.join(args.input_path, 'class_mapping.json'), "w") as f:
         json.dump(label_dict, f)
@@ -42,9 +46,8 @@ def get_dataset_info(args, genome_dict, list_species):
     with open(os.path.join(args.input_path, 'num_genomes_report.txt'), 'w') as f:
         for key, value in label_dict.items():
             f.write(f'{key}\t{value}\t{len(genome_dict[value])}\n')
+        f.write(f'mean\t{statistics.mean(num_genomes_per_species)}\nmedian\t{statistics.median(num_genomes_per_species)}\nmin\t{min(num_genomes_per_species)}\nmax\t{max(num_genomes_per_species)}\n')
     # generate histogram with number of genomes per species
-    num_genomes_per_species = [len(value) for value in genome_dict.values()]
-    print(num_genomes_per_species)
     plt.clf()
     plt.hist(num_genomes_per_species, density=False, color='black')
     plt.ylabel('counts')
