@@ -8,6 +8,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from collections import defaultdict
+import matplotlib.pyplot as plt
 
 def get_genetic_code(args):
     """ returns dictionaries mapping codons to amino acids and inverse dictionary  """
@@ -41,6 +42,13 @@ def get_dataset_info(args, genome_dict, list_species):
     with open(os.path.join(args.input_path, 'num_genomes_report.txt'), 'w') as f:
         for key, value in label_dict.items():
             f.write(f'{key}\t{value}\t{len(genome_dict[value])}\n')
+    # generate histogram with number of genomes per species
+    num_genomes_per_species = [len(value) for value in genome_dict.values()]
+    print(num_genomes_per_species)
+    plt.clf()
+    plt.hist(num_genomes_per_species, density=False, color='black')
+    plt.ylabel('counts')
+    plt.xlabel('number of genomes per species')
 
     return label_dict
 
