@@ -81,6 +81,8 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     return
 
 def create_train_val_sets(args, label, list_genomes, dict_sequences):
+    total_train_num_reads = 0
+    total_val_num_reads = 0
     for genome in list_genomes:
         rec_fw_reads = []
         rec_rv_reads = []
@@ -101,7 +103,10 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
             outfile.write(''.join(rec_rv_reads[num_train_reads:]))
         with open(os.path.join(args.input_path, f'{label}-train-val-reads'), 'a') as f:
             f.write(f'{genome}\t{len(rec_fw_reads)}\t{len(rec_rv_reads)}\n')
-
+        total_val_num_reads += len(rec_fw_reads[num_train_reads:]) + len(rec_rv_reads[num_train_reads:])
+        total_train_num_reads += len(rec_fw_reads[:num_train_reads]) + len(rec_rv_reads[:num_train_reads])
+    with open(os.path.join(args.input_path, f'{label}-train-val-reads'), 'a') as f:
+        f.write(f'train\t{total_train_num_reads}\nval\t{total_val_num_reads}\n')
     return
 
 def create_test_set(args, label, list_genomes, dict_sequences):
