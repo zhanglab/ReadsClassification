@@ -28,7 +28,7 @@ def main():
         # create dictionary mapping labels at the species level to labels at given rank
         rank_species_dict = {str(k): rev_label_dict[list_taxa[k]] for k in range(len(species_labels))}
         with open(os.path.join(input_dir, f'{ranks[i]}_species_mapping_dict.json'), "w") as f:
-            json.dump(label_dict, f)
+            json.dump(rank_species_dict, f)
 
 if __name__ == "__main__":
     main()
