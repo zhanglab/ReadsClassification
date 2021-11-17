@@ -123,18 +123,19 @@ def testing_step(reads, labels, loss, val_loss, val_accuracy, model):
 
 def main():
     input_dir = sys.argv[1]
-    run_num = sys.argv[2]
+    output_dir = sys.argv[2]
+    run_num = sys.argv[3]
     # define some training and model parameters
-    EPOCHS = int(sys.argv[3])
+    EPOCHS = int(sys.argv[4])
     VECTOR_SIZE = 250 - 12 + 1
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
-    DROPOUT_RATE = float(sys.argv[4])
-    BATCH_SIZE = int(sys.argv[5])
-    num_train_samples = int(sys.argv[6])
-    num_val_samples = int(sys.argv[7])
-    init_lr = float(sys.argv[8])
-    lr_decay = int(sys.argv[9])
+    DROPOUT_RATE = float(sys.argv[5])
+    BATCH_SIZE = int(sys.argv[6])
+    num_train_samples = int(sys.argv[7])
+    num_val_samples = int(sys.argv[8])
+    init_lr = float(sys.argv[9])
+    lr_decay = int(sys.argv[10])
     print(f'{hvd.rank()}/{hvd.local_rank()} # train samples: {num_train_samples}')
     print(f'{hvd.rank()}/{hvd.local_rank()} # val samples: {num_val_samples}')
 
@@ -150,14 +151,10 @@ def main():
     print('Variable dtype: %s' % policy.variable_dtype)
 
     # load training and validation tfrecords
-    train_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', f'*-train*.tfrec')))
-    random.shuffle(train_files)
-    train_files_ids = ['-'.join(i.split('-')[:3]) if len(i.split('-')) == 4 else '-'.join(i.split('-')[:2]) for i in train_files]
-    train_idx_files = [os.path.join(input_dir, 'tfrecords', 'idx_files', f'{i}-reads.tfrec.idx') for i in train_files_ids]
-    val_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', f'*-val*.tfrec')))
-    random.shuffle(val_files)
-    val_files_ids = ['-'.join(i.split('-')[:3]) if len(i.split('-')) == 4 else '-'.join(i.split('-')[:2]) for i in val_files]
-    val_idx_files = [os.path.join(input_dir, 'tfrecords', 'idx_files', f'{i}-reads.tfrec.idx') for i in val_files_ids]
+    train_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', f'train*.tfrec')))
+    train_idx_files = sorted(os.path.join(input_dir, 'tfrecords', 'idx_files', f'train*.tfrec.idx'))
+    val_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', f'val*.tfrec')))
+    val_idx_files = sorted(os.path.join(input_dir, 'tfrecords', 'idx_files', f'val*.tfrec.idx'))
     print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)}\t{len(train_idx_files)}\t{train_files}')
     print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)}\t{len(val_idx_files)}\t{val_files}')
 
@@ -187,7 +184,7 @@ def main():
     # define initial learning rate
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
-    output_dir = os.path.join(input_dir, f'run-{run_num}')
+    output_dir = os.path.join(output_dir, f'run-{run_num}')
 
     if hvd.rank() == 0:
         # create output directory
@@ -221,80 +218,78 @@ def main():
 
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch*EPOCHS), 1):
         print(f'{hvd.rank()}\t{labels}')
-        if batch == 1000:
-            break
         # get training loss
-        # loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
-        # if batch % 100 == 0 and hvd.rank() == 0:
-        #     print(f'GPU: {hvd.rank()}/{hvd.local_rank()} - Step {batch} - Training loss: {loss_value} - Training accuracy: {train_accuracy.result().numpy()*100}')
-        #     print(f'Epoch: {epoch} - Step: {batch} - learning rate: {opt.learning_rate}')
-        #     # write metrics
-        #     with writer.as_default():
-        #         tf.summary.scalar("learning_rate", opt.learning_rate, step=batch)
-        #         tf.summary.scalar("train_loss", loss_value, step=batch)
-        #         tf.summary.scalar("train_accuracy", train_accuracy.result().numpy(), step=batch)
-        #         writer.flush()
-        #
-        # # evaluate model at the end of every epoch
-        # if batch % nstep_per_epoch == 0:
-        #     for _, (reads, labels) in enumerate(val_input.take(val_steps)):
-        #         testing_step(reads, labels, loss, val_loss, val_accuracy, model)
-        #
-        #     # adjust learning rate
-        #     if epoch % lr_decay == 0:
-        #         current_lr = opt.learning_rate
-        #         new_lr = current_lr / 2
-        #         opt.learning_rate = new_lr
-        #
-        #     if hvd.rank() == 0:
-        #         print(f'Process {hvd.local_rank()}/{hvd.rank()} - Epoch: {epoch} - Step: {batch} - Validation loss: {val_loss.result().numpy()} - Validation accuracy: {val_accuracy.result().numpy()*100}')
-        #         # save weights
-        #         checkpoint.save(ckpt_dir)
-        #         model.save(os.path.join(ckpt_dir, 'model'))
-        #         with writer.as_default():
-        #             tf.summary.scalar("val_loss", val_loss.result().numpy(), step=epoch)
-        #             tf.summary.scalar("val_accuracy", val_accuracy.result().numpy(), step=epoch)
-        #             writer.flush()
-        #         # save embedding weights
-        #         emb_weights = model.get_layer('embedding').get_weights()
-        #         with emb_summary_writer.as_default():
-        #             tf.summary.histogram('embeddings', emb_weights[0], step=epoch)
-        #             emb_summary_writer.flush()
-        #         # save C1 layer weights
-        #         weights_conv = model.get_layer('conv_1').get_weights()
-        #         with conv_summary_writer.as_default():
-        #             tf.summary.histogram('conv_1/weights', weights_conv[0], step=epoch)
-        #             tf.summary.histogram('conv_1/bias', weights_conv[1], step=epoch)
-        #             conv_summary_writer.flush()
-        #         # save output layer weights
-        #         weights_dense = model.get_layer('last_dense').get_weights()
-        #         with dense_summary_writer.as_default():
-        #             tf.summary.histogram('last_dense/weights', weights_dense[0], step=epoch)
-        #             tf.summary.histogram('last_dense/bias', weights_dense[1], step=epoch)
-        #             dense_summary_writer.flush()
-        #         # save gradients
-        #         with grads_summary_writer.as_default():
-        #             curr_grad = gradients[0]
-        #             tf.summary.histogram('grad_histogram', curr_grad, step=epoch)
-        #             grads_summary_writer.flush()
-        #
-        #     # reset metrics variables
-        #     val_loss.reset_states()
-        #     train_accuracy.reset_states()
-        #     val_accuracy.reset_states()
+        loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
+        if batch % 100 == 0 and hvd.rank() == 0:
+            print(f'GPU: {hvd.rank()}/{hvd.local_rank()} - Step {batch} - Training loss: {loss_value} - Training accuracy: {train_accuracy.result().numpy()*100}')
+            print(f'Epoch: {epoch} - Step: {batch} - learning rate: {opt.learning_rate}')
+            # write metrics
+            with writer.as_default():
+                tf.summary.scalar("learning_rate", opt.learning_rate, step=batch)
+                tf.summary.scalar("train_loss", loss_value, step=batch)
+                tf.summary.scalar("train_accuracy", train_accuracy.result().numpy(), step=batch)
+                writer.flush()
+
+        # evaluate model at the end of every epoch
+        if batch % nstep_per_epoch == 0:
+            for _, (reads, labels) in enumerate(val_input.take(val_steps)):
+                testing_step(reads, labels, loss, val_loss, val_accuracy, model)
+
+            # adjust learning rate
+            if epoch % lr_decay == 0:
+                current_lr = opt.learning_rate
+                new_lr = current_lr / 2
+                opt.learning_rate = new_lr
+
+            if hvd.rank() == 0:
+                print(f'Process {hvd.local_rank()}/{hvd.rank()} - Epoch: {epoch} - Step: {batch} - Validation loss: {val_loss.result().numpy()} - Validation accuracy: {val_accuracy.result().numpy()*100}')
+                # save weights
+                checkpoint.save(ckpt_dir)
+                model.save(os.path.join(ckpt_dir, 'model'))
+                with writer.as_default():
+                    tf.summary.scalar("val_loss", val_loss.result().numpy(), step=epoch)
+                    tf.summary.scalar("val_accuracy", val_accuracy.result().numpy(), step=epoch)
+                    writer.flush()
+                # save embedding weights
+                emb_weights = model.get_layer('embedding').get_weights()
+                with emb_summary_writer.as_default():
+                    tf.summary.histogram('embeddings', emb_weights[0], step=epoch)
+                    emb_summary_writer.flush()
+                # save C1 layer weights
+                weights_conv = model.get_layer('conv_1').get_weights()
+                with conv_summary_writer.as_default():
+                    tf.summary.histogram('conv_1/weights', weights_conv[0], step=epoch)
+                    tf.summary.histogram('conv_1/bias', weights_conv[1], step=epoch)
+                    conv_summary_writer.flush()
+                # save output layer weights
+                weights_dense = model.get_layer('last_dense').get_weights()
+                with dense_summary_writer.as_default():
+                    tf.summary.histogram('last_dense/weights', weights_dense[0], step=epoch)
+                    tf.summary.histogram('last_dense/bias', weights_dense[1], step=epoch)
+                    dense_summary_writer.flush()
+                # save gradients
+                with grads_summary_writer.as_default():
+                    curr_grad = gradients[0]
+                    tf.summary.histogram('grad_histogram', curr_grad, step=epoch)
+                    grads_summary_writer.flush()
+
+            # reset metrics variables
+            val_loss.reset_states()
+            train_accuracy.reset_states()
+            val_accuracy.reset_states()
 
             # define end of current epoch
             epoch += 1
 
-    # if hvd.rank() == 0:
-    #     # save final embeddings
-    #     emb_weights = model.get_layer('embedding').get_weights()[0]
-    #     out_v = io.open(os.path.join(output_dir, 'embeddings.tsv'), 'w', encoding='utf-8')
-    #     print(f'# embeddings: {len(emb_weights)}')
-    #     for i in range(len(emb_weights)):
-    #         vec = emb_weights[i]
-    #         out_v.write('\t'.join([str(x) for x in vec]) + "\n")
-    #     out_v.close()
+    if hvd.rank() == 0:
+        # save final embeddings
+        emb_weights = model.get_layer('embedding').get_weights()[0]
+        out_v = io.open(os.path.join(output_dir, 'embeddings.tsv'), 'w', encoding='utf-8')
+        print(f'# embeddings: {len(emb_weights)}')
+        for i in range(len(emb_weights)):
+            vec = emb_weights[i]
+            out_v.write('\t'.join([str(x) for x in vec]) + "\n")
+        out_v.close()
 
     end = datetime.datetime.now()
 
