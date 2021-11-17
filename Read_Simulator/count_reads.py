@@ -2,7 +2,7 @@ import os
 import sys
 import glob
 
-def count_reads(input_path):
+def count_reads_train_val(input_path):
     list_files = glob.glob(os.path.join(input_path, f'*-train-val-reads'))
     total_train_num_reads = 0
     total_val_num_reads = 0
@@ -16,13 +16,24 @@ def count_reads(input_path):
     with open(os.path.join(input_path, 'total-num-reads'), 'a') as f:
         f.write(f'train\t{total_train_num_reads}\nval\t{total_val_num_reads}\n')
 
+def count_reads_test(input_path):
+    list_files = glob.glob(os.path.join(input_path, f'*-test-reads'))
+    total_test_num_reads = 0
+    for nr_file in list_files:
+        with open(nr_file, 'r') as f:
+            content = f.readlines()
+            for line in content:
+                total_test_num_reads += int(line.rstrip().split('\t')[1])*2
+        with open(nr_file, 'a') as f:
+            f.write(f'test\t{total_test_num_reads}\n')
+
+    with open(os.path.join(input_path, 'total-num-reads'), 'a') as f:
+        f.write(f'test\t{total_test_num_reads}\n')
+
 def main():
     input_path = sys.argv[1]
-    count_reads(input_path)
-    # count_reads(input_path, 'train')
-    # count_reads(input_path, 'val')
-    # count_reads(input_path, 'test')
-
+    # count_reads_train_val(input_path)
+    count_reads_test(input_path)
 
 if __name__ == "__main__":
     main()
