@@ -10,7 +10,7 @@ def main():
     f = open(os.path.join(input_dir, 'class_mapping.json'))
     class_mapping = json.load(f)
     # get gtdb taxonomy
-    _, _, _, _, gtdb_taxonomy = get_gtdb_info(gtdb_info_path)
+    _, _, _, _, gtdb_taxonomy = get_gtdb_info(gtdb_path)
     ranks = ['genus', 'family', 'order', 'class']
     for i in range(len(ranks)):
         # get taxa
