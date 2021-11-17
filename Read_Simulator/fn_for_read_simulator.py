@@ -232,16 +232,8 @@ def mutate(args, seq, label, seq_id, genome_id):
 def select_genomes(args, list_species):
     # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
     """ returns a dictionary with a list of genomes for each species """
-    # load gtdb information
-    gtdb_df = pd.read_csv(args.gtdb_info, delimiter='\t', low_memory=False)
-
-    # get species in database
-    species_in_database = [name[(name.find('s__') + 3):] for name in list(gtdb_df['gtdb_taxonomy'])]
-
-    # retrieve information on genomes
-    ncbi_assembly_level_list = list(gtdb_df.ncbi_assembly_level)
-    ncbi_genome_category_list = list(gtdb_df.ncbi_genome_category)
-    accession_id_list = list(gtdb_df.accession)
+    # get gtdb info
+    species_in_database, ncbi_assembly_level_list, ncbi_genome_category_list, accession_id_list, _ = get_gtdb_info(args.gtdb_info)
 
     # get genomes available in local NCBI and GTDB databases
     gtdb_genomes_avail = {'_'.join(i.split('/')[-1].split('_')[:2]) : i for i in glob.glob(os.path.join(args.gtdb_path, '*.fna.gz'))}
