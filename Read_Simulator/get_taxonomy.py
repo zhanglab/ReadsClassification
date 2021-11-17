@@ -22,7 +22,7 @@ def main():
                 species_labels.append(j)
         # create dictionary mapping each taxon at a taxonomic level to a label
         list_unique_taxa = list(set(list_taxa))
-        label_dict = dict(zip(list(range(len(list_unique_taxa)), list_unique_taxa)))
+        label_dict = dict(zip(list(range(len(list_unique_taxa))), list_unique_taxa))
         rev_label_dict = {value: key for key, value in label_dict.items()}
         with open(os.path.join(input_dir, f'{ranks[i]}_mapping_dict.json'), "w") as f:
             json.dump(label_dict, f)
