@@ -110,7 +110,7 @@ def create_train_val_sets(args, label, list_genomes, dict_sequences):
     return
 
 def create_test_set(args, label, list_genomes, dict_sequences):
-    # test_reads = []
+    total_test_num_reads = 0
     for genome in list_genomes:
         rec_fw_reads = []
         rec_rv_reads = []
@@ -125,6 +125,9 @@ def create_test_set(args, label, list_genomes, dict_sequences):
             outfile.write(''.join(rec_rv_reads))
         with open(os.path.join(args.input_path, f'{label}-test-reads'), 'a') as f:
             f.write(f'{genome}\t{len(rec_fw_reads)}\t{len(rec_rv_reads)}\n')
+        total_test_num_reads += len(rec_fw_reads) + len(rec_rv_reads)
+    with open(os.path.join(args.input_path, f'{label}-test-reads'), 'a') as f:
+        f.write(f'test\t{total_test_num_reads}\n')
 
     return
 
