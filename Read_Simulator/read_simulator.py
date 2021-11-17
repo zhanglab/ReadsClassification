@@ -1,6 +1,6 @@
 import argparse
 from mpi4py import MPI
-from Functions_For_Read_Sim import *  # used for all of the functions in Functions_For_Read_Sim
+from fn_for_read_simulator import *  # used for all of the functions in Functions_For_Read_Sim
 from utils import *
 
 def main():
