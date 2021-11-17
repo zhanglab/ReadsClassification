@@ -217,7 +217,6 @@ def main():
     epoch = 1
 
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch*EPOCHS), 1):
-        print(f'{hvd.rank()}\t{labels}')
         # get training loss
         loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
         if batch % 100 == 0 and hvd.rank() == 0:
