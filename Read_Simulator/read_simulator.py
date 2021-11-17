@@ -67,14 +67,14 @@ def main():
     for label, species in list_dict.items():
         mutate_genomes(args, species, label, needed_iterations, genome_dict)
 
-    generate reads for each species in parallel
-    with mp.Manager() as manager:
-        # create new processes
-        processes = [mp.Process(target=mutate_genomes, args=(args, species, label, needed_iterations)) for label, species in args.label_dict.items()]
-        for p in processes:
-            p.start()
-        for p in processes:
-            p.join()
+    # generate reads for each species in parallel
+    # with mp.Manager() as manager:
+    #     # create new processes
+    #     processes = [mp.Process(target=mutate_genomes, args=(args, species, label, needed_iterations)) for label, species in args.label_dict.items()]
+    #     for p in processes:
+    #         p.start()
+    #     for p in processes:
+    #         p.join()
 
 
 if __name__ == '__main__':
