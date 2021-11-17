@@ -8,7 +8,7 @@ def count_reads(input_path, type_reads):
 
     for nr_file in list_files:
         with open(nr_file, 'r') as f:
-            content = f.readlines()
+            content = f.readlines()[:-2]
             total_num_reads += int(content[0].rstrip().split('\t')[1])
 
     with open(os.path.join(input_path, 'total-num-reads'), 'a') as f:
