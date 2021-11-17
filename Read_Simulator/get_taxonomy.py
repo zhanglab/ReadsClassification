@@ -23,10 +23,12 @@ def main():
         # create dictionary mapping each taxon at a taxonomic level to a label
         label_dict = dict(zip(list(range(len(list_taxa))), list_taxa))
         rev_label_dict = {value: key for key, value in label_dict.items()}
-        with open(os.path.join(input_dir, f'{ranks[i]}_mapping.json'), "w") as f:
+        with open(os.path.join(input_dir, f'{ranks[i]}_mapping_dict.json'), "w") as f:
             json.dump(label_dict, f)
         # create dictionary mapping labels at the species level to labels at given rank
         rank_species_dict = {str(k): rev_label_dict[list_taxa[k]] for k in range(len(species_labels))}
+        with open(os.path.join(input_dir, f'{ranks[i]}_species_mapping_dict.json'), "w") as f:
+            json.dump(label_dict, f)
 
 if __name__ == "__main__":
     main()
