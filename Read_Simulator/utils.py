@@ -29,6 +29,7 @@ def get_dataset_info(args, genome_dict, list_species):
     """ returns dictionary mapping labels to species  """
     # update dictionary of genomes based on teh number of genomes per species
     updated_genome_dict = {key: value for key, value in genome_dict.items() if len(value) > 5}
+    print(updated_genome_dict)
     # report missing species
     with open(os.path.join(args.input_path, 'missing-species.txt'), 'w') as f:
         for s in list_species:
@@ -56,7 +57,7 @@ def get_dataset_info(args, genome_dict, list_species):
     plt.xlabel('number of genomes per species')
     plt.savefig(os.path.join(args.input_path, 'hist-num-genomes-per-species.png'))
 
-    return label_dict, int(statistics.mean(num_genomes_per_species))
+    return label_dict, int(statistics.median(num_genomes_per_species))
 
 def load_class_mapping(filename):
     """ returns dictionary mapping labels to species stored in json file  """
