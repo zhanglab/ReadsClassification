@@ -22,7 +22,7 @@ def count_reads_test(input_path):
     for nr_file in list_files:
         with open(nr_file, 'r') as f:
             content = f.readlines()
-            total_val_num_reads += int(content[-1].rstrip().split('\t')[1])
+            total_test_num_reads += int(content[-1].rstrip().split('\t')[1])
 
     with open(os.path.join(input_path, 'total-num-reads'), 'a') as f:
         f.write(f'test\t{total_test_num_reads}\n')
