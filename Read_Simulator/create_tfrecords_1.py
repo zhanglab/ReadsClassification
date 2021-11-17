@@ -44,7 +44,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
-    parser.add_argument('--dataset', type=str, help='type of dataset', choices=['train', 'val'])
+    parser.add_argument('--dataset', type=str, help='type of dataset', choices=['train', 'val', 'test'])
     parser.add_argument('--num_reads', type=int, help='total number of reads in dataset')
     args = parser.parse_args()
     # define number of tfrecords to generate
