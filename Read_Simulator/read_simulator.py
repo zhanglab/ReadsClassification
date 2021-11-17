@@ -36,6 +36,8 @@ def main():
         #     needed_iterations = args.num_mutate
         # create dictionary mapping labels to species
         label_dict, needed_iterations = get_dataset_info(args, genome_dict, list_species)
+        print(label_dict)
+        print(needed_iterations)
         # split dictionary into N lists of dictionaries with N equal to the number of processes
         list_dict = [{} for i in range(size)]
         l_pos = 0
