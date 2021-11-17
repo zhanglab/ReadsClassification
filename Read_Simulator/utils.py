@@ -88,6 +88,22 @@ def get_sequences(fastafile):
                 fasta_list.append(rec)
     return fasta_list
 
+def get_gtdb_info(path_gtdb_info):
+    # load gtdb information
+    gtdb_df = pd.read_csv(path_gtdb_info, delimiter='\t', low_memory=False)
+
+    # get species in database
+    species_in_database = [name[(name.find('s__') + 3):] for name in list(gtdb_df['gtdb_taxonomy'])]
+    # create dictionary storing species as keys and gtdb taxonomy as value
+    gtdb_taxonomy = {i.split(';')[-1].split('__')[1]: i.split(';')[2:-1][::-1] for i in list(gtdb_df['gtdb_taxonomy'])}
+
+    # retrieve information on genomes
+    ncbi_assembly_level_list = list(gtdb_df.ncbi_assembly_level)
+    ncbi_genome_category_list = list(gtdb_df.ncbi_genome_category)
+    accession_id_list = list(gtdb_df.accession)
+
+    return species_in_database, ncbi_assembly_level_list, ncbi_genome_category_list, accession_id_list, gtdb_taxonomy
+
 def complement(seq):
     """ returns the complement strand of a dna sequence """
     str_comp = ''
