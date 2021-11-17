@@ -159,7 +159,7 @@ def main():
             pred_classes += [np.argmax(i) for i in batch_pred.numpy().tolist()]
             true_classes += labels.numpy().tolist()
             pred_vectors += batch_pred.numpy().tolist()
-            true_vectors += tf.keras.utils.to_categorical(labels.numpy().tolist(), num_classes=len(class_mapping))
+            true_vectors += tf.keras.utils.to_categorical(labels, num_classes=len(class_mapping))
             print(true_vectors)
         break
 
