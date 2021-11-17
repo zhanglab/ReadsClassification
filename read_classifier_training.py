@@ -152,9 +152,9 @@ def main():
 
     # load training and validation tfrecords
     train_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'train*.tfrec')))
-    train_idx_files = sorted(os.path.join(input_dir, 'tfrecords', 'idx_files', 'train-tfrec-*.tfrec.idx'))
+    train_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', 'train-tfrec-*.tfrec.idx')))
     val_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'val*.tfrec')))
-    val_idx_files = sorted(os.path.join(input_dir, 'tfrecords', 'idx_files', 'val-tfrec-*.tfrec.idx'))
+    val_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', 'val-tfrec-*.tfrec.idx')))
     print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)}\t{len(train_idx_files)}\t{train_files}\t{train_idx_files}')
     print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)}\t{len(val_idx_files)}\t{val_files}\t{val_idx_files}')
 
