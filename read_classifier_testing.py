@@ -18,8 +18,6 @@ import numpy as np
 import math
 import io
 from collections import defaultdict
-from models import AlexNet, VGG16, VDCNN
-from resnet50 import ResNet50
 from summarize import *
 
 # disable eager execution
