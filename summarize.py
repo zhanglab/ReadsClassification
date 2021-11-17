@@ -1,4 +1,5 @@
 import os
+import json
 from random import randint
 import itertools
 import numpy as np
@@ -11,6 +12,16 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
 
+def get_colors(tax_rank, list_taxa, input_path):
+    colors = ['salmon', 'red', 'orange', 'limegreen', 'deepskyblue', 'dodgerblue',
+    'slategrey', 'royalblue', 'darkorchid', 'violet', 'magenta', 'navy', 'green', 'gold',
+    'chocolate', 'black', 'yellow', 'deeppink', 'blue', 'cyan']
+    # select a number of colors equal to the number of taxa
+    colors_s = random.choices(colors, k=(len(list_taxa)))
+    dict_colors = dict(zip(list_taxa, colors_s))
+    with open(os.path.join(input_path, f'{tax_rank}-colors.json'), "w") as f:
+        json.dump(dict_colors, f)
+    return dict_colors
 
 def create_barplot_training(train_data, val_data, filename, class_mapping):
     list_taxa = [class_mapping[str(i)] for i in range(len(class_mapping))]
@@ -84,7 +95,7 @@ def learning_curves(history, filename, mode='std'):
         plt.axvline(x=xcoord, color='gray', linestyle='--')
     plt.savefig(f'{filename}', bbox_inches='tight')
 
-def ROCcurve(test_dict_classes, trueclasses, predictions, class_mapping, output_path, epoch, colors):
+def ROCcurve(trueclasses, predictions, class_mapping, output_path, tax_rank, colors):
     true_arr = np.asarray(trueclasses)
     pred_arr = np.asarray(predictions)
     fpr = {}
@@ -97,17 +108,17 @@ def ROCcurve(test_dict_classes, trueclasses, predictions, class_mapping, output_
 
     J_stats = [None] * len(class_mapping)
     opt_thresholds = [None] * len(class_mapping)
-    f = open(os.path.join(output_path, f'decision_thresholds_epoch{epoch}'), 'w')
+    f = open(os.path.join(output_path, f'decision_thresholds_{tax_rank}'), 'w')
     # Compute Youden's J statistics for each species
     for i in range(len(class_mapping)):
-        if i in test_dict_classes:
-            J_stats[i] = tpr[i] - fpr[i]
-            jstat_max_index = np.argmax(J_stats[i])
-            opt_thresholds[i] = thresholds[i][jstat_max_index]
-            jstat_decision_threshold = round(J_stats[i][jstat_max_index], 2)
-            f.write(f'{i}\t{class_mapping[str(i)]}\t{jstat_decision_threshold}\n')
-        else:
-            f.write(f'{i}\t{class_mapping[str(i)]}\t0.5\n')
+        # if i in test_dict_classes:
+        J_stats[i] = tpr[i] - fpr[i]
+        jstat_max_index = np.argmax(J_stats[i])
+        opt_thresholds[i] = thresholds[i][jstat_max_index]
+        jstat_decision_threshold = round(J_stats[i][jstat_max_index], 2)
+        f.write(f'{i}\t{class_mapping[str(i)]}\t{jstat_decision_threshold}\n')
+    else:
+        f.write(f'{i}\t{class_mapping[str(i)]}\t0.5\n')
     # Compute micro-average ROC curve and ROC area
     fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
@@ -145,10 +156,10 @@ def ROCcurve(test_dict_classes, trueclasses, predictions, class_mapping, output_
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     #plt.legend(loc=(0, -.6), prop=dict(size=9))
-    plt.savefig(os.path.join(output_path, f'ROCcurves_epoch_{epoch}.png'),bbox_inches='tight')
+    plt.savefig(os.path.join(output_path, f'ROCcurves_{tax_rank}.png'),bbox_inches='tight')
     figlegend = plt.figure()
     plt.figlegend(*ax.get_legend_handles_labels())
-    figlegend.savefig(os.path.join(output_path, f'ROCcurves_Legend_epoch_{epoch}.png'), bbox_inches='tight')
+    figlegend.savefig(os.path.join(output_path, f'ROCcurves_Legend_{tax_rank}.png'), bbox_inches='tight')
 
 
 def confusion_matrix(test_true_classes_int, predicted_classes, list_labels, output_path, class_mapping, rank, gpu_id, genome=None):
