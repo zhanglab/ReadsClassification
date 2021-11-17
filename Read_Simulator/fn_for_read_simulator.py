@@ -22,13 +22,13 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
         # get list of randomly selected genomes that will be mutated
-        list_mutate = random.choices(genome_dict[species], k=(needed_iterations - len(genome_dict[species])))
+        list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
         # define list of genomes that won't be mutated
         list_genomes = genome_dict[species]
     else:
         list_mutate = []
         # randomly select genomes to add to the list of genomes that won't be mutated
-        list_genomes = genome_dict[species] + random.choices(genome_dict[species], k=(needed_iterations - len(genome_dict[species])))
+        list_genomes = genome_dict[species] + random.choices(genome_dict[species], k=(needed_iterations)))
 
     # get sequences from unmutated genomes
     for fasta_file in list_genomes:
