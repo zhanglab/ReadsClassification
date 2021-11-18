@@ -90,15 +90,16 @@ def testing_step(reads, labels, loss, test_loss, test_accuracy, model):
 
 def main():
     input_dir = sys.argv[1]
-    run_num = sys.argv[2]
-    set_type = sys.argv[3]
+    test_path = sys.argv[2]
+    run_num = sys.argv[3]
+    set_type = sys.argv[4]
     # define some training and model parameters
     VECTOR_SIZE = 250 - 12 + 1
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
-    DROPOUT_RATE = float(sys.argv[4])
-    BATCH_SIZE = int(sys.argv[5])
-    num_reads = int(sys.argv[6])
+    DROPOUT_RATE = float(sys.argv[5])
+    BATCH_SIZE = int(sys.argv[6])
+    num_reads = int(sys.argv[7])
     test_steps = num_reads // (BATCH_SIZE*hvd.size())
     # load class_mapping file mapping label IDs to species
     f = open(os.path.join(input_dir, 'class_mapping.json'))
@@ -141,8 +142,8 @@ def main():
         outfile.write(f'run: {run_num}\ntesting set: {set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {BATCH_SIZE}\nglobal batch size: {BATCH_SIZE*hvd.size()}\nnumber of gpus: {hvd.size()}\n')
 
     # load testing tfrecords
-    test_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'test-tfrec-*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', 'test-tfrec-*.tfrec.idx')))
+    test_files = sorted(glob.glob(os.path.join(test_path, 'tfrecords', 'test-tfrec-*.tfrec')))
+    test_idx_files = sorted(glob.glob(os.path.join(test_path, 'tfrecords', 'idx_files', 'test-tfrec-*.tfrec.idx')))
 
     num_preprocessing_threads = 4
     test_preprocessor = DALIPreprocessor(test_files, test_idx_files, BATCH_SIZE, num_preprocessing_threads, dali_cpu=True,
