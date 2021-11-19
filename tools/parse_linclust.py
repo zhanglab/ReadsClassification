@@ -28,10 +28,13 @@ def compare_to_sets(linclust_data, set_1, set_2, outputfile, set_1_name, set_2_n
 def parse_linclust(linclust_out):
     linclust_clusters = defaultdict(list)  # key = representative read of cluster, value = list of reads part of the cluster
     with open(linclust_out, 'r') as infile:
-        for line in infile:
-            read_1 = line.rstrip().split('\t')[0]
-            read_2 = line.rstrip().split('\t')[1]
-            linclust_clusters[read_1].append(read_2)
+        content = infile.readlines():
+        for i range(len(content)-1):
+            read_1 = content[i].rstrip().split('\t')[0]
+            next_c = content[i+1].rstrip().split('\t')[0]
+            # add  clusters with more than 1 read
+            if read_1 == next_c or read_1 in linclust_clusters:
+                linclust_clusters[read_1].append(content[i].rstrip().split('\t')[1])
     return linclust_clusters
 
 def get_read_ids(list_fq_files):
