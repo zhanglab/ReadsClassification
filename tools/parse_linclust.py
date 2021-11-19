@@ -21,7 +21,7 @@ def compare_to_sets(linclust_data, set_1, set_2, outputfile, set_1_name, set_2_n
                 reads_in_set_2 += 1
         # report the number of reads in test of interest
         if reads_in_set_2 > 0 and reads_in_set_1 > 0:
-            num_reads_set_2 += len(reads_in_set_2)
+            num_reads_set_2 += reads_in_set_2
     with open(outputfile, 'a') as f:
         f.write(f'number of reads in {set_2_name} identical to reads in {set_1_name}\t{num_reads_set_2}')
 
