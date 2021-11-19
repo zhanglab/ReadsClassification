@@ -28,7 +28,7 @@ def compare_to_sets(linclust_data, set_1, set_2, outputfile, set_1_name, set_2_n
 def parse_linclust(linclust_out):
     linclust_clusters = defaultdict(list)  # key = representative read of cluster, value = list of reads part of the cluster
     with open(linclust_out, 'r') as infile:
-        content = infile.readlines():
+        content = infile.readlines()
         for i range(len(content)-1):
             read_1 = content[i].rstrip().split('\t')[0]
             next_c = content[i+1].rstrip().split('\t')[0]
