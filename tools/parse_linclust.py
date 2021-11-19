@@ -31,7 +31,7 @@ def parse_linclust(linclust_out):
         for line in infile:
             read_1 = line.rstrip().split('\t')[0]
             read_2 = line.rstrip().split('\t')[1]
-            linclust_data_dict[read_1].append(read_2)
+            linclust_clusters[read_1].append(read_2)
     return linclust_clusters
 
 def get_read_ids(list_fq_files):
