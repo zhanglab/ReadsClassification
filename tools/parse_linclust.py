@@ -23,7 +23,8 @@ def compare_to_sets(linclust_data, set_1, set_2, outputfile, set_1_name, set_2_n
         if reads_in_set_2 > 0 and reads_in_set_1 > 0:
             num_reads_set_2 += reads_in_set_2
     with open(outputfile, 'a') as f:
-        f.write(f'number of reads in {set_2_name} identical to reads in {set_1_name}\t{num_reads_set_2}')
+        f.write(f'number of reads in {set_2_name} set identical to reads in {set_1_name} set:\t{num_reads_set_2}\n')
+        f.write(f'percentage of reads in {set_2_name} set identical to reads in {set_1_name} set:\t{(float(num_reads_set_2)/len(set_2))*100}\n')
 
 def parse_linclust(linclust_out):
     linclust_clusters = defaultdict(list)  # key = representative read of cluster, value = list of reads part of the cluster
@@ -70,7 +71,7 @@ def main():
     set_2 = get_read_ids(set_2_files)
     print(f'get set #2 - {len(set_2)}')
     with open(outputfile, 'w') as f:
-        f.write(f'number of clusters\t{len(linclust_clusters)}\nnumber of fastq files in {set_1_name}\t{len(set_1_files)}\nnumber of fastq files in {set_2_name}\t{len(set_2_files)}\nnumber of reads in {set_1_name}\t{len(set_1)}\nnumber of reads in {set_2_name}\t{len(set_2)}\n')
+        f.write(f'number of clusters:\t{len(linclust_clusters)}\nnumber of fastq files in {set_1_name} set:\t{len(set_1_files)}\nnumber of fastq files in {set_2_name} set:\t{len(set_2_files)}\nnumber of reads in {set_1_name} set:\t{len(set_1)}\nnumber of reads in {set_2_name} set:\t{len(set_2)}\n')
     # compare reads with set # 1 and set # 2
     compare_to_sets(linclust_clusters, set_1, set_2, outputfile, set_1_name, set_2_name)
 
