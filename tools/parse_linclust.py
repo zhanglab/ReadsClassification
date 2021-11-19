@@ -29,7 +29,7 @@ def parse_linclust(linclust_out):
     linclust_clusters = defaultdict(list)  # key = representative read of cluster, value = list of reads part of the cluster
     with open(linclust_out, 'r') as infile:
         content = infile.readlines()
-        for i range(len(content)-1):
+        for i in range(len(content)-1):
             read_1 = content[i].rstrip().split('\t')[0]
             next_c = content[i+1].rstrip().split('\t')[0]
             # add  clusters with more than 1 read
