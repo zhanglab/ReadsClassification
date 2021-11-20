@@ -79,14 +79,17 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile, input_dir):
         f.write(f'number of clusters with a single read:\t{num_clusters_single_reads}\nnumber of clusters with multiple reads:\t{num_clusters_multiple_reads}\nnumber of reads in clusters with multiple reads:\t{num_reads_in_clusters_w_multiple_reads}\nnumber of clusters with only testing reads:\t{num_clusters_w_reads_set_2_in_set_2}\nnumber of clusters with only training reads:\t{num_clusters_w_reads_set_1_in_set_1}\nnumber of testing reads identical to training reads:\t{num_reads_set_2_w_reads_in_set_1}-{(float(num_reads_set_2_w_reads_in_set_1)/len(set_2))*100}\nnumber of training reads identical to testing reads:\t{num_reads_set_1_w_reads_in_set_2}\nnumber of testing reads in clusters containing only testing reads:\t{num_reads_set_2_in_clusters_w_only_set_2}-{(float(num_reads_set_2_in_clusters_w_only_set_2)/len(set_2))*100}\nnumber of testing reads in new updated testing set:\t{len(reads_for_new_testing_set)}\nnumber of training reads in clusters containing only training reads:\t{num_reads_set_1_in_clusters_w_only_set_1}\n')
 
 
-def get_read_ids(list_fq_files):
+def get_read_ids(list_fq_files, set_type):
     dataset = {}
     for fq_file in list_fq_files:
         with open(fq_file, 'r') as infile:
             content = infile.readlines()
             reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
             for j in reads:
-                dataset[j.split('\n')[0].rstrip()[1:]] = j
+                if set_type == 'testing':
+                    dataset[j.split('\n')[0].rstrip()[1:]] = j
+                else:
+                    dataset[j.split('\n')[0].rstrip()[1:]] = j.split('\n')[1].rstrip()
     return dataset
 
 def main():
@@ -101,12 +104,12 @@ def main():
     # get reads in set 1
     set_1_files = sorted(glob.glob(os.path.join(path_set_1, '*-reads.fq')))
     print(f'Number of fastq files in set #1: {len(set_1_files)}')
-    set_1 = get_read_ids(set_1_files)
+    set_1 = get_read_ids(set_1_files, set_1_name)
     print(f'get set #1 - {len(set_1)}')
     # get reads in set 2
     set_2_files = sorted(glob.glob(os.path.join(path_set_2, '*-reads.fq')))
     print(f'Number of fastq files in set #2: {len(set_2_files)}')
-    set_2 = get_read_ids(set_2_files)
+    set_2 = get_read_ids(set_2_files, set_2_name)
     print(f'get set #2 - {len(set_2)}')
     with open(outputfile, 'w') as f:
         f.write(f'number of fastq files in {set_1_name} set:\t{len(set_1_files)}\nnumber of fastq files in {set_2_name} set:\t{len(set_2_files)}\nnumber of reads in {set_1_name} set:\t{len(set_1)}\nnumber of reads in {set_2_name} set:\t{len(set_2)}\n')
