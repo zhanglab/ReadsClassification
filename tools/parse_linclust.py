@@ -42,13 +42,16 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile):
         content = infile.readlines()
         current_cluster = content[0].rstrip().split('\t')[0]
         reads_in_cluster = [content[0].rstrip().split('\t')[1]]
+        print(f'inital cluster: {content[0].rstrip()}')
         for i in range(1, len(content)):
             next_cluster = content[i].rstrip().split('\t')[0]
             if next_cluster == current_cluster:
+                print(f'same cluster: {content[i].rstrip()}')
                 reads_in_cluster.append(content[i].rstrip().split('\t')[1])
             else:
+                print(f'different cluster: {content[i].rstrip()}')
                 # check how many reads are in the current cluster
-                if len(current_cluster) > 1:
+                if len(reads_in_cluster) > 1:
                     num_clusters_multiple_reads += 1
                     reads_in_set_1 = 0
                     reads_in_set_2 = 0
