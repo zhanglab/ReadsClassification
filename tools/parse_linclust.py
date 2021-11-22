@@ -69,7 +69,7 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile, input_dir):
                 reads_in_cluster = [content[i].rstrip().split('\t')[1]]
 
     # get read sequences for new updated testing set
-    reads_seq_for_testing_set = [reads_for_new_testing_set[i:i+25000000] for i in range(0, len(reads_seq_for_testing_set), 25000000)]
+    reads_seq_for_testing_set = [reads_for_new_testing_set[i:i+25000000] for i in range(0, len(reads_for_new_testing_set), 25000000)]
     print(f'number of fastq files: {len(reads_seq_for_testing_set)} - {float(len(reads_for_new_testing_set))/25000000}')
 
     # save results of parsing
