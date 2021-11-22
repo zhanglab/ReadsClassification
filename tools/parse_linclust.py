@@ -69,16 +69,20 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile, input_dir):
                 reads_in_cluster = [content[i].rstrip().split('\t')[1]]
 
     # get read sequences for new updated testing set
-    reads_seq_for_testing_set = [set_2[i] for i in reads_for_new_testing_set]
+    reads_seq_for_testing_set = [reads_for_new_testing_set[i:i+25000000] for i in range(0, len(reads_seq_for_testing_set), 25000000)]
+    print(f'number of fastq files: {len(reads_seq_for_testing_set)} - {float(len(reads_for_new_testing_set))/25000000}')
 
     # save results of parsing
     with open(outputfile, 'a') as f:
         f.write(f'number of clusters with a single read:\t{num_clusters_single_reads}\nnumber of clusters with multiple reads:\t{num_clusters_multiple_reads}\nnumber of reads in clusters with multiple reads:\t{num_reads_in_clusters_w_multiple_reads}\nnumber of clusters with only testing reads:\t{num_clusters_w_reads_set_2_in_set_2}\nnumber of clusters with only training reads:\t{num_clusters_w_reads_set_1_in_set_1}\nnumber of testing reads identical to training reads:\t{num_reads_set_2_w_reads_in_set_1}-{(float(num_reads_set_2_w_reads_in_set_1)/len(set_2))*100}\nnumber of training reads identical to testing reads:\t{num_reads_set_1_w_reads_in_set_2}\nnumber of testing reads in clusters containing only testing reads:\t{num_reads_set_2_in_clusters_w_only_set_2}-{(float(num_reads_set_2_in_clusters_w_only_set_2)/len(set_2))*100}\nnumber of testing reads in new updated testing set:\t{len(reads_for_new_testing_set)}\nnumber of training reads in clusters containing only training reads:\t{num_reads_set_1_in_clusters_w_only_set_1}\n')
 
-    # save new testing set to fastq file
-    with open(os.path.join(input_dir, 'updated-testing-set.fq'), 'w') as f:
-        for i in range(len(reads_seq_for_testing_set)):
-            f.write(f'{reads_seq_for_testing_set[i]}')
+    # save new testing set to fastq files
+    for i in range(len(reads_seq_for_testing_set)):
+        with open(os.path.join(input_dir, f'updated-testing-set-{i}.fq'), 'w') as f:
+            reads = [set_2[j] for j in reads_for_new_testing_set[i]]
+            print(f'subset {i} - # reads: {len(reads)}')
+            for k in range(len(reads)):
+                f.write(f'{reads[k]}')
 
 
 def get_read_ids(list_fq_files, set_type):
