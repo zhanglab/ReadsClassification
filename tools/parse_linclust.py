@@ -24,14 +24,14 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile, input_dir):
         content = infile.readlines()
         current_cluster = content[0].rstrip().split('\t')[0]
         reads_in_cluster = [content[0].rstrip().split('\t')[1]]
-        print(f'inital cluster: {content[0].rstrip()}')
+        # print(f'inital cluster: {content[0].rstrip()}')
         for i in range(1, len(content)):
             next_cluster = content[i].rstrip().split('\t')[0]
             if next_cluster == current_cluster:
-                print(f'same cluster: {content[i].rstrip()}')
+                # print(f'same cluster: {content[i].rstrip()}')
                 reads_in_cluster.append(content[i].rstrip().split('\t')[1])
             else:
-                print(f'different cluster: {content[i].rstrip()}')
+                # print(f'different cluster: {content[i].rstrip()}')
                 # check how many reads are in the current cluster
                 if len(reads_in_cluster) > 1:
                     num_clusters_multiple_reads += 1
@@ -70,13 +70,15 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile, input_dir):
 
     # get read sequences for new updated testing set
     reads_seq_for_testing_set = [set_2[i] for i in reads_for_new_testing_set]
-    # save new testing set to fastq file
-    with open(os.path.join(input_dir, 'updated-testing-set.fq'), 'w') as f:
-        f.write(''.join(reads_seq_for_testing_set))
 
     # save results of parsing
     with open(outputfile, 'a') as f:
         f.write(f'number of clusters with a single read:\t{num_clusters_single_reads}\nnumber of clusters with multiple reads:\t{num_clusters_multiple_reads}\nnumber of reads in clusters with multiple reads:\t{num_reads_in_clusters_w_multiple_reads}\nnumber of clusters with only testing reads:\t{num_clusters_w_reads_set_2_in_set_2}\nnumber of clusters with only training reads:\t{num_clusters_w_reads_set_1_in_set_1}\nnumber of testing reads identical to training reads:\t{num_reads_set_2_w_reads_in_set_1}-{(float(num_reads_set_2_w_reads_in_set_1)/len(set_2))*100}\nnumber of training reads identical to testing reads:\t{num_reads_set_1_w_reads_in_set_2}\nnumber of testing reads in clusters containing only testing reads:\t{num_reads_set_2_in_clusters_w_only_set_2}-{(float(num_reads_set_2_in_clusters_w_only_set_2)/len(set_2))*100}\nnumber of testing reads in new updated testing set:\t{len(reads_for_new_testing_set)}\nnumber of training reads in clusters containing only training reads:\t{num_reads_set_1_in_clusters_w_only_set_1}\n')
+
+    # save new testing set to fastq file
+    with open(os.path.join(input_dir, 'updated-testing-set.fq'), 'w') as f:
+        for i in range(len(reads_seq_for_testing_set)):
+            f.write(f'{reads_seq_for_testing_set[i]}')
 
 
 def get_read_ids(list_fq_files, set_type):
