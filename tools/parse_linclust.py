@@ -79,7 +79,7 @@ def parse_linclust(linclust_out, set_1, set_2, outputfile, input_dir):
     # save new testing set to fastq files
     for i in range(len(reads_seq_for_testing_set)):
         with open(os.path.join(input_dir, f'updated-testing-set-{i}.fq'), 'w') as f:
-            reads = [set_2[j] for j in reads_for_new_testing_set[i]]
+            reads = [set_2[j] for j in reads_seq_for_testing_set[i]]
             print(f'subset {i} - # reads: {len(reads)}')
             for k in range(len(reads)):
                 f.write(f'{reads[k]}')
