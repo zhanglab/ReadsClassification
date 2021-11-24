@@ -73,18 +73,27 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
     # reads_seq_for_testing_set = [reads_for_new_testing_set[i:i+25000000] for i in range(0, len(reads_for_new_testing_set), 25000000)]
     # print(f'number of fastq files: {len(reads_seq_for_testing_set)} - {float(len(reads_for_new_testing_set))/25000000}')
 
+    # save new testing set to fastq files for testing (one fastq file per testing genome)
+    genome_dict_new_testing_set = defaultdict(list)
+    for i in range(len(reads_id_for_new_testing_set)):
+        seq_id = reads_id_for_new_testing_set[i].split('-')[0]
+        genome_dict_new_testing_set[dict_seq_ids[seq_id]].append(reads_id_for_new_testing_set[i])
+
+    path_genome_fq_output = os.path.join(args.input_dir, 'fq_files_genomes')
+    if not os.path.isdir(path_genome_fq_output):
+        os.makedirs(path_genome_fq_output)
+
+    # get number of testing genomes in new testing set
+    for genome, list_seq in genome_dict_new_testing_set.items():
+        list_reads = [set_2[i] for i in list_seq]
+        with open(os.path.join(path_genome_fq_output, f'{genome}-reads.fq') 'w') as new_fq:
+            new_fq.write(''.join(list_reads))
 
     # save results of parsing
     with open(outputfile, 'a') as f:
         f.write(f'number of clusters with a single read:\t{num_clusters_single_reads}\nnumber of clusters with multiple reads:\t{num_clusters_multiple_reads}\nnumber of reads in clusters with multiple reads:\t{num_reads_in_clusters_w_multiple_reads}\nnumber of clusters with only testing reads:\t{num_clusters_w_reads_set_2_in_set_2}\nnumber of clusters with only training reads:\t{num_clusters_w_reads_set_1_in_set_1}\nnumber of testing reads identical to training reads:\t{num_reads_set_2_w_reads_in_set_1}\t{(float(num_reads_set_2_w_reads_in_set_1)/len(set_2))*100}\nnumber of training reads identical to testing reads:\t{num_reads_set_1_w_reads_in_set_2}\nnumber of testing reads in clusters containing only testing reads:\t{num_reads_set_2_in_clusters_w_only_set_2}\t{(float(num_reads_set_2_in_clusters_w_only_set_2)/len(set_2))*100}\nnumber of testing reads in new updated testing set:\t{len(reads_id_for_new_testing_set)}\nnumber of training reads in clusters containing only training reads:\t{num_reads_set_1_in_clusters_w_only_set_1}\n')
 
-    # save new testing set to fastq files for testing (one fastq file per testing genome)
-    for i in range(len(reads_id_for_new_testing_set)):
-        # retrieve seq id and genome
-        seq_id = reads_id_for_new_testing_set[i].split('-')[0]
-        genome_output_fq_file = os.path.join(args.input_dir, 'fq_files_genomes', f'{dict_seq_ids[seq_id]}-reads.fq')
-        with open(genome_output_fq_file, 'a') as new_fq:
-            new_fq.write(set_2[reads_id_for_new_testing_set[i]])
+
 
     #     with open(os.path.join(args.input_dir, f'updated-testing-set-{i}.fq'), 'w') as f:
     #         reads = [set_2[j] for j in reads_seq_for_testing_set[i]]
