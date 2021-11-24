@@ -86,7 +86,7 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
     # get number of testing genomes in new testing set
     for genome, list_seq in genome_dict_new_testing_set.items():
         list_reads = [set_2[i] for i in list_seq]
-        with open(os.path.join(path_genome_fq_output, f'{genome}-reads.fq') 'w') as new_fq:
+        with open(os.path.join(path_genome_fq_output, f'{genome}-reads.fq'), 'w') as new_fq:
             new_fq.write(''.join(list_reads))
 
     # save results of parsing
