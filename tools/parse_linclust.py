@@ -83,11 +83,17 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
     if not os.path.isdir(path_genome_fq_output):
         os.makedirs(path_genome_fq_output)
 
+    # record number of testing reads per genome
+    count_reads_file = open(os.path.join(args.input_dir, 'reads_count'), 'w')
+
     # get number of testing genomes in new testing set
     for genome, list_seq in genome_dict_new_testing_set.items():
         list_reads = [set_2[i] for i in list_seq]
         with open(os.path.join(path_genome_fq_output, f'{genome}-reads.fq'), 'w') as new_fq:
             new_fq.write(''.join(list_reads))
+            count_reads_file.write(f'{genome}\t{len(list_reads)}\n')
+
+    count_reads_file.close()
 
     # save results of parsing
     with open(outputfile, 'a') as f:
