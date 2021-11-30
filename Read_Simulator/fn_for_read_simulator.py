@@ -22,23 +22,27 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
         # get list of randomly selected genomes that will be mutated
-        list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
+        #list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
         # define list of genomes that won't be mutated
-        list_genomes = genome_dict[species]
+        #list_genomes = genome_dict[species]
+        # get list of all genomes to be mutated
+        list_mutate = genome_dict[species]
+        list_genomes = []
     else:
         list_mutate = []
         # randomly select genomes to add to the list of genomes that won't be mutated
         list_genomes = genome_dict[species] + random.choices(genome_dict[species], k=(needed_iterations))
 
     # get sequences from unmutated genomes
-    for fasta_file in list_genomes:
-        # get genome id from fasta filename
-        genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
-        genomes_count[genome_id] += 1
-        # get sequences
-        rec_list = get_sequences(fasta_file)
-        for rec in rec_list:
-            dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
+    if len(list_genomes) != 0:
+        for fasta_file in list_genomes:
+            # get genome id from fasta filename
+            genome_id = '_'.join(fasta_file.split('/')[-1].split('_')[:2])
+            genomes_count[genome_id] += 1
+            # get sequences
+            rec_list = get_sequences(fasta_file)
+            for rec in rec_list:
+                dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
 
     # mutate genomes
     if len(list_mutate) != 0:
@@ -50,10 +54,10 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
             seq_list = get_sequences(fasta_file)
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
-                mut_seq, mut_stats = \
+                mut_seq, mut_count, mut_stats = \
                     mutate(args, str(rec.seq), label, rec.id, genome_id)
-                with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'w') as mut_f:
-                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{len(rec.seq)}\t{len(mut_seq)}\t{100 - mut_stats}\n')
+                with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'a') as mut_f:
+                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{len(rec.seq)}\t{len(mut_seq)}\t{mut_count}\t{mut_stats}\t{100 - mut_stats}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
     # get average GC content and average tetranucleotide frequencies per species of original genomes
@@ -226,7 +230,7 @@ def mutate(args, seq, label, seq_id, genome_id):
     # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
         mutated_sequence += seq[-(len(seq)-len(mutated_sequence)):]
-    return mutated_sequence, ((counter / len(seq)) * 100)
+    return mutated_sequence, counter, ((counter / len(seq)) * 100)
 
 
 def select_genomes(args, list_species):
