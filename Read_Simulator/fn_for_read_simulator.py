@@ -251,7 +251,7 @@ def select_genomes(args, list_species):
 
     # filter genomes based on species in dataset and genomes type
     genome_dict = defaultdict(list)
-    for i in range(len(gtdb_df)):
+    for i in range(len(species_in_database)):
         if species_in_database[i] in list_species:
             if ncbi_assembly_level_list[i] == "Complete Genome" and ncbi_genome_category_list[i] \
                     != ("derived from metagenome" or "derived from environmental_sample"):
