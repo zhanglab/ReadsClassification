@@ -29,7 +29,7 @@ def count_reads_test(input_path):
 
 def main():
     input_path = sys.argv[1]
-    # count_reads_train_val(input_path)
+    count_reads_train_val(input_path)
     count_reads_test(input_path)
 
 if __name__ == "__main__":
