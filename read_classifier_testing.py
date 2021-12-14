@@ -108,8 +108,7 @@ def main():
     # create dtype policy
     policy = keras.mixed_precision.Policy('mixed_float16')
     keras.mixed_precision.set_global_policy(policy)
-#    print('Compute dtype: %s' % policy.compute_dtype)
-#    print('Variable dtype: %s' % policy.variable_dtype)
+
 
     # define metrics
     loss = tf.losses.SparseCategoricalCrossentropy()
@@ -132,12 +131,7 @@ def main():
         # create empty lists to store true and predicted classes
         pred_classes = []
         true_classes = []
-        # pred_vectors = []
-        # true_vectors = []
-        # create summary file
-#        list_files = glob.glob(os.path.join(output_dir, 'testing-summary-*'))
-#        test_num = 1 if len(list_files) == 0 else len(list_files) + 1
-#        f = open(os.path.join(output_dir, f'testing-summary-{test_num}'), 'w')
+        # create output file
         outfile = open(os.path.join(output_dir, f'testing-summary'), 'w')
         outfile.write(f'run: {run_num}\ntesting set: {set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {BATCH_SIZE}\nglobal batch size: {BATCH_SIZE*hvd.size()}\nnumber of gpus: {hvd.size()}\n')
 
@@ -159,10 +153,6 @@ def main():
         if hvd.rank() == 0:
             pred_classes += [np.argmax(i) for i in batch_pred.numpy().tolist()]
             true_classes += labels.numpy().tolist()
-            # pred_vectors += batch_pred.numpy().tolist()
-            # true_vectors += tf.keras.utils.to_categorical(labels, num_classes=len(class_mapping))
-            # print(true_vectors)
-        # break
 
     end = datetime.datetime.now()
 
@@ -179,22 +169,22 @@ def main():
         # colors = get_colors('species', list_labels, input_dir)
         # ROCcurve(true_vectors, pred_vectors, class_mapping, output_dir, 'species', colors)
         # get results at other ranks
-        for r in ['genus', 'family', 'order', 'class']:
-            # load dictionary mapping species labels to other ranks labels
-            with open(os.path.join(input_dir, f'{r}_species_mapping_dict.json')) as f_json:
-                rank_species_mapping = json.load(f_json)
-            rank_pred_classes = [rank_species_mapping[str(i)] for i in pred_classes]
-            rank_true_classes = [rank_species_mapping[str(i)] for i in true_classes]
-            # get precision and recall for each class
-            with open(os.path.join(input_dir, f'{r}_mapping_dict.json')) as f_json:
-                rank_mapping = json.load(f_json)
-            # get list of labels sorted
-            rank_labels = [rank_mapping[str(i)] for i in range(len(rank_mapping))]
-            # create dictionary to store number of reads
-            rank_reads = defaultdict(int)
-            for l in rank_true_classes:
-                rank_reads[l] += 1
-            metrics_report(rank_true_classes, rank_pred_classes, rank_labels, os.path.join(output_dir), rank_mapping, rank_reads, r, hvd.rank())
+        # for r in ['genus', 'family', 'order', 'class']:
+        #     # load dictionary mapping species labels to other ranks labels
+        #     with open(os.path.join(input_dir, f'{r}_species_mapping_dict.json')) as f_json:
+        #         rank_species_mapping = json.load(f_json)
+        #     rank_pred_classes = [rank_species_mapping[str(i)] for i in pred_classes]
+        #     rank_true_classes = [rank_species_mapping[str(i)] for i in true_classes]
+        #     # get precision and recall for each class
+        #     with open(os.path.join(input_dir, f'{r}_mapping_dict.json')) as f_json:
+        #         rank_mapping = json.load(f_json)
+        #     # get list of labels sorted
+        #     rank_labels = [rank_mapping[str(i)] for i in range(len(rank_mapping))]
+        #     # create dictionary to store number of reads
+        #     rank_reads = defaultdict(int)
+        #     for l in rank_true_classes:
+        #         rank_reads[l] += 1
+        #     metrics_report(rank_true_classes, rank_pred_classes, rank_labels, os.path.join(output_dir), rank_mapping, rank_reads, r, hvd.rank())
         #     r_colors = get_colors(r, rank_labels, input_dir)
         #     ROCcurve(true_vectors, pred_vectors, rank_mapping, output_dir, r, r_colors)
 
