@@ -166,9 +166,9 @@ def main():
     print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)}\t{len(train_idx_files)}\t{train_files}\t{train_idx_files}')
     print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)}\t{len(val_idx_files)}\t{val_files}\t{val_idx_files}')
 
-    nstep_per_epoch = num_train_samples // (args.batch_size*hvd.size())
+    nstep_per_epoch = args.num_train_samples // (args.batch_size*hvd.size())
     print(f'{hvd.rank()}/{hvd.local_rank()} # steps per epoch for whole train dataset: {nstep_per_epoch}')
-    val_steps = num_val_samples // (args.batch_size*hvd.size())
+    val_steps = args.num_val_samples // (args.batch_size*hvd.size())
     print(f'{hvd.rank()}/{hvd.local_rank()} # steps for whole val dataset: {val_steps}')
 
     num_preprocessing_threads = 4
