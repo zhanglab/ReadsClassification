@@ -184,7 +184,7 @@ def main():
     if args.resume:
         model = tf.keras.models.load_model(os.path.join(args.input_dir, f'run-{args.run_num}', 'ckpts/model'))
         args.output_dir = os.path.join(args.output_dir, f'run-{args.run_num}', f'resume-{args.resume_num}')
-        epoch = args.epoch_ro_resume
+        epoch = args.epoch_to_resume
     else:
         model = AlexNet(args.input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.run_num)
         args.output_dir = os.path.join(args.output_dir, f'run-{args.run_num}')
