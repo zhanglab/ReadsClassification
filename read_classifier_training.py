@@ -19,6 +19,7 @@ import math
 import io
 import random
 from models import AlexNet, VGG16, VDCNN
+import argparse
 
 
 # disable eager execution
@@ -122,25 +123,32 @@ def testing_step(reads, labels, loss, val_loss, val_accuracy, model):
     val_loss.update_state(loss_value)
 
 def main():
-    input_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    run_num = sys.argv[3]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-input_dir', type=str, help='path to tfrecords')
+    parser.add_argument('-output_dir', type=str, help='path to store model')
+    parser.add_argument('-run_num', type=str, help='run number')
+    parser.add_argument('-resume', action='store_true', default=False)
+    parser.add_argument('-epoch_to_resume', type=int, required=('-resume' in sys.argv))
+    parser.add_argument('-resume_num', type=int, required=('-resume' in sys.argv))
     # define some training and model parameters
-    EPOCHS = int(sys.argv[4])
+    parser.add_argument('-epochs', type=int, help='number of epochs')
+    parser.add_argument('-dropout_rate', type=float, help='dropout rate to apply to layers')
+    parser.add_argument('-batch_size', type=int, help='batch size per gpu')
+    parser.add_argument('-num_train_samples', type=int, help='number of reads in training set')
+    parser.add_argument('-num_val_samples', type=int, help='number of reads in validation set')
+    parser.add_argument('-init_lr', type=float, help='initial learning rate')
+    parser.add_argument('-lr_decay', type=int, help='number of epochs before dividing learning rate in half')
+    args = parser.parse_args()
     VECTOR_SIZE = 250 - 12 + 1
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
-    DROPOUT_RATE = float(sys.argv[5])
-    BATCH_SIZE = int(sys.argv[6])
-    num_train_samples = int(sys.argv[7])
-    num_val_samples = int(sys.argv[8])
-    init_lr = float(sys.argv[9])
-    lr_decay = int(sys.argv[10])
-    print(f'{hvd.rank()}/{hvd.local_rank()} # train samples: {num_train_samples}')
-    print(f'{hvd.rank()}/{hvd.local_rank()} # val samples: {num_val_samples}')
+
+
+    print(f'{hvd.rank()}/{hvd.local_rank()} # train samples: {args.num_train_samples}')
+    print(f'{hvd.rank()}/{hvd.local_rank()} # val samples: {args.num_val_samples}')
 
     # load class_mapping file mapping label IDs to species
-    f = open(os.path.join(input_dir, 'class_mapping.json'))
+    f = open(os.path.join(args.input_dir, 'class_mapping.json'))
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
 
@@ -151,29 +159,36 @@ def main():
     print('Variable dtype: %s' % policy.variable_dtype)
 
     # load training and validation tfrecords
-    train_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'train*.tfrec')))
-    train_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', 'train-tfrec-*.tfrec.idx')))
-    val_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'val*.tfrec')))
-    val_idx_files = sorted(glob.glob(os.path.join(input_dir, 'tfrecords', 'idx_files', 'val-tfrec-*.tfrec.idx')))
+    train_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'train*.tfrec')))
+    train_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', 'train-tfrec-*.tfrec.idx')))
+    val_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'val*.tfrec')))
+    val_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', 'val-tfrec-*.tfrec.idx')))
     print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)}\t{len(train_idx_files)}\t{train_files}\t{train_idx_files}')
     print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)}\t{len(val_idx_files)}\t{val_files}\t{val_idx_files}')
 
-    nstep_per_epoch = num_train_samples // (BATCH_SIZE*hvd.size())
+    nstep_per_epoch = num_train_samples // (args.batch_size*hvd.size())
     print(f'{hvd.rank()}/{hvd.local_rank()} # steps per epoch for whole train dataset: {nstep_per_epoch}')
-    val_steps = num_val_samples // (BATCH_SIZE*hvd.size())
+    val_steps = num_val_samples // (args.batch_size*hvd.size())
     print(f'{hvd.rank()}/{hvd.local_rank()} # steps for whole val dataset: {val_steps}')
 
     num_preprocessing_threads = 4
-    train_preprocessor = DALIPreprocessor(train_files, train_idx_files, BATCH_SIZE, num_preprocessing_threads, VECTOR_SIZE,
+    train_preprocessor = DALIPreprocessor(train_files, train_idx_files, args.batch_size, num_preprocessing_threads, VECTOR_SIZE,
                                           dali_cpu=True, deterministic=False, training=True)
-    val_preprocessor = DALIPreprocessor(val_files, val_idx_files, BATCH_SIZE, num_preprocessing_threads, VECTOR_SIZE, dali_cpu=True,
+    val_preprocessor = DALIPreprocessor(val_files, val_idx_files, args.batch_size, num_preprocessing_threads, VECTOR_SIZE, dali_cpu=True,
                                         deterministic=False, training=False)
 
     train_input = train_preprocessor.get_device_dataset()
     val_input = val_preprocessor.get_device_dataset()
 
-    # define model
-    model = AlexNet(input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE, run_num)
+    # define model, output directory and epoch number
+    if args.resume:
+        model = tf.keras.models.load_model(os.path.join(args.input_dir, f'run-{args.run_num}', 'ckpts/model'))
+        args.output_dir = os.path.join(args.output_dir, f'run-{args.run_num}', f'resume-{args.resume_num}')
+        epoch = args.epoch_ro_resume
+    else:
+        model = AlexNet(args.input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.run_num)
+        args.output_dir = os.path.join(args.output_dir, f'run-{args.run_num}')
+        epoch = 1
 
     # define metrics
     loss = tf.losses.SparseCategoricalCrossentropy()
@@ -182,23 +197,22 @@ def main():
     val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='val_accuracy')
 
     # define initial learning rate
-    opt = tf.keras.optimizers.Adam(init_lr)
+    opt = tf.keras.optimizers.Adam(args.init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
-    output_dir = os.path.join(output_dir, f'run-{run_num}')
 
     if hvd.rank() == 0:
         # create output directory
-        if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
+        if not os.path.isdir(args.output_dir):
+            os.makedirs(args.output_dir)
 
         # create directory for storing checkpoints
-        ckpt_dir = os.path.join(output_dir, 'ckpts')
+        ckpt_dir = os.path.join(args.output_dir, 'ckpts')
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
         checkpoint = tf.train.Checkpoint(model=model, optimizer=opt)
 
         # create directory for storing logs
-        tensorboard_dir = os.path.join(output_dir, 'logs')
+        tensorboard_dir = os.path.join(args.output_dir, 'logs')
         if not os.path.exists(tensorboard_dir):
             os.makedirs(tensorboard_dir)
 
@@ -209,14 +223,13 @@ def main():
         grads_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
 
         # create summary file
-        with open(os.path.join(output_dir, 'training-summary'), 'w') as f:
-            f.write(f'Run: {run_num}\nNumber of classes: {NUM_CLASSES}\nEpochs: {EPOCHS}\nVector size: {VECTOR_SIZE}\nVocabulary size: {VOCAB_SIZE}\nEmbedding size: {EMBEDDING_SIZE}\nDropout rate: {DROPOUT_RATE}\nBatch size per gpu: {BATCH_SIZE}\nGlobal batch size: {BATCH_SIZE*hvd.size()}\nNumber of gpus: {hvd.size()}\nTraining set size: {num_train_samples}\nValidation set size: {num_val_samples}\nNumber of steps per epoch for each process: {nstep_per_epoch*hvd.size()}\nNumber of stepsfor each process and for whole validation dataset: {val_steps*hvd.size()}\nInitial learning rate: {init_lr}\nLearning rate decay: every {lr_decay} epochs')
+        with open(os.path.join(args.output_dir, 'training-summary'), 'w') as f:
+            f.write(f'Run: {args.run_num}\nNumber of classes: {NUM_CLASSES}\nEpochs: {args.epochs}\nVector size: {VECTOR_SIZE}\nVocabulary size: {VOCAB_SIZE}\nEmbedding size: {EMBEDDING_SIZE}\nDropout rate: {args.dropout_rate}\nBatch size per gpu: {args.batch_size}\nGlobal batch size: {args.batch_size*hvd.size()}\nNumber of gpus: {hvd.size()}\nTraining set size: {args.num_train_samples}\nValidation set size: {args.num_val_samples}\nNumber of steps per epoch for each process: {nstep_per_epoch}\nNumber of stepsfor each process and for whole validation dataset: {val_steps}\nInitial learning rate: {args.init_lr}\nLearning rate decay: every {args.lr_decay} epochs')
 
 
     start = datetime.datetime.now()
-    epoch = 1
 
-    for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch*EPOCHS), 1):
+    for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch*args.epochs), 1):
         # get training loss
         loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
         if batch % 100 == 0 and hvd.rank() == 0:
@@ -296,7 +309,7 @@ def main():
         total_time = end - start
         hours, seconds = divmod(total_time.seconds, 3600)
         minutes, seconds = divmod(seconds, 60)
-        with open(os.path.join(output_dir, 'training-summary'), 'a') as f:
+        with open(os.path.join(args.output_dir, 'training-summary'), 'a') as f:
             f.write("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
         print("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
 
