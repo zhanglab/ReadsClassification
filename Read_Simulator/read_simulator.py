@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--genetic_code', type=str, help='path to file containing the genetic code')
     parser.add_argument('--num_mutate', type=int, help='number of times a genome should be mutated')
     parser.add_argument('--mutate', action='store_true', default=False)
+    parser.add_argument('--overlap', action='store_true', default=False)
     args = parser.parse_args()
     # load genetic code
     args.codon_amino, args.amino_codon = get_genetic_code(args)
