@@ -10,6 +10,7 @@ from Bio.SeqRecord import SeqRecord
 import gzip
 import os
 import math
+import statistics
 from utils import *
 
 def mutate_genomes(args, species, label, needed_iterations, genome_dict):
@@ -33,7 +34,7 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
         # randomly select genomes to add to the list of genomes that won't be mutated
         # list_genomes = genome_dict[species] + random.choices(genome_dict[species], k=(needed_iterations))
         list_genomes = genome_dict[species]
-        
+
     # get sequences from unmutated genomes
     if len(list_genomes) != 0:
         for fasta_file in list_genomes:
@@ -55,10 +56,10 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
             seq_list = get_sequences(fasta_file)
             for rec in seq_list:
                 # call mutate function to mutate the sequence and generate reads
-                mut_seq, mut_count, mut_stats, num_orf, num_codons_explored = \
+                mut_seq, mut_count, mut_stats, num_orf, num_codons_explored, num_codons_mutated, length_orf = \
                     mutate(args, str(rec.seq), label, rec.id, genome_id)
                 with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'a') as mut_f:
-                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{len(rec.seq)}\t{len(mut_seq)}\t{mut_count}\t{mut_stats}\t{100 - mut_stats}\t{num_codons_explored}\t{num_orf}\n')
+                    mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{len(rec.seq)}\t{len(mut_seq)}\t{mut_count}\t{mut_stats}\t{100 - mut_stats}\t{num_codons_explored}\t{num_codons_mutated}\t{num_orf}\t{min(length_orf)}\t{max(length_orf)}\t{statistics.mean(length_orf)}\t{statistics.median(length_orf)}\n')
                 dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
     # get average GC content and average tetranucleotide frequencies per species of original genomes
@@ -166,8 +167,11 @@ def mutate(args, seq, label, seq_id, genome_id):
     counter = 0
     # keep track of the number of orfs
     num_orf = 0
-    # keep track of the number of codons explored
+    # keep track of the length of the orfs
+    length_orf = []
+    # keep track of the number of codons explored and the number of codons mutated
     num_codons_explored = 0
+    num_codons_mutated = 0
     # create variable to store the mutated sequence
     mutated_sequence = ''
     if rf_option != 0:
@@ -181,6 +185,7 @@ def mutate(args, seq, label, seq_id, genome_id):
             orf = find_orf(seq, i)
             if len(orf) != 0 or len(orf) > 6:
                 num_orf += 1
+                length_orf.append(len(orf))
                 # mutate orf
                 new_orf = ''
                 j = 0
@@ -190,13 +195,18 @@ def mutate(args, seq, label, seq_id, genome_id):
                         mutated_codon = select_codon(orf[j:j+3], args.codon_amino, args.amino_codon)
                         num_codons_explored += 1
                         new_orf += mutated_codon
-                        # keep track of the number of point mutations
+                        # keep track of the number of point mutations and codons modified
                         counter += mut_counter(mutated_codon, orf[j:j+3])
+                        if mut_counter(mutated_codon, orf[j:j+3]) != 0:
+                            num_codons_mutated += 1
                     else:
                         new_orf += orf[j:j+3]
                     j += 3
                 mutated_sequence += new_orf
-                i += len(orf)
+                if args.overlap:
+                    i += 3
+                else:
+                    i += len(orf)
             else:
                 mutated_sequence += seq[i:i+3]
                 i += 3
@@ -237,7 +247,7 @@ def mutate(args, seq, label, seq_id, genome_id):
     # mutated_sequence += seq[last_add:]
     if len(seq) != len(mutated_sequence):
         mutated_sequence += seq[-(len(seq)-len(mutated_sequence)):]
-    return mutated_sequence, counter, ((counter / len(seq)) * 100), num_orf, num_codons_explored
+    return mutated_sequence, counter, ((counter / len(seq)) * 100), num_orf, num_codons_explored, num_codons_mutated, length_orf
 
 
 def select_genomes(args, list_species):
