@@ -10,7 +10,6 @@ import pandas as pd
 from collections import defaultdict
 
 def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
-    # linclust_clusters = defaultdict(list)  # key = representative read of cluster, value = list of reads part of the cluster
     num_clusters_single_reads = 0 # number of clusters with a unique read
     num_clusters_multiple_reads = 0 # number of clusters with multiple reads
     num_reads_in_clusters_w_multiple_reads = 0
@@ -24,15 +23,13 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
     with open(args.linclust_out, 'r') as infile:
         content = infile.readlines()
         current_cluster = content[0].rstrip().split('\t')[0]
+        # initialize list of reads in first cluster
         reads_in_cluster = [content[0].rstrip().split('\t')[1]]
-        # print(f'inital cluster: {content[0].rstrip()}')
         for i in range(1, len(content)):
             next_cluster = content[i].rstrip().split('\t')[0]
             if next_cluster == current_cluster:
-                # print(f'same cluster: {content[i].rstrip()}')
                 reads_in_cluster.append(content[i].rstrip().split('\t')[1])
             else:
-                # print(f'different cluster: {content[i].rstrip()}')
                 # check how many reads are in the current cluster
                 if len(reads_in_cluster) > 1:
                     num_clusters_multiple_reads += 1
@@ -51,13 +48,15 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
                     elif reads_in_set_2 > 0 and reads_in_set_1 == 0:
                         num_clusters_w_reads_set_2_in_set_2 += 1
                         num_reads_set_2_in_clusters_w_only_set_2 += reads_in_set_2
-                        reads_id_for_new_testing_set += reads_in_cluster
+                        # only select one read from the cluster
+                        reads_id_for_new_testing_set.append(reads_in_cluster[0])
+                        # reads_id_for_new_testing_set += reads_in_cluster
                     elif reads_in_set_2 == 0 and reads_in_set_1 > 0:
                         num_clusters_w_reads_set_1_in_set_1 += 1
                         num_reads_set_1_in_clusters_w_only_set_1 += reads_in_set_1
                 else:
                     num_clusters_single_reads += 1
-                    # check if single read is in testing set
+                    # check if read is in testing set
                     if reads_in_cluster[0] in set_2:
                         num_clusters_w_reads_set_2_in_set_2 += 1
                         num_reads_set_2_in_clusters_w_only_set_2 += 1
