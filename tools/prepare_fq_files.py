@@ -11,9 +11,9 @@ def split_fq_file(args):
         num_fq_per_gpu = math.ceil(len(reads_in_fq)/args.num_gpus)
         for i in range(1, args.num_gpus+1, 1):
             for j in range(num_fq_per_gpu):
-                if not os.path.isdir(os.path.join(args.ouput_dir, f'tfrecords-{i}')):
-                    os.makedirs(os.path.join(args.ouput_dir, f'tfrecords-{i}'))
-                with open(os.path.join(args.ouput_dir, f'tfrecords-{i}' , f'testing-set-{j}.fq'), 'w') as outfile:
+                if not os.path.isdir(os.path.join(args.output_dir, f'tfrecords-{i}')):
+                    os.makedirs(os.path.join(args.output_dir, f'tfrecords-{i}'))
+                with open(os.path.join(args.output_dir, f'tfrecords-{i}' , f'testing-set-{j}.fq'), 'w') as outfile:
                     outfile.write(''.join(reads_in_fq[i+j]))
 
 def main():
