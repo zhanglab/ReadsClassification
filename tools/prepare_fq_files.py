@@ -11,7 +11,7 @@ def split_fq_file(args):
         num_fq_per_gpu = math.ceil(len(reads_in_fq)/args.num_gpus)
         for i in range(1, args.num_gpus+1, 1):
             for j in range(num_fq_per_gpu):
-                with open(os.path.join(args.ouput, f'tfrecords-{i}' , f'testing-set-{j}.fq'), 'w') as outfile:
+                with open(os.path.join(args.ouput_dir, f'tfrecords-{i}' , f'testing-set-{j}.fq'), 'w') as outfile:
                     outfile.write(''.join(reads_in_fq[i+j]))
 
 def main():
@@ -21,7 +21,6 @@ def main():
     parser.add_argument('--num_gpus', type=int, help="number of gpus used for classification")
 
     args = parser.parse_args()
-    args.output_prefix = args.input_fastq.split('.')[0]
     split_fq_file(args)
 
 if __name__ == "__main__":
