@@ -1,6 +1,7 @@
 #!/bin/bash
 
 conda activate tf-env
+module load parallel
 
 echo "START at $(date)"
 
@@ -22,12 +23,16 @@ else
 fi
 
 # run tfrecord2idx script for each tfrecord in DATA_SET_DIR
-for file in $TFRECORDS;
-do
-	echo ${file}
-	python $2/tfrecord2idx.py $DATA_SET_DIR/${file} \
-		$DATA_SET_DIR/idx_files/${file}.idx;
-done
+#for file in $TFRECORDS;
+#do
+#	echo ${file}
+#	python $2/tfrecord2idx.py $DATA_SET_DIR/${file} \
+#		$DATA_SET_DIR/idx_files/${file}.idx;
+
+#done
+
+ls --ignore *\.txt > list_files.txt
+cat list_files.txt | parallel -j
 
 echo "END at $(date)"
 

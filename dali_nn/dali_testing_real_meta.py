@@ -46,13 +46,14 @@ parser.add_argument('--read_length', type=int, help="read length", default=250)
 parser.add_argument('--read_id_ms', type=int, help="read ids max size")
 parser.add_argument('--decision_thresholds', type=str, help="path to filename containing list of decision thresholds per class")
 parser.add_argument('--gpus', type=int, help="number of gpus", default=1)
+parser.add_argument('--batch_size', type=int, help="batch size per gpu", default=1000)
 parser.add_argument('--min_num_reads', type=int, help="minimum number of reads in a bin to send it for analysis", default=500)
 args = parser.parse_args()
 
 args.model_num = int(args.model.split('/')[-2][-1])
 args.epoch_num = int(args.model.split('/')[-1].split('-')[1]) + 1
 args.output_path = os.path.join(args.input_path, f'model{args.model_num}', f'{args.sample}_classification_model{args.model_num}_epoch{args.epoch_num}')
-
+print(f'output: {args.output_path}')
 if not os.path.isdir(args.output_path):
     os.makedirs(args.output_path)
 
@@ -61,7 +62,7 @@ args.class_mapping = json.load(f)
 
 NUM_CLASSES = len(args.class_mapping)
 NUM_DEVICES = args.gpus  # number of GPUs
-BATCH_SIZE = 500  # batch size per GPU
+BATCH_SIZE = args.batch_size  # batch size per GPU
 GLOBAL_BATCH_SIZE = NUM_DEVICES * BATCH_SIZE
 TESTING_SIZE = args.num_reads_tested
 TESTING_STEPS = math.ceil(TESTING_SIZE / GLOBAL_BATCH_SIZE)
@@ -131,10 +132,9 @@ class TFRecordPipeline(Pipeline):
         read_id = read_id.gpu()
         return (reads, read_id)
 
-dict_gpus = {'1': '/gpu:0', '2': '/gpu:0, /gpu:1', '3': '/gpu:0, /gpu:1, /gpu:2', '4': '/gpu:0, /gpu:1, /gpu:2, /gpu:3'}
+dict_gpus = {'1': ['/gpu:0'], '2': ['/gpu:0', '/gpu:1'], '3': ['/gpu:0', '/gpu:1', '/gpu:2'], '4': ['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3']}
 # create an instance of strategy to perform synchronous training across multiple gpus
-strategy = tf.distribute.MirroredStrategy(devices=[dict_gpus[str(NUM_DEVICES)]])
-
+strategy = tf.distribute.MirroredStrategy(devices=dict_gpus[str(NUM_DEVICES)])
 with strategy.scope():
     # load model
     model = tf.keras.models.load_model(args.model)
@@ -182,72 +182,77 @@ with strategy.scope():
     f.write(f'runtime: {hours}:{minutes}:{seconds}.{total_time.microseconds}')
     f.close()
 
-    fw_read_ids = []
-    def get_fw_read_ids(inputs):
-        global fw_read_ids
-        _, read_ids = inputs
-        read_ids_arr = read_ids.numpy()
-        read_ids_list = read_ids_arr.tolist()
-        read_ids_str = []
-        for i in range(len(read_ids_list)):
-            r = read_ids_list[i]
-            rl = r[args.read_id_ms]
-            new_r = ''.join([chr(j) for j in r[0:rl]])
-            read_ids_str.append(new_r)
-        fw_read_ids += read_ids_str
+    # get IDs of forward and reverse reads in fastq file
+#    fw_read_ids = []
+#    def get_fw_read_ids(inputs):
+#        global fw_read_ids
+#        _, read_ids = inputs
+#        print(read_ids.device)
+#        read_ids_arr = read_ids.numpy()
+#        print(read_ids_arr)
+#        print(read_ids_arr.shape)
+#        read_ids_list = read_ids_arr.tolist()
+#        read_ids_str = []
+#        for i in range(len(read_ids_list)):
+#            r = read_ids_list[i]
+#            rl = r[args.read_id_ms]
+#            new_r = ''.join([chr(j) for j in r[0:rl]])
+#            read_ids_str.append(new_r)
+#        fw_read_ids += read_ids_str
     
-    num_steps = 0
-    for inputs in fw_dataset:
-        num_steps += 1
-        strategy.run(get_fw_read_ids, args=(inputs,))
-        if num_steps == TESTING_STEPS:
-            break
-    print(f'fw num steps: {num_steps} - {TESTING_STEPS}')
-    rv_read_ids = []
-    def get_rv_read_ids(inputs):
-        global rv_read_ids
-        _, read_ids = inputs
-        read_ids_arr = read_ids.numpy()
-        read_ids_list = read_ids_arr.tolist()
-        read_ids_str = []
-        for r in read_ids_list:
-            rl = r[args.read_id_ms]
-            new_r = ''.join([chr(j) for j in r[0:rl]])
-            read_ids_str.append(new_r)
-        rv_read_ids += read_ids_str
+#    num_steps = 0
+#    for inputs in fw_dataset:
+#        num_steps += 1
+#        strategy.run(get_fw_read_ids, args=(inputs,))
+#        if num_steps == TESTING_STEPS:
+#            break
+    
+#    rv_read_ids = []
+#    def get_rv_read_ids(inputs):
+#        global rv_read_ids
+#        _, read_ids = inputs
+#        read_ids_arr = read_ids.numpy()
+#        read_ids_list = read_ids_arr.tolist()
+#        read_ids_str = []
+#        for r in read_ids_list:
+#            rl = r[args.read_id_ms]
+#            new_r = ''.join([chr(j) for j in r[0:rl]])
+#            read_ids_str.append(new_r)
+#        rv_read_ids += read_ids_str
 
-    num_steps = 0
-    for inputs in rv_dataset:
-        num_steps += 1
-        strategy.run(get_rv_read_ids, args=(inputs,))
-        if num_steps == TESTING_STEPS:
-            break
-    print(f'rv num steps: {num_steps} - {TESTING_STEPS}')
-    print(f'first fw reads in 2 consecutive rounds: {fw_read_ids[0]} - {fw_read_ids[args.num_reads_tested]}')
-    print(f'first rv reads in 2 consecutive rounds: {rv_read_ids[0]} - {rv_read_ids[args.num_reads_tested]}')
+#    num_steps = 0
+#    for inputs in rv_dataset:
+#        num_steps += 1
+#        strategy.run(get_rv_read_ids, args=(inputs,))
+#        if num_steps == TESTING_STEPS:
+#            break
+    
+#    print(f'first fw reads in 2 consecutive rounds: {fw_read_ids[0]} - {fw_read_ids[args.num_reads_tested]}')
+#    print(f'first rv reads in 2 consecutive rounds: {rv_read_ids[0]} - {rv_read_ids[args.num_reads_tested]}')
     # adjust list of read ids
-    fw_read_ids = fw_read_ids[0:args.num_reads_tested]
-    rv_read_ids = rv_read_ids[0:args.num_reads_tested]
-    # get predicted classes
-    fw_predicted_classes = []  # predicted classes as integers
-    fw_dict_conf_scores = {}  # confidence score
-    for i in range(args.num_reads_tested):
-        pred_class = np.argmax(fw_predictions[i])
-        fw_predicted_classes.append(pred_class)
-        fw_dict_conf_scores[fw_read_ids[i]] = float(fw_predictions[i][pred_class])
-        
-    print(f'size set/list fw_read_ids: {len(set(fw_read_ids))}, {len(fw_read_ids)}')
-    rv_predicted_classes = []  # predicted classes as integers
-    rv_dict_conf_scores = {}  # confidence score
-    for i in range(args.num_reads_tested):
-        pred_class = np.argmax(rv_predictions[i])
-        rv_predicted_classes.append(pred_class)
-        rv_dict_conf_scores[rv_read_ids[i]] = float(rv_predictions[i][pred_class])
+#    fw_read_ids = fw_read_ids[0:args.num_reads_tested]
+#    rv_read_ids = rv_read_ids[0:args.num_reads_tested]
+    
+    # get predicted species for forward and reverse reads
+#    fw_predicted_classes = []  # predicted classes as integers
+#    fw_dict_conf_scores = {}  # confidence score
+#    for i in range(args.num_reads_tested):
+#        pred_class = np.argmax(fw_predictions[i])
+#        fw_predicted_classes.append(pred_class)
+#        fw_dict_conf_scores[fw_read_ids[i]] = float(fw_predictions[i][pred_class])
+    
+#    rv_predicted_classes = []  # predicted classes as integers
+#    rv_dict_conf_scores = {}  # confidence score
+#    for i in range(args.num_reads_tested):
+#        pred_class = np.argmax(rv_predictions[i])
+#        rv_predicted_classes.append(pred_class)
+#        rv_dict_conf_scores[rv_read_ids[i]] = float(rv_predictions[i][pred_class])
 
     # create directory to store bins
-    if not os.path.isdir(os.path.join(args.output_path, f'sample-{args.sample}-bins')):
-        os.makedirs(os.path.join(args.output_path, f'sample-{args.sample}-bins'))
+#    if not os.path.isdir(os.path.join(args.output_path, f'sample-{args.sample}-bins')):
+#        os.makedirs(os.path.join(args.output_path, f'sample-{args.sample}-bins'))
+    
     # create bins
-    create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predicted_classes, fw_dict_conf_scores, rv_dict_conf_scores)
+#    create_bins(args, fw_read_ids, rv_read_ids, fw_predicted_classes, rv_predicted_classes, fw_dict_conf_scores, rv_dict_conf_scores)
 
 

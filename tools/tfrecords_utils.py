@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from Bio import SeqIO
-import tensorflow as tf
+#import tensorflow as tf
 import argparse
 import sys
 
@@ -24,11 +24,15 @@ def vocab_dict(filename):
     Turns the vocabulary into a dict={kmer: id}.
     """
     kmer_to_id = {}
+    num_kmer = 1
     with open(filename) as handle:
         for line in handle:
-            kmer = line.rstrip().split('\t')[0]
-            idx = line.rstrip().split('\t')[1]
-            kmer_to_id[kmer] = int(idx)
+            kmer = line.rstrip()
+            #kmer = line.rstrip().split('\t')[0]
+            #idx = line.rstrip().split('\t')[1]
+            #kmer_to_id[kmer] = int(idx)
+            kmer_to_id[kmer] = num_kmer
+            num_kmer += 1
     return kmer_to_id
 
 def kmer2index(kmer, dict_kmers):
@@ -49,15 +53,14 @@ def seq2kmer(read, k_value, dict_kmers, kmer_vector_length):
          kmer_array: a numpy array of corresponding k-mer indexes.
     """
     list_kmers = []
-    for i in range(len(read)):
-        if i + k_value >= len(read) + 1:
-            break
-        kmer = seq[i:i + k_value]
+#    for i in range(len(read)):
+#        if i + k_value >= len(read) + 1:
+#            break
+    for i in range(0, len(read)-k_value, 1):
+        kmer = read[i:i + k_value]
         idx = kmer2index(kmer, dict_kmers)
         list_kmers.append(idx)
-
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
-
     return np.array(list_kmers)
