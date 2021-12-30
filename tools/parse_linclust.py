@@ -72,27 +72,33 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
     # reads_seq_for_testing_set = [reads_for_new_testing_set[i:i+25000000] for i in range(0, len(reads_for_new_testing_set), 25000000)]
     # print(f'number of fastq files: {len(reads_seq_for_testing_set)} - {float(len(reads_for_new_testing_set))/25000000}')
 
-    # save new testing set to fastq files for testing (one fastq file per testing genome)
-    genome_dict_new_testing_set = defaultdict(list)
-    for i in range(len(reads_id_for_new_testing_set)):
-        seq_id = reads_id_for_new_testing_set[i].split('-')[0]
-        genome_dict_new_testing_set[dict_seq_ids[seq_id]].append(reads_id_for_new_testing_set[i])
+    # save new testing set to fastq files for testing (one unique fastq file)
+    new_testing_set = [set_2[i] for i in reads_id_for_new_testing_set]
+    print(f'size of new testing set: {len(new_testing_set)}')
+    with open(os.path.join(args.input, 'updated-testing-set.fq'), 'w') as new_fq:
+        new_fq.write(''.join(new_testing_set))
 
-    path_genome_fq_output = os.path.join(args.input_dir, 'fq_files_genomes')
-    if not os.path.isdir(path_genome_fq_output):
-        os.makedirs(path_genome_fq_output)
 
-    # record number of testing reads per genome
-    count_reads_file = open(os.path.join(args.input_dir, 'reads_count'), 'w')
+    # genome_dict_new_testing_set = defaultdict(list)
+    # for i in range(len(reads_id_for_new_testing_set)):
+        # seq_id = reads_id_for_new_testing_set[i].split('-')[0]
+        # genome_dict_new_testing_set[dict_seq_ids[seq_id]].append(reads_id_for_new_testing_set[i])
 
-    # get number of testing genomes in new testing set
-    for genome, list_seq in genome_dict_new_testing_set.items():
-        list_reads = [set_2[i] for i in list_seq]
-        with open(os.path.join(path_genome_fq_output, f'{genome}-reads.fq'), 'w') as new_fq:
-            new_fq.write(''.join(list_reads))
-            count_reads_file.write(f'{genome}\t{len(list_reads)}\n')
-
-    count_reads_file.close()
+    # path_genome_fq_output = os.path.join(args.input_dir, 'fq_files_genomes')
+    # if not os.path.isdir(path_genome_fq_output):
+    #     os.makedirs(path_genome_fq_output)
+    #
+    # # record number of testing reads per genome
+    # count_reads_file = open(os.path.join(args.input_dir, 'reads_count'), 'w')
+    #
+    # # get number of testing genomes in new testing set
+    # for genome, list_seq in genome_dict_new_testing_set.items():
+    #     list_reads = [set_2[i] for i in list_seq]
+    #     with open(os.path.join(path_genome_fq_output, f'{genome}-reads.fq'), 'w') as new_fq:
+    #         new_fq.write(''.join(list_reads))
+    #         count_reads_file.write(f'{genome}\t{len(list_reads)}\n')
+    #
+    # count_reads_file.close()
 
     # save results of parsing
     with open(outputfile, 'a') as f:
