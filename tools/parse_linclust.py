@@ -75,7 +75,7 @@ def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
     # save new testing set to fastq files for testing (one unique fastq file)
     new_testing_set = [set_2[i] for i in reads_id_for_new_testing_set]
     print(f'size of new testing set: {len(new_testing_set)}')
-    with open(os.path.join(args.input, 'updated-testing-set.fq'), 'w') as new_fq:
+    with open(os.path.join(args.input_dir, 'updated-testing-set.fq'), 'w') as new_fq:
         new_fq.write(''.join(new_testing_set))
 
 
