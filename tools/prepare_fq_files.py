@@ -8,7 +8,7 @@ def split_fq_file(args):
     with open(args.input_fastq, 'r') as infile:
         content = infile.readlines()
         reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-        reads_in_fq = [''.join(reads[i:i+num_reads_per_fq]) for i in range(0, len(content), num_reads_per_fq)]
+        reads_in_fq = [''.join(reads[i:i+num_reads_per_fq]) for i in range(0, len(reads), num_reads_per_fq)]
         num_fq_per_gpu = math.ceil(len(reads_in_fq)/args.num_gpus)
         print(num_fq_per_gpu, len(reads_in_fq))
         for i in range(1, args.num_gpus+1, 1):
