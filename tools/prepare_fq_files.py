@@ -13,15 +13,17 @@ def split_fq_file(args):
         num_fq_per_gpu = math.ceil(len(reads_in_fq)/args.num_gpus)
         print(num_fq_per_gpu, len(reads_in_fq), len(reads))
         f = open(os.path.join(args.output_dir, 'count-reads'), 'w')
-        for count, i in enumerate(range(0,len(reads_in_fq),num_fq_per_gpu)):
+        for count, i in enumerate(range(0, len(reads_in_fq), num_fq_per_gpu)):
             if not os.path.isdir(os.path.join(args.output_dir, f'tfrecords-{count}')):
                 os.makedirs(os.path.join(args.output_dir, f'tfrecords-{count}'))
             num_reads = 0
-            for j in range(i, num_fq_per_gpu, 1):
-                num_reads += reads_in_fq[i]
+            print(count, i)
+            for j in range(i, i+num_fq_per_gpu, 1):
+                num_reads += reads_in_fq[j]
                 with open(os.path.join(args.output_dir, f'tfrecords-{count}' , f'testing-set-{j}.fq'), 'w') as outfile:
                     outfile.write(''.join(reads_in_fq[j]))
-            f.write(f'gpu {i}\t{num_reads}\n')
+            print(count, num_reads)
+            f.write(f'gpu {count}\t{num_reads}\n')
         f.close()
 
 
