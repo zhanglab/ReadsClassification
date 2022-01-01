@@ -19,7 +19,7 @@ def split_fq_file(args):
             num_reads = 0
             print(count, i)
             for j in range(i, i+num_fq_per_gpu, 1):
-                num_reads += reads_in_fq[j]
+                num_reads += len(reads_in_fq[j])
                 with open(os.path.join(args.output_dir, f'tfrecords-{count}' , f'testing-set-{j}.fq'), 'w') as outfile:
                     outfile.write(''.join(reads_in_fq[j]))
             print(count, num_reads)
