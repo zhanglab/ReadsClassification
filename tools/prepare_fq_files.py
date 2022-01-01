@@ -11,18 +11,28 @@ def split_fq_file(args):
         reads_in_fq = []
         for i in range(0,len(reads),num_reads_per_fq):
             reads_in_fq.append(reads[i:i+num_reads_per_fq])
-        num_fq_per_gpu = math.ceil(len(reads_in_fq)/args.num_gpus)
-        print(num_fq_per_gpu, len(reads_in_fq), len(reads))
-        for i in range(1, args.num_gpus+1, 1):
-            if not os.path.isdir(os.path.join(args.output_dir, f'tfrecords-{i}')):
-                os.makedirs(os.path.join(args.output_dir, f'tfrecords-{i}'))
-            f = open(os.path.join(args.output_dir, f'tfrecords-{i}', 'count-reads'), 'w')
-            for j in range(num_fq_per_gpu):
-                with open(os.path.join(args.output_dir, f'tfrecords-{i}' , f'testing-set-{j}.fq'), 'w') as outfile:
-                    print(f'testing-set-{j}.fq\t{len(reads_in_fq[i+j-1])}\n')
-                    f.write(f'testing-set-{j}.fq\t{len(reads_in_fq[i+j-1])}\n')
-                    outfile.write(''.join(reads_in_fq[i+j-1]))
-            f.close()
+        num_e = 0
+        num_u = 0
+        for j in range(len(reads_in_fq)):
+            if len(reads_in_fq[j]) == num_reads_per_fq:
+                num_e += 1
+            else:
+                num_u += 1
+                print(f'{j}\t{len(reads_in_fq[j])}')
+        print(f'{num_e}\t{num_u}')
+
+        # num_fq_per_gpu = math.ceil(len(reads_in_fq)/args.num_gpus)
+        # print(num_fq_per_gpu, len(reads_in_fq), len(reads))
+        # for i in range(1, args.num_gpus+1, 1):
+        #     if not os.path.isdir(os.path.join(args.output_dir, f'tfrecords-{i}')):
+        #         os.makedirs(os.path.join(args.output_dir, f'tfrecords-{i}'))
+        #     f = open(os.path.join(args.output_dir, f'tfrecords-{i}', 'count-reads'), 'w')
+        #     for j in range(num_fq_per_gpu):
+        #         with open(os.path.join(args.output_dir, f'tfrecords-{i}' , f'testing-set-{j}.fq'), 'w') as outfile:
+        #             print(f'testing-set-{j}.fq\t{len(reads_in_fq[i+j-1])}')
+        #             f.write(f'testing-set-{j}.fq\t{len(reads_in_fq[i+j-1])}\n')
+        #             outfile.write(''.join(reads_in_fq[i+j-1]))
+        #     f.close()
 
 
 def main():
