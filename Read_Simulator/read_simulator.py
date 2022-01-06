@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--gtdb_info', type=str, help='path to file with info on GTDB')
     parser.add_argument('--genetic_code', type=str, help='path to file containing the genetic code')
     parser.add_argument('--num_mutate', type=int, help='number of times a genome should be mutated')
+    parser.add_argument('--train_genomes', type=int, help='number of training genomes')
     parser.add_argument('--mutate', action='store_true', default=False)
     parser.add_argument('--overlap', action='store_true', default=False)
     args = parser.parse_args()
@@ -29,14 +30,11 @@ def main():
         # loads species in dataset
         list_species = get_species(args)
         # select genomes
-        genome_dict = select_genomes(args, list_species)  # gets the genome dictionary
-        # get species with largest number of genomes
-        # if args.num_mutate is None:
-        #     needed_iterations = find_largest_genome_set(args, genome_dict)
-        # else:
-        #     needed_iterations = args.num_mutate
+        genome_dict = select_genomes(args, list_species) # gets the genome dictionary
         # create dictionary mapping labels to species
         label_dict, needed_iterations = get_dataset_info(args, genome_dict, list_species)
+        if args.num_mutate is not None:
+            needed_iterations = args.num_mutate
         print(label_dict)
         print(needed_iterations)
         # split dictionary into N lists of dictionaries with N equal to the number of processes

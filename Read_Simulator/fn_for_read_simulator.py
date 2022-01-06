@@ -16,19 +16,22 @@ from utils import *
 def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     """ returns 2 list of genomes (original and mutated versions), one for training and one for testing  """
     # create empty dictionary to store the genomes (key = genome id, value = list of sequences)
-    dict_sequences = defaultdict(list)
+    # dict_sequences = defaultdict(list)
+    dict_train_sequences = defaultdict(list)
+    dict_test_sequences = defaultdict(list)
+
     # create dictionary to keep track of the count per genomes
     genomes_count = defaultdict(int)
 
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
         # get list of randomly selected genomes that will be mutated
-        #list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
+        list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
         # define list of genomes that won't be mutated
-        #list_genomes = genome_dict[species]
+        list_genomes = [i for i in genome_dict[species] if i not in list_mutate]
         # get list of all genomes to be mutated
-        list_mutate = genome_dict[species]
-        list_genomes = []
+        # list_mutate = genome_dict[species]
+        # list_genomes = []
     else:
         list_mutate = []
         # randomly select genomes to add to the list of genomes that won't be mutated
@@ -44,7 +47,8 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
             # get sequences
             rec_list = get_sequences(fasta_file)
             for rec in rec_list:
-                dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
+                # dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
+                dict_test_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(str(rec.seq))
 
     # mutate genomes
     if len(list_mutate) != 0:
@@ -60,17 +64,21 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
                     mutate(args, str(rec.seq), label, rec.id, genome_id)
                 with open(os.path.join(args.input_path, f'{label}_mutation_report.txt'), 'a') as mut_f:
                     mut_f.write(f'{genome_id}-{genomes_count[genome_id]}\t{rec.id}\t{len(rec.seq)}\t{len(mut_seq)}\t{mut_count}\t{mut_stats}\t{100 - mut_stats}\t{num_codons_explored}\t{num_codons_mutated}\t{num_orf}\t{min(length_orf)}\t{max(length_orf)}\t{statistics.mean(length_orf)}\t{statistics.median(length_orf)}\n')
-                dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
+                # dict_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
+                dict_train_sequences[f'{genome_id}-{genomes_count[genome_id]}'].append(mut_seq)
 
     # get average GC content and average tetranucleotide frequencies per species of original genomes
-    get_genomes_info(args, species, label, dict_sequences, genome_dict)
-
+    # get_genomes_info(args, species, label, dict_sequences, genome_dict)
+    get_genomes_info(args, species, label, dict_train_sequences, genome_dict)
+    get_genomes_info(args, species, label, dict_test_sequences, genome_dict)
     # split genomes between training and testing sets
-    total_genomes = list(dict_sequences.keys())
-    num_train_genomes = math.ceil(0.7*len(total_genomes))
-    random.shuffle(total_genomes)
-    train_genomes = total_genomes[:num_train_genomes]
-    test_genomes = total_genomes[num_train_genomes:]
+    # total_genomes = list(dict_sequences.keys())
+    # num_train_genomes = math.ceil(0.7*len(total_genomes))
+    # random.shuffle(total_genomes)
+    # train_genomes = total_genomes[:num_train_genomes]
+    # test_genomes = total_genomes[num_train_genomes:]
+    train_genomes = list(dict_train_sequences.keys())
+    test_genomes = list(dict_test_sequences.keys())
 
     # report genomes in testing and training/validation sets
     with open(os.path.join(args.input_path, f'{label}-train-genomes'), 'w') as f:
@@ -81,8 +89,10 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
             f.write(f'{label}\t{g}\n')
 
     # create training, validation and testing sets and simulate reads
-    create_train_val_sets(args, label, train_genomes, dict_sequences)
-    create_test_set(args, label, test_genomes, dict_sequences)
+    # create_train_val_sets(args, label, train_genomes, dict_sequences)
+    # create_test_set(args, label, test_genomes, dict_sequences)
+    create_train_val_sets(args, label, train_genomes, dict_train_sequences)
+    create_test_set(args, label, test_genomes, dict_test_sequences)
 
     return
 
