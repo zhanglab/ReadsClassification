@@ -26,7 +26,10 @@ def mutate_genomes(args, species, label, needed_iterations, genome_dict):
     # define the list of genomes to be mutated and the list of genomes not to be mutated
     if args.mutate:
         # get list of randomly selected genomes that will be mutated
-        list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
+        # list_mutate = random.choices(genome_dict[species], k=(needed_iterations))
+        list_mutate = random.choices(genome_dict[species], k=(args.train_genomes))
+        list_mutate = list_mutate*args.num_mutate
+        print(len(list_mutate))
         # define list of genomes that won't be mutated
         list_genomes = [i for i in genome_dict[species] if i not in list_mutate]
         # get list of all genomes to be mutated
