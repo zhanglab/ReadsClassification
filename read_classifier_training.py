@@ -248,7 +248,7 @@ def main():
                 testing_step(reads, labels, loss, val_loss, val_accuracy, model)
 
             # adjust learning rate
-            if epoch % lr_decay == 0:
+            if epoch % args.lr_decay == 0:
                 current_lr = opt.learning_rate
                 new_lr = current_lr / 2
                 opt.learning_rate = new_lr
