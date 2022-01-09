@@ -296,7 +296,7 @@ def main():
     if hvd.rank() == 0:
         # save final embeddings
         emb_weights = model.get_layer('embedding').get_weights()[0]
-        out_v = io.open(os.path.join(output_dir, 'embeddings.tsv'), 'w', encoding='utf-8')
+        out_v = io.open(os.path.join(args.output_dir, 'embeddings.tsv'), 'w', encoding='utf-8')
         print(f'# embeddings: {len(emb_weights)}')
         for i in range(len(emb_weights)):
             vec = emb_weights[i]
