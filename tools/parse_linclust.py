@@ -9,7 +9,7 @@ import io
 import pandas as pd
 from collections import defaultdict
 
-def parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids):
+def parse_linclust(args, set_1, set_2, outputfile):
     num_clusters_single_reads = 0 # number of clusters with a unique read
     num_clusters_multiple_reads = 0 # number of clusters with multiple reads
     num_reads_in_clusters_w_multiple_reads = 0
@@ -142,7 +142,7 @@ def main():
     parser.add_argument('--set_1_name', type=str, help='name of set 1')
     parser.add_argument('--set_2_name', type=str, help='name of set 2')
     parser.add_argument('--linclust_out', type=str, help='path to linclust output')
-    parser.add_argument('--seq_ids', type=str, help='path to file containing list of sequence id')
+    # parser.add_argument('--seq_ids', type=str, help='path to file containing list of sequence id')
     args = parser.parse_args()
     # create output file
     outputfile = os.path.join(args.input_dir, f'{args.set_1_name}-{args.set_2_name}-linclust-output-parsing')
@@ -163,9 +163,9 @@ def main():
     with open(outputfile, 'w') as f:
         f.write(f'number of fastq files in {args.set_1_name} set:\t{len(set_1_files)}\nnumber of fastq files in {args.set_2_name} set:\t{len(set_2_files)}\nnumber of reads in {args.set_1_name} set:\t{len(set_1)}\nnumber of reads in {args.set_2_name} set:\t{len(set_2)}\n')
     # get list of sequence ids
-    dict_seq_ids = get_seq_ids(args)
+    # dict_seq_ids = get_seq_ids(args)
     # filter reads in cluster results that are identical and with the same read ids
-    parse_linclust(args, set_1, set_2, outputfile, dict_seq_ids)
+    parse_linclust(args, set_1, set_2, outputfile)
 
 if __name__ == "__main__":
     main()
