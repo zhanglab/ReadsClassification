@@ -136,6 +136,7 @@ def main():
     parser.add_argument('--read_length', type=int, help='length of reads in bp')
     parser.add_argument('--k_value', type=int, help='length of kmers', default=12)
     parser.add_argument('--voc', type=str, help='path to file containing vocabulary (list of kmers)')
+    parser.add_argument('--resume', action='store_true', default=False)
     args = parser.parse_args()
     # define the length of kmer vectors
     args.kmer_vector_length = args.read_length - args.k_value + 1
@@ -177,18 +178,15 @@ def main():
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
             list_tfrec_to_do = list_tfrecords
-        else:
+        if args.resume:
             # get list of tfrecords done
             tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
             # get list of fastq files to convert
             list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list(set(list_tfrecords).difference(set(tfrec_done)))]
-        print(list_tfrec_to_do)
         # generate lists to store tfrecords filenames
         tfrec_files_per_processes = [[] for i in range(size)]
         # divide tfrec files into number of processes available
         group_size = len(list_tfrec_to_do)//size
-        print(f'group size: {group_size}')
-        print(list_tfrec_to_do)
         num_process = 0
         for i in range(len(list_tfrec_to_do)):
             tfrec_files_per_processes[num_process].append(list_tfrec_to_do[i])
