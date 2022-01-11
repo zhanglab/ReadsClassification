@@ -137,8 +137,8 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_dir', type=str, help='path to input files')
-    parser.add_argument('--path_set_1', type=str, help='path to fastq files from set 1')
-    parser.add_argument('--path_set_2', type=str, help='path to fastq files from set 2')
+    parser.add_argument('--path_set_1', type=str, nargs='+', help='path to fastq files from set 1')
+    parser.add_argument('--path_set_2', type=str, nargs='+', help='path to fastq files from set 2')
     parser.add_argument('--set_1_name', type=str, help='name of set 1')
     parser.add_argument('--set_2_name', type=str, help='name of set 2')
     parser.add_argument('--linclust_out', type=str, help='path to linclust output')
@@ -147,12 +147,16 @@ def main():
     # create output file
     outputfile = os.path.join(args.input_dir, f'{args.set_1_name}-{args.set_2_name}-linclust-output-parsing')
     # get reads in set 1
-    set_1_files = sorted(glob.glob(os.path.join(args.path_set_1, '*-reads.fq')))
+    set_1_files = []
+    for i in range(len(args.path_set_1)):
+     set_1_files += sorted(glob.glob(os.path.join(args.path_set_1[i], '*.fq')))
     print(f'Number of fastq files in set #1: {len(set_1_files)}')
     set_1 = get_read_ids(set_1_files, args.set_1_name)
     print(f'get set #1 - {len(set_1)}')
     # get reads in set 2
-    set_2_files = sorted(glob.glob(os.path.join(args.path_set_2, '*-reads.fq')))
+    set_2_files = []
+    for i in range(len(args.path_set_2)):
+     set_2_files += sorted(glob.glob(os.path.join(args.path_set_2[i], '*.fq')))
     print(f'Number of fastq files in set #2: {len(set_2_files)}')
     set_2 = get_read_ids(set_2_files, args.set_2_name)
     print(f'get set #2 - {len(set_2)}')
