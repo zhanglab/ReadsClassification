@@ -100,7 +100,7 @@ def main():
     DROPOUT_RATE = float(sys.argv[5])
     BATCH_SIZE = int(sys.argv[6])
     num_reads = int(sys.argv[7])
-    test_steps = num_reads // (BATCH_SIZE*hvd.size())
+    test_steps = math.ceil(num_reads/(BATCH_SIZE*hvd.size()))
     # load class_mapping file mapping label IDs to species
     f = open(os.path.join(input_dir, 'class_mapping.json'))
     class_mapping = json.load(f)
@@ -157,6 +157,12 @@ def main():
     end = datetime.datetime.now()
 
     if hvd.rank() == 0:
+        print(len(pred_classes), len(true_classes))
+        # adjust list of predicted and true species
+        if len(pred_classes) > num_reads:
+            num_extra_reads = (test_steps*BATCH_SIZE) - num_reads
+            pred_classes = pred_classes[:-num_extra_reads]
+            true_classes = true_classes[:-num_extra_reads]
         print(len(pred_classes), len(true_classes))
         # create empty dictionary to store number of reads
         test_reads = defaultdict(int)
