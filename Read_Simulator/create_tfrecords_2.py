@@ -122,8 +122,8 @@ def get_tfrecords(args, tfrec, shuffle=False):
     with open(output_num_reads, 'a') as f:
         f.write(f'{len(list_reads)}\n')
 
-def start_process():
-    print(f'Starting {mp.current_process().name}')
+# def start_process():
+#     print(f'Starting {mp.current_process().name}')
 
 # def test(x):
 #     return x*x
@@ -174,6 +174,7 @@ def main():
     if rank == 0:
         # get the list of tfrecords directories
         list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+        print(list_tfrecords)
         # create directory to store tfrecords
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
@@ -181,8 +182,10 @@ def main():
         if args.resume:
             # get list of tfrecords done
             tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
+            print(tfrec_done)
             # get list of fastq files to convert
             list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list(set(list_tfrecords).difference(set(tfrec_done)))]
+        print(list_tfrec_to_do)
         # generate lists to store tfrecords filenames
         tfrec_files_per_processes = [[] for i in range(size)]
         # divide tfrec files into number of processes available
@@ -198,8 +201,8 @@ def main():
     # scatter list of fastq files to all processes
     tfrec_files_per_processes = comm.scatter(tfrec_files_per_processes, root=0)
     print(f'Rank: {rank}\n{tfrec_files_per_processes}\n')
-    for tfrec in tfrec_files_per_processes:
-        get_tfrecords(args, tfrec, True)
+    # for tfrec in tfrec_files_per_processes:
+    #     get_tfrecords(args, tfrec, True)
 
     # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
     # for p in processes:
