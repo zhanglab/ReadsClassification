@@ -17,6 +17,7 @@ import datetime
 import numpy as np
 import math
 import io
+from models import AlexNet
 from collections import defaultdict
 from summarize import *
 
