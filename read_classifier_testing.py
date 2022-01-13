@@ -116,6 +116,9 @@ def main():
     loss = tf.losses.SparseCategoricalCrossentropy()
     test_loss = tf.keras.metrics.Mean(name='test_loss')
     test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+    init_lr = 0.0001
+    opt = tf.keras.optimizers.Adam(init_lr)
+    opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
     if hvd.rank() == 0:
         # create output directory
