@@ -145,7 +145,7 @@ def main():
         true_classes = []
         # create output file
         outfile = open(os.path.join(output_dir, f'testing-summary'), 'w')
-        outfile.write(f'run: {args.run_num}\ntesting set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {args.dropout_rate}\nbatch size per gpu: {args.batch_size}\nglobal batch size: {args.batch_size*hvd.size()}\nnumber of gpus: {hvd.size()}\nmodel saved at epoch: {args.epoch}')
+        outfile.write(f'run: {args.run_num}\ntesting set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {args.dropout_rate}\nbatch size per gpu: {args.batch_size}\nglobal batch size: {args.batch_size*hvd.size()}\nnumber of gpus: {hvd.size()}\nmodel saved at epoch: {args.epoch}\n')
 
     # load testing tfrecords
     test_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'test-tfrec-*.tfrec')))
@@ -171,8 +171,8 @@ def main():
     if hvd.rank() == 0:
         print(len(pred_classes), len(true_classes))
         # adjust list of predicted and true species
-        if len(pred_classes) > num_reads:
-            num_extra_reads = (test_steps*BATCH_SIZE) - num_reads
+        if len(pred_classes) > args.num_reads:
+            num_extra_reads = (test_steps*args.batch_size) - args.num_reads
             pred_classes = pred_classes[:-num_extra_reads]
             true_classes = true_classes[:-num_extra_reads]
         print(len(pred_classes), len(true_classes))
