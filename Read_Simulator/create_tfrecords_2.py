@@ -204,8 +204,8 @@ def main():
     # scatter list of fastq files to all processes
     tfrec_files_per_processes = comm.scatter(tfrec_files_per_processes, root=0)
     print(f'Rank: {rank}\n{tfrec_files_per_processes}\n')
-    # for tfrec in tfrec_files_per_processes:
-    #     get_tfrecords(args, tfrec, True)
+    for tfrec in tfrec_files_per_processes:
+        get_tfrecords(args, tfrec, True)
 
     # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
     # for p in processes:
