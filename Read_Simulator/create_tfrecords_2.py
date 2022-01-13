@@ -175,12 +175,12 @@ def main():
     if rank == 0:
         # get the list of tfrecords directories
         # list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
-        list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'*-tfrec-*')))
+        list_tfrecords = [i.split('/')[-1] for i in sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'*-tfrec-*')))]
         print(list_tfrecords)
         # create directory to store tfrecords
         if not os.path.isdir(args.output_path):
             os.makedirs(args.output_path)
-            list_tfrec_to_do = list_tfrecords
+            list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list_tfrecords]
         if args.resume:
             # get list of tfrecords done
             # tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
