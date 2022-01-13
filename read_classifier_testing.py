@@ -20,6 +20,7 @@ import io
 from models import AlexNet
 from collections import defaultdict
 from summarize import *
+import argparse
 
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
@@ -90,27 +91,28 @@ def testing_step(reads, labels, loss, test_loss, test_accuracy, model):
     return probs
 
 def main():
-    input_dir = sys.argv[1]
-    test_path = sys.argv[2]
-    run_num = sys.argv[3]
-    set_type = sys.argv[4]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-input_dir', type=str, help='path to tfrecords')
+    parser.add_argument('-run_num', type=str, help='run number')
+    parser.add_argument('-set_type', type=str, help='type of dataset', choices=['test', 'val', 'train'])
+    parser.add_argument('-epoch', type=int, help='epoch of checkpoint')
+    parser.add_argument('-dropout_rate', type=float, help='dropout rate to apply to layers', default=0.7)
+    parser.add_argument('-batch_size', type=int, help='batch size per gpu')
+    parser.add_argument('-num_reads', type=int, help='number of reads in dataset')
+    args = parser.parse_args()
+
     # define some training and model parameters
     VECTOR_SIZE = 250 - 12 + 1
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
-    DROPOUT_RATE = float(sys.argv[5])
-    BATCH_SIZE = int(sys.argv[6])
-    num_reads = int(sys.argv[7])
-    EPOCH = int(sys.argv[8])
-    test_steps = math.ceil(num_reads/(BATCH_SIZE*hvd.size()))
+    test_steps = math.ceil(args.num_reads/(args.batch_size*hvd.size()))
     # load class_mapping file mapping label IDs to species
-    f = open(os.path.join(input_dir, 'class_mapping.json'))
+    f = open(os.path.join(args.input_dir, 'class_mapping.json'))
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
     # create dtype policy
     policy = keras.mixed_precision.Policy('mixed_float16')
     keras.mixed_precision.set_global_policy(policy)
-
 
     # define metrics
     loss = tf.losses.SparseCategoricalCrossentropy()
@@ -122,7 +124,7 @@ def main():
 
     if hvd.rank() == 0:
         # create output directory
-        output_dir = os.path.join(input_dir, f'run-{run_num}', f'testing-{set_type}-set')
+        output_dir = os.path.join(args.input_dir, f'run-{args.run_num}', f'testing-{args.set_type}-set')
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
         # restore the checkpointed values to the model
@@ -132,25 +134,25 @@ def main():
 #        latest_ckpt = tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts'))
 #        print(f'latest ckpt: {latest_ckpt}')
 #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
-        if EPOCH is not None:
-            model = AlexNet(input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE, run_num)
+        if args.epoch is not None:
+            model = AlexNet(args.input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.run_num)
             checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-            checkpoint.restore(os.path.join(input_dir, f'run-{run_num}', f'ckpts-{EPOCH}')).expect_partial()
+            checkpoint.restore(os.path.join(input_dir, f'run-{args.run_num}', f'ckpts-{args.epoch}')).expect_partial()
         else:
-            model = tf.keras.models.load_model(os.path.join(input_dir, f'run-{run_num}', 'ckpts/model'))
+            model = tf.keras.models.load_model(os.path.join(args.input_dir, f'run-{args.run_num}', 'ckpts/model'))
         # create empty lists to store true and predicted classes
         pred_classes = []
         true_classes = []
         # create output file
         outfile = open(os.path.join(output_dir, f'testing-summary'), 'w')
-        outfile.write(f'run: {run_num}\ntesting set: {set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {BATCH_SIZE}\nglobal batch size: {BATCH_SIZE*hvd.size()}\nnumber of gpus: {hvd.size()}\nmodel saved at epoch: {EPOCH}')
+        outfile.write(f'run: {args.run_num}\ntesting set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {args.dropout_rate}\nbatch size per gpu: {args.batch_size}\nglobal batch size: {args.batch_size*hvd.size()}\nnumber of gpus: {hvd.size()}\nmodel saved at epoch: {args.epoch}')
 
     # load testing tfrecords
-    test_files = sorted(glob.glob(os.path.join(test_path, 'tfrecords', 'test-tfrec-*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(test_path, 'tfrecords', 'idx_files', 'test-tfrec-*.tfrec.idx')))
+    test_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'test-tfrec-*.tfrec')))
+    test_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', 'test-tfrec-*.tfrec.idx')))
 
     num_preprocessing_threads = 4
-    test_preprocessor = DALIPreprocessor(test_files, test_idx_files, BATCH_SIZE, num_preprocessing_threads, dali_cpu=True,
+    test_preprocessor = DALIPreprocessor(test_files, test_idx_files, args.batch_size, num_preprocessing_threads, dali_cpu=True,
                                         deterministic=False, training=False)
 
     test_input = test_preprocessor.get_device_dataset()
