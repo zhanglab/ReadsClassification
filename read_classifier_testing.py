@@ -101,7 +101,7 @@ def main():
     DROPOUT_RATE = float(sys.argv[5])
     BATCH_SIZE = int(sys.argv[6])
     num_reads = int(sys.argv[7])
-    epoch = int(sys.argv[8])
+    EPOCH = int(sys.argv[8])
     test_steps = math.ceil(num_reads/(BATCH_SIZE*hvd.size()))
     # load class_mapping file mapping label IDs to species
     f = open(os.path.join(input_dir, 'class_mapping.json'))
@@ -132,7 +132,7 @@ def main():
 #        latest_ckpt = tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts'))
 #        print(f'latest ckpt: {latest_ckpt}')
 #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
-        if epoch is not None:
+        if EPOCH is not None:
             model = AlexNet(input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE, run_num)
             checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
             checkpoint.restore(os.path.join(input_dir, f'run-{run_num}', f'ckpts-{EPOCH}')).expect_partial()
@@ -143,7 +143,7 @@ def main():
         true_classes = []
         # create output file
         outfile = open(os.path.join(output_dir, f'testing-summary'), 'w')
-        outfile.write(f'run: {run_num}\ntesting set: {set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {BATCH_SIZE}\nglobal batch size: {BATCH_SIZE*hvd.size()}\nnumber of gpus: {hvd.size()}\n')
+        outfile.write(f'run: {run_num}\ntesting set: {set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {BATCH_SIZE}\nglobal batch size: {BATCH_SIZE*hvd.size()}\nnumber of gpus: {hvd.size()}\nmodel saved at epoch: {EPOCH}')
 
     # load testing tfrecords
     test_files = sorted(glob.glob(os.path.join(test_path, 'tfrecords', 'test-tfrec-*.tfrec')))
