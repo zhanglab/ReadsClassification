@@ -89,7 +89,8 @@ def get_tfrecords(args, tfrec, shuffle=False):
     output_tfrec = os.path.join(args.output_path, output_tfrec_filename)
     print(output_tfrec)
     # get list of fastq files
-    list_fq_files = sorted(glob.glob(os.path.join(tfrec, f'*-{args.dataset}-reads.fq')))
+    # list_fq_files = sorted(glob.glob(os.path.join(tfrec, f'*-{args.dataset}-reads.fq')))
+    list_fq_files = sorted(glob.glob(os.path.join(tfrec, f'*-reads.fq')))
     # get reads
     list_reads = []
     # report the number of reads
@@ -132,7 +133,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
-    parser.add_argument('--dataset', type=str, help='type of dataset', choices=['train', 'val', 'test'])
+    # parser.add_argument('--dataset', type=str, help='type of dataset', choices=['train', 'val', 'test'])
     parser.add_argument('--read_length', type=int, help='length of reads in bp')
     parser.add_argument('--k_value', type=int, help='length of kmers', default=12)
     parser.add_argument('--voc', type=str, help='path to file containing vocabulary (list of kmers)')
@@ -173,7 +174,8 @@ def main():
     # print(f'output: {pool_outputs}')
     if rank == 0:
         # get the list of tfrecords directories
-        list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+        # list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
+        list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'*-tfrec-*')))
         print(list_tfrecords)
         # create directory to store tfrecords
         if not os.path.isdir(args.output_path):
@@ -181,7 +183,8 @@ def main():
             list_tfrec_to_do = list_tfrecords
         if args.resume:
             # get list of tfrecords done
-            tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
+            # tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
+            tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'*-tfrec-*.tfrec')))]
             print(tfrec_done)
             # get list of fastq files to convert
             list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list(set(list_tfrecords).difference(set(tfrec_done)))]
