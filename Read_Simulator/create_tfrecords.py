@@ -10,11 +10,11 @@ import glob
 import math
 from utils import *
 
-# create a communicator consisting of all the processors
+# create a communicator consisting of all the processes
 comm = MPI.COMM_WORLD
-# get the number of processors
+# get the number of processes
 size = comm.Get_size()
-# get the rank of each processor
+# get the rank of each process
 rank = comm.Get_rank()
 print(comm, size, rank)
 # pool_size = mp.cpu_count()
@@ -89,7 +89,6 @@ def get_tfrecords(args, tfrec, shuffle=False):
     output_tfrec = os.path.join(args.output_path, output_tfrec_filename)
     print(output_tfrec)
     # get list of fastq files
-    # list_fq_files = sorted(glob.glob(os.path.join(tfrec, f'*-{args.dataset}-reads.fq')))
     list_fq_files = sorted(glob.glob(os.path.join(tfrec, f'*-reads.fq')))
     # get reads
     list_reads = []
@@ -122,12 +121,6 @@ def get_tfrecords(args, tfrec, shuffle=False):
     # report total number of reads
     with open(output_num_reads, 'a') as f:
         f.write(f'{len(list_reads)}\n')
-
-# def start_process():
-#     print(f'Starting {mp.current_process().name}')
-
-# def test(x):
-#     return x*x
 
 def main():
     # parse command line arguments
@@ -205,7 +198,8 @@ def main():
     tfrec_files_per_processes = comm.scatter(tfrec_files_per_processes, root=0)
     print(f'Rank: {rank}\n{tfrec_files_per_processes}\n')
     for tfrec in tfrec_files_per_processes:
-        get_tfrecords(args, tfrec, True)
+        shuffle = False if tfrec.split('/')[-1].split('-')[0] == 'test' else True
+        get_tfrecords(args, tfrec, shuffle)
 
     # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
     # for p in processes:
