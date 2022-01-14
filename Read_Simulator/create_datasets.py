@@ -47,7 +47,23 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
+    parser.add_argument('--train_reads', type=int, help='number of reads in training set')
+    parser.add_argument('--test_reads', type=int, help='number of reads in testing set')
+    parser.add_argument('--val_reads', type=int, help='number of reads in validation set')
     args = parser.parse_args()
+
+    # set_info = {}
+    # set_info['train'] = math.ceil(args.train_reads/1000000)
+    # set_info['test'] = math.ceil(args.test_reads/1000000)
+    # set_info['val'] = math.ceil(args.val_reads/1000000)
+    #
+    # # get list of fq files per process
+    # list_fastq_files = sorted(glob.glob(os.path.join(args.input_path, f'*-reads.fq')))
+    # num_files_per_process = math.ceil(len(list_fastq_files)/size)
+    # fq_files_per_process = list_fq_files[rank*num_files_per_process:(rank+1)*num_files_per_process] if rank < size else
+    # for fq_file in fq_files_per_process:
+    #     split_fq_files(args, fq_file, set_info)
+
     if rank == 0:
         # get number of reads per dataset
         set_info = {'train': [], 'val': [], 'test': []}
@@ -56,7 +72,7 @@ def main():
         # define number of tfrecords to generate for each dataset
         for key, value in set_info.items():
             num_tfrec = math.ceil(value[0]/1000000)
-            value[1] = num_tfrec
+            value.append(num_tfrec)
             # create directory to store fastq files
             for i in range(num_tfrec):
                 # create output directory to store tfrecords
