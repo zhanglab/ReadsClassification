@@ -8,7 +8,7 @@ import random
 import glob
 import math
 from utils import *
-from count_reads import *
+
 
 # create a communicator consisting of all the processes
 comm = MPI.COMM_WORLD
