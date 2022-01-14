@@ -95,6 +95,7 @@ def main():
     parser.add_argument('-input_dir', type=str, help='path to tfrecords')
     parser.add_argument('-run_num', type=str, help='run number')
     parser.add_argument('-set_type', type=str, help='type of dataset', choices=['test', 'val', 'train'])
+    parser.add_argument('-tfrecord', type=str, help='tfrecord file to test')
     parser.add_argument('-epoch', type=int, help='epoch of checkpoint')
     parser.add_argument('-dropout_rate', type=float, help='dropout rate to apply to layers', default=0.7)
     parser.add_argument('-batch_size', type=int, help='batch size per gpu')
@@ -148,8 +149,12 @@ def main():
         outfile.write(f'run: {args.run_num}\ntesting set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {args.dropout_rate}\nbatch size per gpu: {args.batch_size}\nglobal batch size: {args.batch_size*hvd.size()}\nnumber of gpus: {hvd.size()}\nmodel saved at epoch: {args.epoch}\n')
 
     # load testing tfrecords
-    test_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'test-tfrec-*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', 'test-tfrec-*.tfrec.idx')))
+    if args.tfrecord is not None:
+        test_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', args.tfrecord)))
+        test_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', f'{args.tfrecord}.idx')))
+    else:
+        test_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', f'{args.set_type}-tfrec-*.tfrec')))
+        test_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', f'{args.set_type}-tfrec-*.tfrec.idx')))
 
     num_preprocessing_threads = 4
     test_preprocessor = DALIPreprocessor(test_files, test_idx_files, args.batch_size, num_preprocessing_threads, dali_cpu=True,

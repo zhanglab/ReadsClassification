@@ -8,56 +8,61 @@ import random
 import glob
 import math
 from utils import *
+from count_reads import *
 
-# create a communicator consisting of all the processors
+# create a communicator consisting of all the processes
 comm = MPI.COMM_WORLD
-# get the number of processors
+# get the number of processes
 size = comm.Get_size()
-# get the rank of each processor
+# get the rank of each process
 rank = comm.Get_rank()
 print(comm, size, rank)
 
-def get_reads(args, fq_file, fq_type=None):
+def get_reads(args, fq_file, dataset=None):
     """ Loads and shuffle reads """
     with open(os.path.join(args.input_path, fq_file), 'r') as infile:
         content = infile.readlines()
         reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-        if fq_type == 'train' or fq_type == 'val':
+        if dataset == 'train' or dataset == 'val':
             random.shuffle(reads)
         return reads
 
-def split_fq_files(args, fq_file):
-    # get label
+def split_fq_files(args, fq_file, set_info):
+    """ Loads and shuffle reads """
+    # get label and set type
     label = fq_file.split('/')[-1].split('-')[0]
+    dataset = fq_file.split('/')[-1].split('-')[1]
     # get reads
-    reads = get_reads(args, fq_file, args.dataset)
+    reads = get_reads(args, fq_file, dataset)
     # compute size of chunks
-    chunk_size = math.ceil(len(reads)/args.num_tfrec)
+    chunk_size = math.ceil(len(reads)/set_info[dataset][1])
     # split reads into x lists with x = number of tfrecords
     reads_per_tfrec = [reads[i:i+chunk_size] for i in range(0, len(reads), chunk_size)]
     # create fastq files for each tfrecords
-    for i in range(args.num_tfrec):
-        with open(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-{i}', f'{label}-{args.dataset}-reads.fq'), 'w') as f:
+    for i in range(set_info[dataset][1]):
+        with open(os.path.join(args.input_path, 'fq_files', f'{dataset}-tfrec-{i}', f'{label}-{dataset}-reads.fq'), 'w') as f:
             f.write(''.join(reads_per_tfrec[i]))
 
 def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_path', type=str, help='path to fastq files')
-    parser.add_argument('--dataset', type=str, help='type of dataset', choices=['train', 'val', 'test'])
-    parser.add_argument('--num_reads', type=int, help='total number of reads in dataset')
     args = parser.parse_args()
-    # define number of tfrecords to generate
-    args.num_tfrec = math.ceil(args.num_reads/25000000)
     if rank == 0:
-        # create directory to store fastq files
-        for i in range(args.num_tfrec):
-            # define output directory
-            output_path = os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-{i}')
-            if not os.path.isdir(output_path):
-                os.makedirs(output_path)
+        # get number of reads per dataset
+        set_info = {'train': [], 'val': [], 'test': []}
+        count_reads_train_val(args.input_path, set_info)
+        count_reads_test(args.input_path, set_info)
+        # define number of tfrecords to generate for each dataset
+        for key, value in set_info.items():
+            num_tfrec = math.ceil(value[0]/1000000)
+            value[1] = num_tfrec
+            # create directory to store fastq files
+            for i in range(num_tfrec):
+                # create output directory to store tfrecords
+                os.makedirs(os.path.join(args.input_path, 'fq_files', f'{key}-tfrec-{i}'))
         # get the list of fastq files
-        list_fastq_files = sorted(glob.glob(os.path.join(args.input_path, f'*-{args.dataset}*-reads.fq')))
+        list_fastq_files = sorted(glob.glob(os.path.join(args.input_path, f'*-reads.fq')))
         # divide fastq files into number of processes available
         group_size = len(list_fastq_files)//size
         print(f'group size: {group_size}')
@@ -71,11 +76,15 @@ def main():
                 num_process = 0
     else:
         fq_files_per_processes = None
+        set_info = None
+
+    # broadcast information on datasets to all processes
+    set_info = comm.bcast(set_info, root=0)
     # scatter list of fastq files to all processes
     fq_files_per_processes = comm.scatter(fq_files_per_processes, root=0)
     print(f'Rank: {rank}\n{fq_files_per_processes}\n')
     for fq_file in fq_files_per_processes:
-        split_fq_files(args, fq_file)
+        split_fq_files(args, fq_file, set_info)
 
 if __name__ == '__main__':
     main()
