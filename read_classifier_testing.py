@@ -138,7 +138,7 @@ def main():
         if args.epoch is not None:
             model = AlexNet(args.input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.run_num)
             checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-            checkpoint.restore(os.path.join(input_dir, f'run-{args.run_num}', f'ckpts-{args.epoch}')).expect_partial()
+            checkpoint.restore(os.path.join(args.input_dir, f'run-{args.run_num}', f'ckpts-{args.epoch}')).expect_partial()
         else:
             model = tf.keras.models.load_model(os.path.join(args.input_dir, f'run-{args.run_num}', 'ckpts/model'))
         # create empty lists to store true and predicted classes
