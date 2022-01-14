@@ -17,14 +17,6 @@ size = comm.Get_size()
 # get the rank of each process
 rank = comm.Get_rank()
 print(comm, size, rank)
-# pool_size = mp.cpu_count()
-# pool_size = int(os.environ['SLURM_CPUS_ON_NODE'])
-# print(f'Number of cpu: {pool_size}')
-# current_process = mp.current_process()
-# print(f'Current cpu: {current_process.name} - {current_process.pid}')
-# process_rank = current_process.pid
-# print(f'Number of cpus requested: {pool_size}')
-# print(f'Number of cpus on node: {mp.cpu_count()}')
 
 def get_rev_complement(read):
     """ Converts a k-mer to its reverse complement """
@@ -138,33 +130,7 @@ def main():
     args.dict_kmers = get_voc_dict(args.voc)
     # define output directory
     args.output_path = os.path.join(args.input_path, 'tfrecords')
-    # create directory to store tfrecords
-    # if not os.path.isdir(args.output_path):
-    #     os.makedirs(args.output_path)
-    # get the list of tfrecords directories
-    # list_tfrecords = [i.split('/')[-1] for i in sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))]
-    # print(f'total # tfrec: {len(list_tfrecords)} - {list_tfrecords}')
-    # # # get list of tfrecords done
-    # tfrec_done = [i.split('/')[-1].split('.')[0] for i in sorted(glob.glob(os.path.join(args.output_path, f'{args.dataset}-tfrec-*.tfrec')))]
-    # print(f'tfrec done: {len(tfrec_done)} - {tfrec_done}')
-    # # get list of fastq files to convert
-    # list_tfrec_to_do = [os.path.join(args.input_path, 'fq_files', i) for i in list(set(list_tfrecords).difference(set(tfrec_done)))]
-    # print(len(list_tfrec_to_do))
-    # print(list_tfrec_to_do)
-    # data = [[args, i, True] for i in list_tfrec_to_do]
-    # data = list(range(10))
-    # print(f'input: {data}')
-    # pool = mp.Pool(processes=pool_size, initializer=start_process,)
-    # # # # pool_outputs = pool.map(test, data)
-    # pool.map_async(get_tfrecords, data)
-    # pool.close()
-    # pool.join()
-    # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, True)) for tfrec in list_tfrec_to_do]
-    # for p in processes:
-    #     p.start()
-    # for p in processes:
-    #     p.join()
-    # print(f'output: {pool_outputs}')
+
     if rank == 0:
         # get the list of tfrecords directories
         # list_tfrecords = sorted(glob.glob(os.path.join(args.input_path, 'fq_files', f'{args.dataset}-tfrec-*')))
@@ -200,13 +166,6 @@ def main():
     for tfrec in tfrec_files_per_processes:
         shuffle = False if tfrec.split('/')[-1].split('-')[0] == 'test' else True
         get_tfrecords(args, tfrec, shuffle)
-
-    # processes = [mp.Process(target=get_tfrecords, args=(args, tfrec, shuffle=False)) for tfrec in list_tfrecords]
-    # for p in processes:
-    #     p.start()
-    # for p in processes:
-    #     p.join()
-
 
 if __name__ == '__main__':
     main()
