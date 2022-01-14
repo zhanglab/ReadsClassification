@@ -177,8 +177,8 @@ def count_reads_train_val(input_path, set_info):
     with open(os.path.join(input_path, 'total-num-reads'), 'a') as f:
         f.write(f'train\t{total_train_num_reads}\nval\t{total_val_num_reads}\n')
 
-    set_info['train'][0] = total_train_num_reads
-    set_info['val'][0] = total_val_num_reads
+    set_info['train'].append(total_train_num_reads)
+    set_info['val'].append(total_val_num_reads)
 
 def count_reads_test(input_path, set_info):
     list_files = glob.glob(os.path.join(input_path, f'*-test-reads'))
@@ -191,4 +191,4 @@ def count_reads_test(input_path, set_info):
     with open(os.path.join(input_path, 'total-num-reads'), 'a') as f:
         f.write(f'test\t{total_test_num_reads}\n')
 
-    set_info['test'][0] = total_test_num_reads
+    set_info['test'].append(total_test_num_reads)
