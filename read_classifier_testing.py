@@ -173,7 +173,7 @@ def main():
 
     # get list of testing tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'{args.set_type}*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx_dir', f'{args.set_type}*.idx')))
+    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx_dir, f'{args.set_type}*.idx')))
 
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
