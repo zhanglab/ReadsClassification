@@ -150,7 +150,7 @@ def main():
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
     else:
-        model = tf.keras.models.load_model(args.model, 'model'))
+        model = tf.keras.models.load_model(args.model, 'model')
 
         # create empty lists to store true and predicted classes
         # pred_classes = []
