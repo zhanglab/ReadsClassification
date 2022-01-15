@@ -106,8 +106,8 @@ def main():
     parser.add_argument('--num_reads', type=int, help='number of reads in dataset', required=True)
     parser.add_argument('--num_reads_in_tfrec', type=int, help='number of reads in dataset', default=1000000)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--model', type=str, help='path to entire model saved using tensorflow model.save')
-    group.add_argument('--ckpt', type=str, help='path to checkpoint file', required=('--epoch' in sys.argv))
+    group.add_argument('--model', type=str, help='path to entire model saved using tensorflow model.save', action='store_true')
+    group.add_argument('--ckpt', type=str, help='path to checkpoint file', required=('--epoch' in sys.argv), action='store_false')
     args = parser.parse_args()
 
     # define some training and model parameters
