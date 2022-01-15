@@ -4,7 +4,7 @@ import tensorflow.keras as keras
 import numpy as np
 import os
 
-def AlexNet(input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE, run_num):
+def AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE, input_dir=False):
     # define AlexNet model
     read_input = tf.keras.layers.Input(shape=(VECTOR_SIZE), dtype='int32')
     x = read_input
@@ -56,9 +56,9 @@ def AlexNet(input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DRO
 #    print('Outputs dtype: %s' % output.dtype.name)
 #    for idx in range(len(model.layers)):
 #        print(f'INDEX: {idx} - NAME: {model.get_layer(index = idx).name} - TYPE: {model.get_layer(index = idx).dtype}')
-
-    with open(os.path.join(input_dir, f'model-alexnet-run{run_num}.txt'), 'w+') as f:
-        model.summary(print_fn=lambda x: f.write(x + '\n'))
+    if input_dir is True:
+        with open(os.path.join(input_dir, f'model-alexnet.txt'), 'w+') as f:
+            model.summary(print_fn=lambda x: f.write(x + '\n'))
 
     return model
 
