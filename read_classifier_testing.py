@@ -97,8 +97,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords_dir', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx_dir', type=str, help='path to dali indexes files', required=True)
-    parser.add_argument('--model', type=str, help='path to entire model saved using tensorflow model.save')
-    parser.add_argument('--ckpt', type=str, help='path to checkpoint file', required=('--epoch' in sys.argv))
     parser.add_argument('--class_mapping', type=str, help='directory containing class_mapping.json file', required=True)
     parser.add_argument('--output_dir', type=str, help='directory to store results', required=True)
     parser.add_argument('--set_type', type=str, help='type of dataset', choices=['test', 'val', 'train'])
@@ -107,6 +105,9 @@ def main():
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
     parser.add_argument('--num_reads', type=int, help='number of reads in dataset', required=True)
     parser.add_argument('--num_reads_in_tfrec', type=int, help='number of reads in dataset', default=1000000)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--model', type=str, help='path to entire model saved using tensorflow model.save')
+    group.add_argument('--ckpt', type=str, help='path to checkpoint file', required=('--epoch' in sys.argv))
     args = parser.parse_args()
 
     # define some training and model parameters
