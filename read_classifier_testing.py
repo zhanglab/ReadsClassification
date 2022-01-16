@@ -205,7 +205,7 @@ def main():
             batch_predictions = testing_step(reads, labels, loss, test_loss, test_accuracy, model)
             if batch == 1:
                 all_labels = [labels]
-                all_predictions = batch_pred
+                all_predictions = batch_predictions
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 all_labels = tf.concat([all_labels, [labels]], 1)
