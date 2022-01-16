@@ -185,6 +185,8 @@ def main():
     num_correct_pred = 0
     num_incorrect_pred = 0
     num_reads_tested = 0
+    # create summary file
+    f_prob = open(os.path.join(output_dir, f'probabilities-{hvd.rank()}.tsv'), 'w')
     for i in range(len(gpu_test_files)):
         # get number of reads in test file
         num_reads = args.num_reads - (len(test_files)*1000000) if i == len(test_files) - 1 else 1000000
