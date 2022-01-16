@@ -263,7 +263,7 @@ def main():
     minutes, seconds = divmod(seconds, 60)
 
     with open(os.path.join(output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
-        outfile.write(f'testing set: {set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files tested: {len(gpu_test_files)}\nnumber of reads per tfrecord file: 1000000\nnumber of reads in last tfrecord file: {args.num_reads - (len(test_files)*1000000)}\nnumber of reads tested: {num_reads_tested}\n')
+        outfile.write(f'testing set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files tested: {len(gpu_test_files)}\nnumber of reads per tfrecord file: 1000000\nnumber of reads in last tfrecord file: {args.num_reads - (len(test_files)*1000000)}\nnumber of reads tested: {num_reads_tested}\n')
 
         if args.ckpt:
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
