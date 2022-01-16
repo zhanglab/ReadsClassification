@@ -105,9 +105,9 @@ def main():
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
     parser.add_argument('--num_reads', type=int, help='number of reads in dataset', required=True)
     parser.add_argument('--num_reads_in_tfrec', type=int, help='number of reads in dataset', default=1000000)
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--model', type=str, help='path to entire model saved using tensorflow model.save', action='store_true')
-    group.add_argument('--ckpt', type=str, help='path to checkpoint file', required=('--epoch' in sys.argv), action='store_false')
+    parser.add_argument('--model_type', type=str, help='type of model saved', choices=['checkpoint', 'model'])
+    parser.add_argument('--model_path', type=str, help='path to directory containing saved model')
+    parser.add_argument('--ckpt_path', type=str, help='path to directory containing checkpoint file', required=('--epoch' and '--checkpoint' in sys.argv))
     args = parser.parse_args()
 
     # define some training and model parameters
@@ -145,12 +145,12 @@ def main():
 #        print(f'latest ckpt: {latest_ckpt}')
 #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
     # load model
-    if args.ckpt is not None:
+    if args.model_type == 'checkpoint':
         model = AlexNet(args.input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-        checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
-    else:
-        model = tf.keras.models.load_model(args.model, 'model')
+        checkpoint.restore(os.path.join(args.ckpt_path, f'ckpts-{args.epoch}')).expect_partial()
+    elif args.model_type == 'model':
+        model = tf.keras.models.load_model(args.model_path, 'model')
 
         # create empty lists to store true and predicted classes
         # pred_classes = []
