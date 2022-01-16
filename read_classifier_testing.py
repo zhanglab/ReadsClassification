@@ -202,7 +202,7 @@ def main():
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-            batch_pred = testing_step(reads, labels, loss, test_loss, test_accuracy, model)
+            batch_predictions = testing_step(reads, labels, loss, test_loss, test_accuracy, model)
             if batch == 1:
                 all_labels = [labels]
                 all_predictions = batch_pred
