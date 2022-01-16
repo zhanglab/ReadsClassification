@@ -95,8 +95,8 @@ def main():
     start = datetime.datetime.now()
     # --> make choice of model or ckpt mutually exclusive
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tfrecords_dir', type=str, help='path to tfrecords', required=True)
-    parser.add_argument('--dali_idx_dir', type=str, help='path to dali indexes files', required=True)
+    parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
+    parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
     parser.add_argument('--class_mapping', type=str, help='directory containing class_mapping.json file', required=True)
     parser.add_argument('--output_dir', type=str, help='directory to store results', required=True)
     parser.add_argument('--set_type', type=str, help='type of dataset', choices=['test', 'val', 'train'])
@@ -172,7 +172,7 @@ def main():
 
     # get list of testing tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'{args.set_type}*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx_dir, f'{args.set_type}*.idx')))
+    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, f'{args.set_type}*.idx')))
 
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
