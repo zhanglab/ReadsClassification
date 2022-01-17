@@ -93,7 +93,6 @@ def testing_step(reads, labels, loss, test_loss, test_accuracy, model):
 
 def main():
     start = datetime.datetime.now()
-    # --> make choice of model or ckpt mutually exclusive
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
@@ -127,6 +126,7 @@ def main():
     loss = tf.losses.SparseCategoricalCrossentropy()
     test_loss = tf.keras.metrics.Mean(name='test_loss')
     test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+    precision = tf.keras.metrics.Precision(name='precision')
     init_lr = 0.0001
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
@@ -214,13 +214,13 @@ def main():
 
         # get list of true species, predicted species and predicted probabilities
         all_predictions = all_predictions.numpy()
-        true_species = all_labels[0].numpy().tolist()
+        true_species = all_labels[0].numpy()
         pred_species = [np.argmax(j) for j in all_predictions]
         pred_probabilities = [np.amax(j) for j in all_predictions]
 
         # save probabilities
-        np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}.npz'), true_species)
-        np.save(os.path.join(output_dir, f'pred-probs-{hvd.rank()}-{i}.npz'), all_predictions)
+        np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}'), true_species)
+        np.save(os.path.join(output_dir, f'pred-probs-{hvd.rank()}-{i}'), all_predictions)
 
         # adjust the list of predicted and true species if necessary
         if len(pred_species) > num_reads:
@@ -270,7 +270,7 @@ def main():
         else:
             outfile.write(f'model saved at last epoch')
 
-        outfile.write(f'\n{test_accuracy.result().numpy()*100}\n{accuracy}\n{test_loss.result().numpy()}\n{hours}:{minutes}:{seconds}:{total_time.microseconds}')
+        outfile.write(f'\naccuracy: {test_accuracy.result().numpy()*100}\naccuracy: {accuracy}\nloss: {test_loss.result().numpy()}\nrun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}')
 
     # end = datetime.datetime.now()
 
