@@ -4,6 +4,8 @@ import sys
 import glob
 import numpy as np
 import json
+from summarize import *
+import argparse
 
 def write_cm_to_file(cm, class_mapping_dict, results_dir, rank):
     with open(os.path.join(results_dir, f'{rank}-confusion-matrix.tsv'), 'w') as f:
@@ -98,15 +100,19 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     f.close()
 
 def main():
-    input_dir = sys.argv[1]
-    results_dir = sys.argv[2]
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--class_mapping', type=str, help='directory containing class_mapping.json file', required=True)
+    parser.add_argument('--results_dir', type=str, help='directory containing testing results', required=True)
+    parser.add_argument('--output_dir', type=str, help='output directory', required=True)
+    args = parser.parse_args()
 
     # load dictionary mapping labels to species
-    with open(os.path.join(input_dir, 'class_mapping.json'), 'r') as f:
+    with open(os.path.join(args.class_mapping, 'class_mapping.json'), 'r') as f:
         class_mapping_dict = json.load(f)
 
     # get softmax layer output from each GPU
-    results_prob = sorted(glob.glob(os.path.join(results_dir, 'probabilities-*.tsv')))
+    results_prob = sorted(glob.glob(os.path.join(args.results_dir, 'probabilities-*.tsv')))
 
     # analyze results at the species level
     # get confusion matrix (rows = true classes, columns = predicted classes)
@@ -118,6 +124,8 @@ def main():
     write_cm_to_file(cm, class_mapping_dict, results_dir, 'species')
     # get precision and recall for each species
     get_metrics(cm, class_mapping_dict, results_dir, 'species')
+
+    ROCcurve(args, class_mapping, 'species')
 
     # analyze results at higher taxonomic levels
     # for r in ['genus', 'family', 'order', 'class']:
