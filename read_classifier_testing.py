@@ -18,6 +18,7 @@ import numpy as np
 import math
 # import io
 from models import AlexNet
+from summarize import *
 # from collections import defaultdict
 # from summarize import *
 import argparse
@@ -200,6 +201,7 @@ def main():
 
         test_input = test_preprocessor.get_device_dataset()
 
+        # create empty arrays to store the predicted and true values
         all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
@@ -214,12 +216,14 @@ def main():
 
         # get list of true species, predicted species and predicted probabilities
         all_predictions = all_predictions.numpy()
-        true_species = all_labels[0].numpy()
         pred_species = [np.argmax(j) for j in all_predictions]
         pred_probabilities = [np.amax(j) for j in all_predictions]
+        true_species = all_labels[0].numpy()
+        print(len(true_species), true_species)
+        true_one_hot = tf.one_hot(true_species, NUM_CLASSES)
 
         # save probabilities
-        np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}'), true_species)
+        np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}'), true_one_hot)
         np.save(os.path.join(output_dir, f'pred-probs-{hvd.rank()}-{i}'), all_predictions)
 
         # adjust the list of predicted and true species if necessary
@@ -255,7 +259,12 @@ def main():
                 cm_f.write(f'\t{cm[i,j]}')
             cm_f.write('\n')
 
+    # compute average accuracy across all species
     accuracy = round(float(num_correct_pred)/(num_correct_pred + num_incorrect_pred), 5)
+    # compute precision and recall for all species
+    get_metrics(cm, class_mapping, args.output_dir, 'species')
+    # compute ROC and decision thresholds for all species
+
 
     end = datetime.datetime.now()
     total_time = end - start
