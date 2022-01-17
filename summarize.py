@@ -130,8 +130,9 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
         f.write(f'{class_mapping_dict[str(i)]}\t{round(precision,5)}\t{round(recall,5)}\t{num_testing_reads}\n')
 
     accuracy =  float(correct_predictions)/total_num_reads
-    f.write(f'Accuracy: {round(accuracy,5)}')
     f.close()
+
+    return accuracy
 
 def ROCcurve(args, class_mapping, rank):
     # get arrays of predicted probabilities and true values
@@ -155,6 +156,7 @@ def ROCcurve(args, class_mapping, rank):
         for j in range(len(class_mapping)):
             fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
         print(j, list_pred_files[j], fpr[0], tpr[0], thresholds[0])
+        print(len(fpr[0]), len(tpr[0]), len(thresholds[0]))
             # roc_auc[j] = auc(fpr[j], tpr[j])
 
         J_stats = [None] * len(class_mapping)
@@ -162,13 +164,13 @@ def ROCcurve(args, class_mapping, rank):
         f = open(os.path.join(args.output_dir, f'decision_thresholds_{rank}'), 'w')
         # Compute Youden's J statistics for each taxon
         for j in range(len(class_mapping)):
-            J_stats[i] = tpr[j] - fpr[j]
+            J_stats[j] = tpr[j] - fpr[j]
             jstat_max_index = np.argmax(J_stats[j])
             opt_thresholds[j] = thresholds[j][jstat_max_index]
             jstat_decision_threshold = round(J_stats[j][jstat_max_index], 2)
-            f.write(f'{i}\t{class_mapping[str(j)]}\t{jstat_decision_threshold}\n')
+            f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_decision_threshold}\n')
         else:
-            f.write(f'{i}\t{class_mapping[str(j)]}\t0.5\n')
+            f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
         # roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
