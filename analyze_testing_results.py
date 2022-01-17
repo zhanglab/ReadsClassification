@@ -92,7 +92,7 @@ def main():
     # get precision and recall for each species
     get_metrics(cm, class_mapping_dict, args.results_dir, 'species')
 
-    ROCcurve(args, class_mapping, 'species')
+    ROCcurve(args, class_mapping_dict, 'species')
 
     # analyze results at higher taxonomic levels
     # for r in ['genus', 'family', 'order', 'class']:
