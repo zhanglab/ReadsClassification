@@ -18,7 +18,7 @@ import numpy as np
 import math
 # import io
 from models import AlexNet
-from summarize import *
+from summarize import get_metrics, ROCcurve
 # from collections import defaultdict
 # from summarize import *
 import argparse
