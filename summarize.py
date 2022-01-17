@@ -155,8 +155,7 @@ def ROCcurve(args, class_mapping, rank):
 
         for j in range(len(class_mapping)):
             fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
-        print(j, list_pred_files[j], fpr[0], tpr[0], thresholds[0])
-        print(len(fpr[0]), len(tpr[0]), len(thresholds[0]))
+
             # roc_auc[j] = auc(fpr[j], tpr[j])
 
         J_stats = [None] * len(class_mapping)
@@ -171,6 +170,7 @@ def ROCcurve(args, class_mapping, rank):
             f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_decision_threshold}\n')
         else:
             f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
+        print(j, J_stats[j], len(J_stats[j]), jstat_max_index, opt_thresholds[j], len(thresholds[j]), jstat_decision_threshold)
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
         # roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
