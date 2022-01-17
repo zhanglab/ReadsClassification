@@ -4,7 +4,7 @@ import sys
 import glob
 import numpy as np
 import json
-from summarize import *
+from summarize import get_metrics, ROCcurve
 import argparse
 
 def write_cm_to_file(cm, class_mapping_dict, results_dir, rank):
