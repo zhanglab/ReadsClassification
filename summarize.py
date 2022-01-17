@@ -97,6 +97,42 @@ def get_colors(tax_rank, list_taxa, input_path):
 #         plt.axvline(x=xcoord, color='gray', linestyle='--')
 #     plt.savefig(f'{filename}', bbox_inches='tight')
 
+
+def get_metrics(cm, class_mapping_dict, results_dir, rank):
+    """ precision = True Positives / (True Positives + False Positives) """
+    """ recall = True Positives / (True Positives + False Negatives) """
+    """ accuracy = number of correct predictions / (number of reads in testing set) """
+
+    correct_predictions = 0
+
+    f = open(os.path.join(results_dir, f'{rank}-metrics-classification-report.tsv'), 'w')
+    f.write(f'{rank}\tprecision\trecall\tnumber\n')
+
+    # get labels of species present only in testing set and total number of reads in testing set
+    labels_in_test_set = []
+    total_num_reads = 0
+    for i in range(len(class_mapping_dict)):
+        num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
+        total_num_reads += num_testing_reads
+        if num_testing_reads != 0:
+            labels_in_test_set.append(i)
+
+    # get precision and recall for all species in testing set
+    for i in labels_in_test_set:
+        true_positives = cm[i, i]
+        other_labels = [j for j in labels_in_test_set if j != i]
+        false_positives = sum([cm[j, i] for j in other_labels])
+        false_negatives = sum([cm[i, j] for j in other_labels])
+        correct_predictions += true_positives
+        num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
+        precision = float(true_positives)/(true_positives+false_positives)
+        recall = float(true_positives)/(true_positives+false_negatives)
+        f.write(f'{class_mapping_dict[str(i)]}\t{round(precision,5)}\t{round(recall,5)}\t{num_testing_reads}\n')
+
+    accuracy =  float(correct_predictions)/total_num_reads
+    f.write(f'Accuracy: {round(accuracy,5)}')
+    f.close()
+
 def ROCcurve(args, class_mapping, rank):
     # get arrays of predicted probabilities and true values
     list_pred_files = sorted(glob.glob(os.path.join(args.results_dir, 'pred-probs-*.npy')))
