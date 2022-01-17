@@ -126,7 +126,7 @@ def main():
     loss = tf.losses.SparseCategoricalCrossentropy()
     test_loss = tf.keras.metrics.Mean(name='test_loss')
     test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
-    precision = tf.keras.metrics.Precision(name='precision')
+
     init_lr = 0.0001
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
