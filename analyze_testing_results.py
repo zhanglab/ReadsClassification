@@ -67,7 +67,7 @@ def get_cm(true_classes, predicted_classes, results_dir, class_mapping, rank):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--class_mapping', type=str, help='directory containing class_mapping.json file', required=True)
+    parser.add_argument('--class_mapping', type=str, help='directory containing json dictionary files mapping taxa to labels', required=True)
     parser.add_argument('--results_dir', type=str, help='directory containing testing results', required=True)
     parser.add_argument('--output_dir', type=str, help='output directory', required=True)
     args = parser.parse_args()
@@ -93,13 +93,13 @@ def main():
     # analyze results at higher taxonomic levels
     for r in ['genus', 'family', 'order', 'class']:
         # load dictionary mapping species labels to other ranks labels
-        with open(os.path.join(input_dir, f'{r}_species_mapping_dict.json')) as f_json:
+        with open(os.path.join(args.class_mapping, f'{r}_species_mapping_dict.json')) as f_json:
             rank_species_mapping = json.load(f_json)
         # get vectors of predicted and true labels at given rank
         rank_pred_classes = [rank_species_mapping[str(i)] for i in pred_species]
         rank_true_classes = [rank_species_mapping[str(i)] for i in true_species]
         # load dictionary mapping labels to taxa at given rank
-        with open(os.path.join(input_dir, f'{r}_mapping_dict.json')) as f_json:
+        with open(os.path.join(args.class_mapping, f'{r}_mapping_dict.json')) as f_json:
             rank_mapping_dict = json.load(f_json)
         # get confusion matrix
         cm = get_cm(rank_true_classes, rank_pred_classes, args.results_dir, class_mapping_dict, r)
