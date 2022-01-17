@@ -135,6 +135,7 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     return accuracy
 
 def ROCcurve(args, class_mapping, rank):
+    # tpr, fpr and thresholds are computed based on sklearn tutorial https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
     # get arrays of predicted probabilities and true values
     list_pred_files = sorted(glob.glob(os.path.join(args.results_dir, 'pred-probs-*.npy')))
     list_true_files = sorted(glob.glob(os.path.join(args.results_dir, 'true-probs-*.npy')))
@@ -170,7 +171,7 @@ def ROCcurve(args, class_mapping, rank):
             f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_decision_threshold}\n')
         else:
             f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
-        print(j, J_stats[j], len(J_stats[j]), jstat_max_index, opt_thresholds[j], len(thresholds[j]), jstat_decision_threshold)
+        print(j, tpr[j], fpr[j], thresholds[j], J_stats[j], np.argmax(J_stats[j]), len(J_stats[j]), jstat_max_index, opt_thresholds[j], len(thresholds[j]), jstat_decision_threshold)
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
         # roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
