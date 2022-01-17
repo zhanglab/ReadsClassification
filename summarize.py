@@ -152,8 +152,6 @@ def ROCcurve(args, class_mapping, rank):
         print(pred_arr)
         print(true_arr)
 
-        print(len(jaccard_score(true_arr, pred_arr)))
-
         for j in range(len(class_mapping)):
             fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
         print(j, list_pred_files[j], fpr[0], tpr[0], thresholds[0])
