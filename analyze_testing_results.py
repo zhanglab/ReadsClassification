@@ -64,8 +64,6 @@ def get_cm(true_classes, predicted_classes, results_dir, class_mapping, rank):
     return cm
 
 
-
-
 def main():
 
     parser = argparse.ArgumentParser()
@@ -90,28 +88,26 @@ def main():
     cm = get_cm(true_species, pred_species, args.results_dir, class_mapping_dict, 'species')
     write_cm_to_file(cm, class_mapping_dict, args.results_dir, 'species')
     # get precision and recall for each species
-    get_metrics(cm, class_mapping_dict, args.results_dir, 'species')
-
-    ROCcurve(args, class_mapping_dict, 'species')
+    sp_accuracy = get_metrics(cm, class_mapping_dict, args.results_dir, 'species')
 
     # analyze results at higher taxonomic levels
-    # for r in ['genus', 'family', 'order', 'class']:
-    #     # load dictionary mapping species labels to other ranks labels
-    #     with open(os.path.join(input_dir, f'{r}_species_mapping_dict.json')) as f_json:
-    #         rank_species_mapping = json.load(f_json)
-    #     # get vectors of predicted and true labels at given rank
-    #     rank_pred_classes = [rank_species_mapping[str(i)] for i in pred_species]
-    #     rank_true_classes = [rank_species_mapping[str(i)] for i in true_species]
-    #     # load dictionary mapping labels to taxa at given rank
-    #     with open(os.path.join(input_dir, f'{r}_mapping_dict.json')) as f_json:
-    #         rank_mapping_dict = json.load(f_json)
-    #     # get confusion matrix
-    #     cm = get_cm(rank_true_classes, rank_pred_classes, results_dir, class_mapping_dict, r)
-    #     write_cm_to_file(cm, rank_mapping_dict, results_dir, r)
-    #     # get precision and recall
-    #     get_metrics(cm, rank_mapping_dict, results_dir, r)
-    #     # add taxonomy to file with probabilities
-    #     create_prob_file(results_dir, rank_pred_classes, rank_true_classes, probs, rank_mapping_dict, r)
+    for r in ['genus', 'family', 'order', 'class']:
+        # load dictionary mapping species labels to other ranks labels
+        with open(os.path.join(input_dir, f'{r}_species_mapping_dict.json')) as f_json:
+            rank_species_mapping = json.load(f_json)
+        # get vectors of predicted and true labels at given rank
+        rank_pred_classes = [rank_species_mapping[str(i)] for i in pred_species]
+        rank_true_classes = [rank_species_mapping[str(i)] for i in true_species]
+        # load dictionary mapping labels to taxa at given rank
+        with open(os.path.join(input_dir, f'{r}_mapping_dict.json')) as f_json:
+            rank_mapping_dict = json.load(f_json)
+        # get confusion matrix
+        cm = get_cm(rank_true_classes, rank_pred_classes, args.results_dir, class_mapping_dict, r)
+        write_cm_to_file(cm, rank_mapping_dict, args.results_dir, r)
+        # get precision and recall
+        get_metrics(cm, rank_mapping_dict, args.results_dir, r)
+        # add taxonomy to file with probabilities
+        create_prob_file(args.results_dir, rank_pred_classes, rank_true_classes, probs, rank_mapping_dict, r)
 
 if __name__ == "__main__":
     main()
