@@ -104,7 +104,7 @@ def main():
         with open(os.path.join(args.class_mapping, f'{r}_mapping_dict.json')) as f_json:
             rank_mapping_dict = json.load(f_json)
         # get confusion matrix
-        cm = get_cm(rank_true_classes, rank_pred_classes, args.results_dir, class_mapping_dict, r)
+        cm = get_cm(rank_true_classes, rank_pred_classes, args.results_dir, rank_mapping_dict, r)
         write_cm_to_file(cm, rank_mapping_dict, args.results_dir, r)
         # get precision and recall
         get_metrics(cm, rank_mapping_dict, args.results_dir, r)
