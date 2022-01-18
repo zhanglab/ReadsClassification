@@ -147,8 +147,8 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     all_true_arr = []
     print(species_in_test_set)
     for i in range(len(list_pred_files)):
-        pred_arr = np.load(list_pred_files[i])
-        true_arr = np.load(list_true_files[i])
+        pred_arr = np.load(list_pred_files[i]).tolist()
+        true_arr = np.load(list_true_files[i]).tolist()
         all_pred_arr += pred_arr
         all_true_arr += true_arr
         # for j in species_in_test_set:
@@ -156,7 +156,7 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     print(len(all_pred_arr), len(all_true_arr))
     for j in species_in_test_set:
         print(j, type(j))
-        fpr[j], tpr[j], thresholds[j] = roc_curve(all_true_arr[:, j], all_pred_arr[:, j])
+        fpr[j], tpr[j], thresholds[j] = roc_curve(np.array(all_true_arr[:, j]), np.array(all_pred_arr[:, j]))
 
 
     J_stats = [None] * len(species_in_test_set)
