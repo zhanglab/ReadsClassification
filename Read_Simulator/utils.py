@@ -27,7 +27,7 @@ def get_species(args):
     species_df = pd.read_csv(os.path.join(args.input_path, 'species.tsv'), sep='\t', header=None)
     return species_df[0].tolist()
 
-def get_dataset_info(args, genome_dict, list_species):
+def get_dataset_info(args, genome_dict, list_species, gtdb_taxonomy):
     """ returns dictionary mapping labels to species  """
     # update dictionary of genomes based on teh number of genomes per species
     updated_genome_dict = {key: value for key, value in genome_dict.items() if len(value) > 5}
@@ -41,11 +41,13 @@ def get_dataset_info(args, genome_dict, list_species):
     list_species = list(updated_genome_dict.keys())
     # create dictionary mapping labels to species
     label_dict = dict(zip(list(range(len(list_species))), list_species))
+    # create class mapping dictionaries at higher taxonomic ranks
+    get_higher_ranks(args, label_dict, gtdb_taxonomy)
     # get number of genomes per species
     num_genomes_per_species = [len(value) for value in updated_genome_dict.values()]
     print(num_genomes_per_species)
     # create json file
-    with open(os.path.join(args.input_path, 'class_mapping.json'), "w") as f:
+    with open(os.path.join(args.input_path, 'species_mapping_dict.json'), "w") as f:
         json.dump(label_dict, f)
     # report number of genomes per species
     with open(os.path.join(args.input_path, 'num_genomes_report.txt'), 'w') as f:
@@ -89,6 +91,28 @@ def get_sequences(fastafile):
             if (rec.description.find('plasmid') or rec.description.find('Plasmid')) == -1:
                 fasta_list.append(rec)
     return fasta_list
+
+def get_higher_ranks(args, class_mapping, gtdb_taxonomy):
+    ranks = ['genus', 'family', 'order', 'class']
+    for i in range(len(ranks)):
+        # get taxa
+        list_taxa = []
+        species_labels = []
+        for j in range(len(class_mapping)):
+            if class_mapping[str(j)] in gtdb_taxonomy:
+                list_taxa.append(gtdb_taxonomy[class_mapping[str(j)]][i].split('__')[1])
+                species_labels.append(j)
+        # create dictionary mapping each taxon at a taxonomic level to a label
+        list_unique_taxa = list(set(list_taxa))
+        label_dict = dict(zip(list(range(len(list_unique_taxa))), list_unique_taxa))
+        rev_label_dict = {value: key for key, value in label_dict.items()}
+        with open(os.path.join(args.input_path, f'{ranks[i]}_mapping_dict.json'), "w") as f:
+            json.dump(label_dict, f)
+        # create dictionary mapping labels at the species level to labels at given rank
+        rank_species_dict = {str(k): rev_label_dict[list_taxa[k]] for k in range(len(species_labels))}
+        with open(os.path.join(args.input_path, f'{ranks[i]}_species_mapping_dict.json'), "w") as f:
+            json.dump(rank_species_dict, f)
+
 
 def get_gtdb_info(path_gtdb_info):
     # load gtdb information

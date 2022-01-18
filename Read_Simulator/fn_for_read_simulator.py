@@ -267,7 +267,7 @@ def select_genomes(args, list_species):
     # parses the genome file into a dictionary: keys are the species names and the values are a list of accession ids
     """ returns a dictionary with a list of genomes for each species """
     # get gtdb info
-    species_in_database, ncbi_assembly_level_list, ncbi_genome_category_list, accession_id_list, _ = get_gtdb_info(args.gtdb_info)
+    species_in_database, ncbi_assembly_level_list, ncbi_genome_category_list, accession_id_list, gtdb_taxonomy = get_gtdb_info(args.gtdb_info)
 
     # get genomes available in local NCBI and GTDB databases
     gtdb_genomes_avail = {'_'.join(i.split('/')[-1].split('_')[:2]) : i for i in glob.glob(os.path.join(args.gtdb_path, '*.fna.gz'))}
@@ -286,7 +286,7 @@ def select_genomes(args, list_species):
                 elif accession_id_list[i][3:] in ncbi_genomes_avail:
                     genome_dict[species_in_database[i]].append(os.path.join(args.ncbi_path, ncbi_genomes_avail[accession_id_list[i][3:]]))
 
-    return genome_dict
+    return genome_dict, gtdb_taxonomy
 
 def get_genomes_info(args, species, label, dict_sequences, genome_dict):
     total_GC_content = float()
