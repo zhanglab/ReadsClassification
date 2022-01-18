@@ -19,23 +19,18 @@ def write_cm_to_file(cm, class_mapping_dict, results_dir, rank):
                 f.write('\n')
 
 
-def get_prob(results, results_dir, class_mapping_dict):
+def get_prob(results, class_mapping_dict):
     pred_species = []
     true_species = []
     probs = []
-    # with open(os.path.join(results_dir, 'all-probabilities-species.tsv'), 'w') as out_f:
     for r in results:
         df = pd.read_csv(r, delimiter='\t', header=None)
         pred_species += df.iloc[:,2].tolist()
         true_species += df.iloc[:,1].tolist()
         probs += df.iloc[:,3].tolist()
-        # with open(r, 'r') as in_f:
-        #     for line in in_f:
-        #         true_taxon = line.rstrip().split('\t')[1]
-        #         pred_taxon = line.rstrip().split('\t')[2]
-                # out_f.write(f'{line.rstrip()}\t{class_mapping_dict[true_taxon]}\t{class_mapping_dict[pred_taxon]}\n')
-    # print(f'size of pred and true species lists: {len(pred_species)}\t{len(true_species)}')
+
     return pred_species, true_species, probs
+
 
 def create_prob_file(results_dir, pred_classes, true_classes, probs, class_mapping_dict, rank):
     with open(os.path.join(results_dir, f'all-probabilities-{rank}.tsv'), 'w') as f:
@@ -45,6 +40,7 @@ def create_prob_file(results_dir, pred_classes, true_classes, probs, class_mappi
             else:
                 f.write(f'incorrect\t')
             f.write(f'{true_classes[i]}\t{pred_classes[i]}\t{probs[i]}\t{class_mapping_dict[str(true_classes[i])]}\t{class_mapping_dict[str(pred_classes[i])]}\n')
+
 
 def get_cm(true_classes, predicted_classes, results_dir, class_mapping, rank):
     # create empty confusion matrix with rows = true classes and columns = predicted classes
@@ -83,7 +79,7 @@ def main():
     # get confusion matrix (rows = true classes, columns = predicted classes)
     cm = np.zeros((len(species_mapping_dict), len(species_mapping_dict)))
     # get predictions and ground truth
-    pred_species, true_species, probs = get_prob(results_prob, args.results_dir, species_mapping_dict)
+    pred_species, true_species, probs = get_prob(results_prob, species_mapping_dict)
     # fill out confusion matrix at the species level
     cm = get_cm(true_species, pred_species, args.results_dir, species_mapping_dict, 'species')
     write_cm_to_file(cm, species_mapping_dict, args.results_dir, 'species')
@@ -92,7 +88,7 @@ def main():
     # create summary file
     create_prob_file(args.results_dir, pred_species, true_species, probs, species_mapping_dict, 'species')
     # create ROC curves and get decision threshold
-    ROCcurve(args, species_mapping_dict)
+    ROCcurve(args, species_mapping_dict, list(set(true_species)))
 
     # analyze results at higher taxonomic levels
     for r in ['genus', 'family', 'order', 'class']:
