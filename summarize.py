@@ -132,7 +132,6 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     accuracy =  float(correct_predictions)/total_num_reads
     f.close()
 
-    return accuracy
 
 def ROCcurve(args, class_mapping, rank):
     # tpr, fpr and thresholds are computed based on sklearn tutorial https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html

@@ -74,21 +74,23 @@ def main():
 
     # load dictionary mapping labels to species
     with open(os.path.join(args.class_mapping, 'class_mapping.json'), 'r') as f:
-        class_mapping_dict = json.load(f)
+        species_mapping_dict = json.load(f)
 
     # get softmax layer output from each GPU
     results_prob = sorted(glob.glob(os.path.join(args.results_dir, 'probabilities-*.tsv')))
 
     # analyze results at the species level
     # get confusion matrix (rows = true classes, columns = predicted classes)
-    cm = np.zeros((len(class_mapping_dict), len(class_mapping_dict)))
+    cm = np.zeros((len(species_mapping_dict), len(species_mapping_dict)))
     # get predictions and ground truth
-    pred_species, true_species, probs = get_prob(results_prob, args.results_dir, class_mapping_dict)
+    pred_species, true_species, probs = get_prob(results_prob, args.results_dir, species_mapping_dict)
     # fill out confusion matrix at the species level
-    cm = get_cm(true_species, pred_species, args.results_dir, class_mapping_dict, 'species')
-    write_cm_to_file(cm, class_mapping_dict, args.results_dir, 'species')
+    cm = get_cm(true_species, pred_species, args.results_dir, species_mapping_dict, 'species')
+    write_cm_to_file(cm, species_mapping_dict, args.results_dir, 'species')
     # get precision and recall for each species
-    sp_accuracy = get_metrics(cm, class_mapping_dict, args.results_dir, 'species')
+    get_metrics(cm, species_mapping_dict, args.results_dir, 'species')
+    # create summary file
+    create_prob_file(args.results_dir, pred_species, true_species, probs, species_mapping_dict, 'species')
 
     # analyze results at higher taxonomic levels
     for r in ['genus', 'family', 'order', 'class']:
@@ -106,7 +108,7 @@ def main():
         write_cm_to_file(cm, rank_mapping_dict, args.results_dir, r)
         # get precision and recall
         get_metrics(cm, rank_mapping_dict, args.results_dir, r)
-        # add taxonomy to file with probabilities
+        # create summary file 
         create_prob_file(args.results_dir, rank_pred_classes, rank_true_classes, probs, rank_mapping_dict, r)
 
 if __name__ == "__main__":
