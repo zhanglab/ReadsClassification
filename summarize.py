@@ -133,7 +133,7 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     f.close()
 
 
-def ROCcurve(args, class_mapping, rank):
+def ROCcurve(args, class_mapping):
     # tpr, fpr and thresholds are computed based on sklearn tutorial https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
     # get arrays of predicted probabilities and true values
     list_pred_files = sorted(glob.glob(os.path.join(args.results_dir, 'pred-probs-*.npy')))
@@ -160,7 +160,7 @@ def ROCcurve(args, class_mapping, rank):
 
         J_stats = [None] * len(class_mapping)
         opt_thresholds = [None] * len(class_mapping)
-        f = open(os.path.join(args.output_dir, f'decision_thresholds_{rank}'), 'w')
+        f = open(os.path.join(args.output_dir, f'decision_thresholds.tsv'), 'w')
         # Compute Youden's J statistics for each taxon
         for j in range(len(class_mapping)):
             J_stats[j] = tpr[j] - fpr[j]

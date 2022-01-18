@@ -91,6 +91,8 @@ def main():
     get_metrics(cm, species_mapping_dict, args.results_dir, 'species')
     # create summary file
     create_prob_file(args.results_dir, pred_species, true_species, probs, species_mapping_dict, 'species')
+    # create ROC curves and get decision threshold
+    ROCcurve(args, species_mapping_dict)
 
     # analyze results at higher taxonomic levels
     for r in ['genus', 'family', 'order', 'class']:
@@ -108,7 +110,7 @@ def main():
         write_cm_to_file(cm, rank_mapping_dict, args.results_dir, r)
         # get precision and recall
         get_metrics(cm, rank_mapping_dict, args.results_dir, r)
-        # create summary file 
+        # create summary file
         create_prob_file(args.results_dir, rank_pred_classes, rank_true_classes, probs, rank_mapping_dict, r)
 
 if __name__ == "__main__":
