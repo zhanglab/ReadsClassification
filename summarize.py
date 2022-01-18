@@ -133,44 +133,46 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     f.close()
 
 
-def ROCcurve(args, class_mapping):
+def ROCcurve(args, class_mapping, species_in_test_set):
     # tpr, fpr and thresholds are computed based on sklearn tutorial https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
     # get arrays of predicted probabilities and true values
     list_pred_files = sorted(glob.glob(os.path.join(args.results_dir, 'pred-probs-*.npy')))
     list_true_files = sorted(glob.glob(os.path.join(args.results_dir, 'true-probs-*.npy')))
 
-    # true_arr = np.asarray(trueclasses)
-    # pred_arr = np.asarray(predictions)
-
     fpr = {}
     tpr = {}
-    # roc_auc = {}
     thresholds = {}
 
+    all_pred_arr = []
+    all_true_arr = []
+
     for i in range(len(list_pred_files)):
-        pred_arr = np.load(list_pred_files[i])
-        true_arr = np.load(list_true_files[i])
-        print(pred_arr)
-        print(true_arr)
+        pred_arr = np.load(list_pred_files[i]).tolist()
+        true_arr = np.load(list_true_files[i]).tolist()
+        all_pred_arr += pred_arr
+        all_true_arr += true_arr
+        # for j in species_in_test_set:
+            # fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
 
-        for j in range(len(class_mapping)):
-            fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
+    for j in species_in_test_set:
+        fpr[j], tpr[j], thresholds[j] = roc_curve(all_true_arr[:, j], all_pred_arr[:, j])
 
-            # roc_auc[j] = auc(fpr[j], tpr[j])
 
-        J_stats = [None] * len(class_mapping)
-        opt_thresholds = [None] * len(class_mapping)
-        f = open(os.path.join(args.output_dir, f'decision_thresholds.tsv'), 'w')
-        # Compute Youden's J statistics for each taxon
-        for j in range(len(class_mapping)):
+    J_stats = [None] * len(species_in_test_set)
+    opt_thresholds = [None] * len(species_in_test_set)
+    f = open(os.path.join(args.output_dir, f'decision_thresholds.tsv'), 'w')
+    # Compute Youden's J statistics for each taxon
+    for j in range(len(class_mapping)):
+        if j in species_in_test_set:
             J_stats[j] = tpr[j] - fpr[j]
             jstat_max_index = np.argmax(J_stats[j])
             opt_thresholds[j] = thresholds[j][jstat_max_index]
-            jstat_decision_threshold = round(J_stats[j][jstat_max_index], 2)
-            f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_decision_threshold}\n')
+            print(j, fpr[j], tpr[j], thresholds[j], J_stats[j], jstat_max_index, opt_thresholds[j])
+            print(len(all_pred_arr), len(all_true_arr), len(fpr[j]), len(tpr[j]), len(thresholds[j]), len(J_stats[j]))
+            f.write(f'{j}\t{class_mapping[str(j)]}\t{opt_thresholds[j]}\n')
         else:
             f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
-        print(j, tpr[j], fpr[j], thresholds[j], J_stats[j], np.argmax(J_stats[j]), len(J_stats[j]), jstat_max_index, opt_thresholds[j], len(thresholds[j]), jstat_decision_threshold)
+
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
         # roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
@@ -197,18 +199,19 @@ def ROCcurve(args, class_mapping):
     # plt.plot(fpr["micro"], tpr["micro"], label='micro-average ROC curve (area = {0:0.2f})'.format(roc_auc["micro"]), color='deeppink', linestyle=':', linewidth=4)
     #
     # plt.plot(fpr["macro"], tpr["macro"], label='macro-average ROC curve (area = {0:0.2f})'.format(roc_auc["macro"]),color='navy', linestyle=':', linewidth=4)
-    #
-    #
-    # for i, color in zip(range(len(class_mapping)), colors):
-    #     plt.plot(fpr[i], tpr[i], color=color, lw=lw,label='ROC curve of class {0} (area = {1:0.2f})'.format(class_mapping[str(i)], roc_auc[i]))
-    #
-    # plt.plot([0, 1], [0, 1], 'k--', lw=lw)
-    # plt.xlim([0.0, 1.0])
-    # plt.ylim([0.0, 1.05])
-    # plt.xlabel('False Positive Rate')
-    # plt.ylabel('True Positive Rate')
-    # #plt.legend(loc=(0, -.6), prop=dict(size=9))
-    # plt.savefig(os.path.join(output_path, f'ROCcurves_{tax_rank}.png'),bbox_inches='tight')
-    # figlegend = plt.figure()
-    # plt.figlegend(*ax.get_legend_handles_labels())
-    # figlegend.savefig(os.path.join(output_path, f'ROCcurves_Legend_{tax_rank}.png'), bbox_inches='tight')
+
+    # only plot ROC curves for test sets with 20 species
+    if len(species_in_test_set) == 20:
+        for i, color in zip(species_in_test_set, colors):
+            plt.plot(fpr[i], tpr[i], color=color, lw=lw,label='ROC curve of class {0} (area = {1:0.2f})'.format(class_mapping[str(i)], roc_auc[i]))
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        #plt.legend(loc=(0, -.6), prop=dict(size=9))
+        plt.savefig(os.path.join(output_path, f'ROCcurves.png'),bbox_inches='tight')
+        figlegend = plt.figure()
+        plt.figlegend(*ax.get_legend_handles_labels())
+        figlegend.savefig(os.path.join(output_path, f'ROCcurves_Legend.png'), bbox_inches='tight')
