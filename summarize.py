@@ -153,7 +153,6 @@ def ROCcurve(args, class_mapping, species_in_test_set):
         all_true_arr += true_arr
         # for j in species_in_test_set:
             # fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
-    print(all_pred_arr)
     print(len(all_pred_arr), len(all_true_arr))
     for j in species_in_test_set:
         print(j, type(j))
