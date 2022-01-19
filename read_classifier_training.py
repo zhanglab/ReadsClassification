@@ -143,7 +143,7 @@ def main():
     EMBEDDING_SIZE = 60
 
     # load class_mapping file mapping label IDs to species
-    f = open(os.path.join(args.class_mapping))
+    f = open(args.class_mapping)
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
 
