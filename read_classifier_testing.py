@@ -98,7 +98,7 @@ def main():
     parser.add_argument('--epoch', type=int, help='epoch of checkpoint')
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
     parser.add_argument('--num_reads', type=int, help='number of reads in dataset', required=True)
-    parser.add_argument('--num_reads_in_tfrec', type=int, help='number of reads in dataset', default=1000000)
+    parser.add_argument('--num_reads_in_tfrec', type=int, help='number of reads per tfrecords file', default=1000000)
     parser.add_argument('--model', type=str, help='path to directory containing saved model')
     parser.add_argument('--ckpt', type=str, help='path to directory containing checkpoint file', required=('--epoch' and '--checkpoint' in sys.argv))
     args = parser.parse_args()
