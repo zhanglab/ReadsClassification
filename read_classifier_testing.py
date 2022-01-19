@@ -1,9 +1,6 @@
 import tensorflow as tf
 import horovod.tensorflow as hvd
 import tensorflow.keras as keras
-# from tensorflow.python.keras.utils import tf_utils
-# from tensorflow.python.keras import backend
-# from tensorflow.python.keras.mixed_precision import device_compatibility_check
 from nvidia.dali.pipeline import pipeline_def
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
@@ -16,11 +13,8 @@ import glob
 import datetime
 import numpy as np
 import math
-# import io
 from models import AlexNet
 from summarize import get_metrics, ROCcurve
-# from collections import defaultdict
-# from summarize import *
 import argparse
 
 # disable eager execution
