@@ -146,7 +146,7 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     J_stats = [None] * len(species_in_test_set)
     opt_thresholds = [None] * len(species_in_test_set)
 
-    J_stats_max = defaultdict(int())
+    J_stats_max = defaultdict(int)
     for i in range(len(list_pred_files)):
         pred_arr = np.load(list_pred_files[i])
         true_arr = np.load(list_true_files[i])
