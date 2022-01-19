@@ -49,10 +49,10 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
                                  initial_fill=10000,
                                  features={
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
-                                     "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
+                                     "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
     # retrieve reads and labels and copy them to the gpus
     reads = inputs["read"].gpu()
-    labels = inputs["label"].gpu()
+    labels = inputs["read_id"].gpu()
     return reads, labels
 
 class DALIPreprocessor(object):
@@ -91,10 +91,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
+    parser.add_argument('--fq_files', type=str, help='path to directory containing metagenomic data', required=True)
     parser.add_argument('--class_mapping', type=str, help='path to json file containing dictionary mapping taxa to labels', required=True)
     parser.add_argument('--output_dir', type=str, help='directory to store results', required=True)
-    parser.add_argument('--set_type', type=str, help='type of dataset', choices=['test', 'val', 'train'])
-    # parser.add_argument('-tfrecord', type=str, help='tfrecord file to test')
     parser.add_argument('--epoch', type=int, help='epoch of checkpoint')
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
     parser.add_argument('--num_reads', type=int, help='number of reads in dataset', required=True)
