@@ -1,9 +1,6 @@
 import tensorflow as tf
 import horovod.tensorflow as hvd
 import tensorflow.keras as keras
-from tensorflow.python.keras.utils import tf_utils
-from tensorflow.python.keras import backend
-from tensorflow.python.keras.mixed_precision import device_compatibility_check
 from nvidia.dali.pipeline import pipeline_def
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
@@ -18,22 +15,23 @@ import numpy as np
 import math
 import io
 import random
-from models import AlexNet, VGG16, VDCNN
+from models import AlexNet
 import argparse
 
 
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
-print(tf.executing_eagerly())
+print(f'Is eager execution enabled: {tf.executing_eagerly()}')
+
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
 
 # enable XLA = XLA (Accelerated Linear Algebra) is a domain-specific compiler for linear algebra that can accelerate
-# TensorFlow models with potentially no source code changes
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
+
 # Initialize Horovod
 hvd.init()
-# Pin GPU to be used to process local rank (one GPU per process)
+# Map one GPU per process
 # use hvd.local_rank() for gpu pinning instead of hvd.rank()
 gpus = tf.config.experimental.list_physical_devices('GPU')
 print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
@@ -124,52 +122,46 @@ def testing_step(reads, labels, loss, val_loss, val_accuracy, model):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-input_dir', type=str, help='path to tfrecords')
-    parser.add_argument('-output_dir', type=str, help='path to store model')
-    parser.add_argument('-run_num', type=str, help='run number')
-    parser.add_argument('-resume', action='store_true', default=False)
-    parser.add_argument('-epoch_to_resume', type=int, required=('-resume' in sys.argv))
-    parser.add_argument('-resume_num', type=int, required=('-resume' in sys.argv))
-    # define some training and model parameters
-    parser.add_argument('-epochs', type=int, help='number of epochs')
-    parser.add_argument('-dropout_rate', type=float, help='dropout rate to apply to layers')
-    parser.add_argument('-batch_size', type=int, help='batch size per gpu')
-    parser.add_argument('-num_train_samples', type=int, help='number of reads in training set')
-    parser.add_argument('-num_val_samples', type=int, help='number of reads in validation set')
-    parser.add_argument('-init_lr', type=float, help='initial learning rate')
-    parser.add_argument('-lr_decay', type=int, help='number of epochs before dividing learning rate in half')
+    parser.add_argument('--tfrecords', type=str, help='path to tfrecords')
+    parser.add_argument('--idx_files', type=str, help='path to dali index files')
+    parser.add_argument('--class_mapping', type=str, help='path to json file containing dictionary mapping taxa to labels')
+    parser.add_argument('--output_dir', type=str, help='path to store model')
+    parser.add_argument('--resume', action='store_true', default=False)
+    parser.add_argument('--epoch_to_resume', type=int, required=('-resume' in sys.argv))
+    parser.add_argument('--model', type=str, help='path to entire tensorflow model saved in a single folder', required=('-resume' in sys.argv))
+    parser.add_argument('--epochs', type=int, help='number of epochs', default=30)
+    parser.add_argument('--dropout_rate', type=float, help='dropout rate to apply to layers', default=0.7)
+    parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
+    parser.add_argument('--num_train_samples', type=int, help='number of reads in training set')
+    parser.add_argument('--num_val_samples', type=int, help='number of reads in validation set')
+    parser.add_argument('--init_lr', type=float, help='initial learning rate', default=0.0001)
+    parser.add_argument('--lr_decay', type=int, help='number of epochs before dividing learning rate in half', default=20)
     args = parser.parse_args()
+
     VECTOR_SIZE = 250 - 12 + 1
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
 
-
-    print(f'{hvd.rank()}/{hvd.local_rank()} # train samples: {args.num_train_samples}')
-    print(f'{hvd.rank()}/{hvd.local_rank()} # val samples: {args.num_val_samples}')
-
     # load class_mapping file mapping label IDs to species
-    f = open(os.path.join(args.input_dir, 'class_mapping.json'))
+    f = open(os.path.join(args.class_mapping))
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
 
     # create dtype policy
     policy = keras.mixed_precision.Policy('mixed_float16')
     keras.mixed_precision.set_global_policy(policy)
-    print('Compute dtype: %s' % policy.compute_dtype)
-    print('Variable dtype: %s' % policy.variable_dtype)
+    # print('Compute dtype: %s' % policy.compute_dtype)
+    # print('Variable dtype: %s' % policy.variable_dtype)
 
-    # load training and validation tfrecords
-    train_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'train*.tfrec')))
-    train_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', 'train-tfrec-*.tfrec.idx')))
-    val_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'val*.tfrec')))
-    val_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', 'val-tfrec-*.tfrec.idx')))
-    print(f'{hvd.rank()}/{hvd.local_rank()} # train files: {len(train_files)}\t{len(train_idx_files)}\t{train_files}\t{train_idx_files}')
-    print(f'{hvd.rank()}/{hvd.local_rank()} # val files: {len(val_files)}\t{len(val_idx_files)}\t{val_files}\t{val_idx_files}')
-
+    # Get training and validation tfrecords
+    train_files = sorted(glob.glob(os.path.join(args.tfrecords, 'train*.tfrec')))
+    train_idx_files = sorted(glob.glob(os.path.join(args.idx_files, 'train*.idx')))
+    val_files = sorted(glob.glob(os.path.join(args.tfrecords, 'val*.tfrec')))
+    val_idx_files = sorted(glob.glob(os.path.join(args.idx_files, 'val*.idx')))
+    # compute number of steps/batches per epoch
     nstep_per_epoch = args.num_train_samples // (args.batch_size*hvd.size())
-    print(f'{hvd.rank()}/{hvd.local_rank()} # steps per epoch for whole train dataset: {nstep_per_epoch}')
+    # compute number of steps/batches to iterate over entire validation set
     val_steps = args.num_val_samples // (args.batch_size*hvd.size())
-    print(f'{hvd.rank()}/{hvd.local_rank()} # steps for whole val dataset: {val_steps}')
 
     num_preprocessing_threads = 4
     train_preprocessor = DALIPreprocessor(train_files, train_idx_files, args.batch_size, num_preprocessing_threads, VECTOR_SIZE,
@@ -182,12 +174,11 @@ def main():
 
     # define model, output directory and epoch number
     if args.resume:
-        model = tf.keras.models.load_model(os.path.join(args.input_dir, f'run-{args.run_num}', 'ckpts/model'))
-        args.output_dir = os.path.join(args.output_dir, f'run-{args.run_num}', f'resume-{args.resume_num}')
+        model = tf.keras.models.load_model(args.model)
+        args.output_dir = os.path.join(args.output_dir, f'resume-from-epoch-{args.epoch_to_resume}')
         epoch = args.epoch_to_resume
     else:
-        model = AlexNet(args.input_dir, VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.run_num)
-        args.output_dir = os.path.join(args.output_dir, f'run-{args.run_num}')
+        model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.output_dir)
         epoch = 1
 
     # define metrics
@@ -209,6 +200,8 @@ def main():
         ckpt_dir = os.path.join(args.output_dir, 'ckpts')
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
+
+        # create checkpoint object to save model
         checkpoint = tf.train.Checkpoint(model=model, optimizer=opt)
 
         # create directory for storing logs
@@ -216,15 +209,15 @@ def main():
         if not os.path.exists(tensorboard_dir):
             os.makedirs(tensorboard_dir)
 
-        writer = tf.summary.create_file_writer(tensorboard_dir)
-        conv_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
-        emb_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
-        dense_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
-        grads_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
+        # writer = tf.summary.create_file_writer(tensorboard_dir)
+        # conv_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
+        # emb_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
+        # dense_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
+        # grads_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
 
         # create summary file
         with open(os.path.join(args.output_dir, 'training-summary'), 'w') as f:
-            f.write(f'Run: {args.run_num}\nNumber of classes: {NUM_CLASSES}\nEpochs: {args.epochs}\nVector size: {VECTOR_SIZE}\nVocabulary size: {VOCAB_SIZE}\nEmbedding size: {EMBEDDING_SIZE}\nDropout rate: {args.dropout_rate}\nBatch size per gpu: {args.batch_size}\nGlobal batch size: {args.batch_size*hvd.size()}\nNumber of gpus: {hvd.size()}\nTraining set size: {args.num_train_samples}\nValidation set size: {args.num_val_samples}\nNumber of steps per epoch for each process: {nstep_per_epoch}\nNumber of stepsfor each process and for whole validation dataset: {val_steps}\nInitial learning rate: {args.init_lr}\nLearning rate decay: every {args.lr_decay} epochs')
+            f.write(f'Number of classes: {NUM_CLASSES}\nEpochs: {args.epochs}\nVector size: {VECTOR_SIZE}\nVocabulary size: {VOCAB_SIZE}\nEmbedding size: {EMBEDDING_SIZE}\nDropout rate: {args.dropout_rate}\nBatch size per gpu: {args.batch_size}\nGlobal batch size: {args.batch_size*hvd.size()}\nNumber of gpus: {hvd.size()}\nTraining set size: {args.num_train_samples}\nValidation set size: {args.num_val_samples}\nNumber of steps per epoch: {nstep_per_epoch}\nNumber of steps for validation dataset: {val_steps}\nInitial learning rate: {args.init_lr}\nLearning rate decay: every {args.lr_decay} epochs')
 
 
     start = datetime.datetime.now()
@@ -233,8 +226,7 @@ def main():
         # get training loss
         loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
         if batch % 100 == 0 and hvd.rank() == 0:
-            print(f'GPU: {hvd.rank()}/{hvd.local_rank()} - Step {batch} - Training loss: {loss_value} - Training accuracy: {train_accuracy.result().numpy()*100}')
-            print(f'Epoch: {epoch} - Step: {batch} - learning rate: {opt.learning_rate}')
+            print(f'Epoch: {epoch} - Step: {batch} - learning rate: {opt.learning_rate} - Training loss: {loss_value} - Training accuracy: {train_accuracy.result().numpy()*100}')
             # write metrics
             with writer.as_default():
                 tf.summary.scalar("learning_rate", opt.learning_rate, step=batch)
@@ -254,36 +246,36 @@ def main():
                 opt.learning_rate = new_lr
 
             if hvd.rank() == 0:
-                print(f'Process {hvd.local_rank()}/{hvd.rank()} - Epoch: {epoch} - Step: {batch} - Validation loss: {val_loss.result().numpy()} - Validation accuracy: {val_accuracy.result().numpy()*100}')
+                print(f'Epoch: {epoch} - Step: {batch} - Validation loss: {val_loss.result().numpy()} - Validation accuracy: {val_accuracy.result().numpy()*100}')
                 # save weights
-                checkpoint.save(ckpt_dir)
-                model.save(os.path.join(ckpt_dir, 'model'))
+                checkpoint.save(os.path.join(ckpt_dir, 'ckpt'))
+                model.save(os.path.join(args.output_dir, 'model'))
                 with writer.as_default():
                     tf.summary.scalar("val_loss", val_loss.result().numpy(), step=epoch)
                     tf.summary.scalar("val_accuracy", val_accuracy.result().numpy(), step=epoch)
                     writer.flush()
                 # save embedding weights
-                emb_weights = model.get_layer('embedding').get_weights()
-                with emb_summary_writer.as_default():
-                    tf.summary.histogram('embeddings', emb_weights[0], step=epoch)
-                    emb_summary_writer.flush()
-                # save C1 layer weights
-                weights_conv = model.get_layer('conv_1').get_weights()
-                with conv_summary_writer.as_default():
-                    tf.summary.histogram('conv_1/weights', weights_conv[0], step=epoch)
-                    tf.summary.histogram('conv_1/bias', weights_conv[1], step=epoch)
-                    conv_summary_writer.flush()
-                # save output layer weights
-                weights_dense = model.get_layer('last_dense').get_weights()
-                with dense_summary_writer.as_default():
-                    tf.summary.histogram('last_dense/weights', weights_dense[0], step=epoch)
-                    tf.summary.histogram('last_dense/bias', weights_dense[1], step=epoch)
-                    dense_summary_writer.flush()
-                # save gradients
-                with grads_summary_writer.as_default():
-                    curr_grad = gradients[0]
-                    tf.summary.histogram('grad_histogram', curr_grad, step=epoch)
-                    grads_summary_writer.flush()
+                # emb_weights = model.get_layer('embedding').get_weights()
+                # with emb_summary_writer.as_default():
+                #     tf.summary.histogram('embeddings', emb_weights[0], step=epoch)
+                #     emb_summary_writer.flush()
+                # # save C1 layer weights
+                # weights_conv = model.get_layer('conv_1').get_weights()
+                # with conv_summary_writer.as_default():
+                #     tf.summary.histogram('conv_1/weights', weights_conv[0], step=epoch)
+                #     tf.summary.histogram('conv_1/bias', weights_conv[1], step=epoch)
+                #     conv_summary_writer.flush()
+                # # save output layer weights
+                # weights_dense = model.get_layer('last_dense').get_weights()
+                # with dense_summary_writer.as_default():
+                #     tf.summary.histogram('last_dense/weights', weights_dense[0], step=epoch)
+                #     tf.summary.histogram('last_dense/bias', weights_dense[1], step=epoch)
+                #     dense_summary_writer.flush()
+                # # save gradients
+                # with grads_summary_writer.as_default():
+                #     curr_grad = gradients[0]
+                #     tf.summary.histogram('grad_histogram', curr_grad, step=epoch)
+                #     grads_summary_writer.flush()
 
             # reset metrics variables
             val_loss.reset_states()
