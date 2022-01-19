@@ -97,7 +97,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
-    parser.add_argument('--class_mapping', type=str, help='directory containing class_mapping.json file', required=True)
+    parser.add_argument('--class_mapping', type=str, help='path to json file containing dictionary mapping taxa to labels', required=True)
     parser.add_argument('--output_dir', type=str, help='directory to store results', required=True)
     parser.add_argument('--set_type', type=str, help='type of dataset', choices=['test', 'val', 'train'])
     # parser.add_argument('-tfrecord', type=str, help='tfrecord file to test')
@@ -114,9 +114,9 @@ def main():
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
     DROPOUT_RATE = 0.7
-    # test_steps = math.ceil(args.num_reads/(args.batch_size*hvd.size()))
+
     # load class_mapping file mapping label IDs to species
-    f = open(os.path.join(args.class_mapping, 'class_mapping.json'))
+    f = open(args.class_mapping)
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
     # create dtype policy
@@ -132,18 +132,11 @@ def main():
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
-    # if hvd.rank() == 0:
     # create output directory
     output_dir = os.path.join(args.output_dir, f'testing-{args.set_type}-set')
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-        # restore the checkpointed values to the model
-#        checkpoint = tf.train.Checkpoint(model)
-#        checkpoint.restore(tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts')))
-#        ckpt_path = os.path.join(input_dir, f'run-{run_num}', 'ckpts/ckpts')
-#        latest_ckpt = tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts'))
-#        print(f'latest ckpt: {latest_ckpt}')
-#        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
+
     # load model
     if args.ckpt is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
@@ -151,25 +144,13 @@ def main():
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
     elif args.model is not None:
         model = tf.keras.models.load_model(args.model, 'model')
-
-        # create empty lists to store true and predicted classes
-        # pred_classes = []
-        # true_classes = []
-
-    # create output file --> only done by master gpu
-    # if hvd.rank() == 0:
-    #     outfile = open(os.path.join(output_dir, f'testing-summary'), 'w')
-    #     outfile.write(f'testing set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {args.batch_size}\nglobal batch size: {args.batch_size*hvd.size()}\nnumber of gpus: {hvd.size()}\n')
-    #     if args.ckpt:
-    #         outfile.write(f'checkpoint saved at epoch: {args.epoch}')
-    #     else:
-    #         outfile.write(f'model saved at last epoch')
-
-    # load testing tfrecords
-    # if args.tfrecord is not None:
-    #     test_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', args.tfrecord)))
-    #     test_idx_files = sorted(glob.glob(os.path.join(args.input_dir, 'tfrecords', 'idx_files', f'{args.tfrecord}.idx')))
-    # else:
+            # restore the checkpointed values to the model
+    #        checkpoint = tf.train.Checkpoint(model)
+    #        checkpoint.restore(tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts')))
+    #        ckpt_path = os.path.join(input_dir, f'run-{run_num}', 'ckpts/ckpts')
+    #        latest_ckpt = tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts'))
+    #        print(f'latest ckpt: {latest_ckpt}')
+    #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
 
     # get list of testing tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'{args.set_type}*.tfrec')))
@@ -261,10 +242,6 @@ def main():
 
     # compute average accuracy across all species
     accuracy = round(float(num_correct_pred)/(num_correct_pred + num_incorrect_pred), 5)
-    # compute precision and recall for all species
-    get_metrics(cm, class_mapping, args.output_dir, 'species')
-    # compute ROC and decision thresholds for all species
-
 
     end = datetime.datetime.now()
     total_time = end - start
@@ -280,58 +257,6 @@ def main():
             outfile.write(f'model saved at last epoch')
 
         outfile.write(f'\naccuracy: {test_accuracy.result().numpy()*100}\naccuracy: {accuracy}\nloss: {test_loss.result().numpy()}\nrun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}')
-
-    # end = datetime.datetime.now()
-
-    # if hvd.rank() == 0:
-    #     print(len(pred_classes), len(true_classes))
-    #     # adjust list of predicted and true species
-    #     if len(pred_classes) > args.num_reads:
-    #         num_extra_reads = (test_steps*args.batch_size) - args.num_reads
-    #         pred_classes = pred_classes[:-num_extra_reads]
-    #         true_classes = true_classes[:-num_extra_reads]
-    #     print(len(pred_classes), len(true_classes))
-    #     # create empty dictionary to store number of reads
-    #     test_reads = defaultdict(int)
-    #     for l in true_classes:
-    #         test_reads[l] += 1
-    #     # get precision and recall for each species
-    #     list_labels = [class_mapping[str(i)] for i in range(len(class_mapping))]
-    #     metrics_report(true_classes, pred_classes, list_labels, os.path.join(output_dir), class_mapping, test_reads, 'species', hvd.rank())
-        # create list of colors for species
-        # colors = get_colors('species', list_labels, input_dir)
-        # ROCcurve(true_vectors, pred_vectors, class_mapping, output_dir, 'species', colors)
-        # get results at other ranks
-        # for r in ['genus', 'family', 'order', 'class']:
-        #     # load dictionary mapping species labels to other ranks labels
-        #     with open(os.path.join(input_dir, f'{r}_species_mapping_dict.json')) as f_json:
-        #         rank_species_mapping = json.load(f_json)
-        #     rank_pred_classes = [rank_species_mapping[str(i)] for i in pred_classes]
-        #     rank_true_classes = [rank_species_mapping[str(i)] for i in true_classes]
-        #     # get precision and recall for each class
-        #     with open(os.path.join(input_dir, f'{r}_mapping_dict.json')) as f_json:
-        #         rank_mapping = json.load(f_json)
-        #     # get list of labels sorted
-        #     rank_labels = [rank_mapping[str(i)] for i in range(len(rank_mapping))]
-        #     # create dictionary to store number of reads
-        #     rank_reads = defaultdict(int)
-        #     for l in rank_true_classes:
-        #         rank_reads[l] += 1
-        #     metrics_report(rank_true_classes, rank_pred_classes, rank_labels, os.path.join(output_dir), rank_mapping, rank_reads, r, hvd.rank())
-        #     r_colors = get_colors(r, rank_labels, input_dir)
-        #     ROCcurve(true_vectors, pred_vectors, rank_mapping, output_dir, r, r_colors)
-
-
-
-    # total_time = end - start
-    # hours, seconds = divmod(total_time.seconds, 3600)
-    # minutes, seconds = divmod(seconds, 60)
-    # # get true and predicted classes
-    # outfile.write(f'Testing accuracy: {test_accuracy.result().numpy()*100}\t')
-    # outfile.write(f'Testing loss: {test_loss.result().numpy()}\t')
-    # outfile.write("Testing took %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-    # print("\nTesting took %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-
 
 
 if __name__ == "__main__":
