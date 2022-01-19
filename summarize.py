@@ -140,13 +140,15 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     list_pred_files = sorted(glob.glob(os.path.join(args.results_dir, 'pred-probs-*.npy')))
     list_true_files = sorted(glob.glob(os.path.join(args.results_dir, 'true-probs-*.npy')))
 
+    print(len(list_true_files))
+
     fpr = {}
     tpr = {}
     thresholds = {}
     J_stats = [None] * len(species_in_test_set)
     opt_thresholds = [None] * len(species_in_test_set)
-
     J_stats_max = defaultdict(int)
+
     for i in range(len(list_pred_files)):
         pred_arr = np.load(list_pred_files[i])
         true_arr = np.load(list_true_files[i])
@@ -155,12 +157,14 @@ def ROCcurve(args, class_mapping, species_in_test_set):
             # Compute Youden's J statistics for each taxon
             J_stats[j] = tpr[j] - fpr[j]
             jstat_max_index = np.argmax(J_stats[j])
+            if j == 0:
+                print(i, j, J_stats_max[j], J_stats[j][jstat_max_index])
+                print(j, fpr[j], tpr[j], thresholds[j], J_stats[j], jstat_max_index, thresholds[j][jstat_max_index])
+                print(len(fpr[j]), len(tpr[j]), len(thresholds[j]), len(J_stats[j]))
             if J_stats_max[j] < J_stats[j][jstat_max_index]:
-                print(j, J_stats_max[j], J_stats[j][jstat_max_index])
                 J_stats_max[j] = J_stats[j][jstat_max_index]
                 opt_thresholds[j] = thresholds[j][jstat_max_index]
-                print(j, fpr[j], tpr[j], thresholds[j], J_stats[j], jstat_max_index, opt_thresholds[j])
-                print(len(fpr[j]), len(tpr[j]), len(thresholds[j]), len(J_stats[j]))
+
 
     print(f'size of J_stats: {len(J_stats)}\tsize of opt_thresholds: {len(opt_thresholds)}')
     print(opt_thresholds)
