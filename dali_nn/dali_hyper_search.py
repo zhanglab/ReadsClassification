@@ -7,8 +7,9 @@ import nvidia.dali.tfrecord as tfrec
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorboard.plugins.hparams import api as hp
+#from tensorboard.plugins.hparams import api as hp
 from keras.callbacks import TensorBoard
+from keras import backend as K
 
 from glob import glob
 import argparse
@@ -36,12 +37,16 @@ print("NCCL DEBUG SET")
 os.environ["NCCL_DEBUG"] = "WARN"
 
 # setup hyperparameters to experiment
-HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([32, 64, 128, 256]))
-HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.5, 0.6))
-HP_EMBEDDING_SIZE = hp.HParam('embedding_size', hp.Discrete([20, 60, 100]))
+#HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([32, 64, 128, 256]))
+#HP_DROPOUT_RATE = hp.HParam('dropout_rate', hp.RealInterval(0.5, 0.6))
+#HP_EMBEDDING_SIZE = hp.HParam('embedding_size', hp.Discrete([20, 60, 100]))
 #HP_OPTIMIZER = hp.HParam('optimizer', hp.Discrete(['adam', 'sgd', 'rmsprop']))
-
-METRIC_ACCURACY = 'accuracy'
+#HP_BATCH_SIZE = [250, 128, 64]
+#HP_DROPOUT_RATE = [0.5, 0.6]
+#HP_EMBEDDING_SIZE = [60, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70]
+HP_BATCH_SIZE = [512, 256, 128, 64]
+HP_DROPOUT_RATE = [0.5, 0.6]
+HP_EMBEDDING_SIZE = [50, 55, 60, 65, 70]
 
 # get list of all visible GPUs
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -153,115 +158,124 @@ class TFRecordPipeline(Pipeline):
         return (reads, labels)
 
 
-def train_test_model(args, ckpts_dir, lc_filename, hparams, strategy):
-    # Define model to train: AlexNet
-    model = tf.keras.models.Sequential(
-        [
-            tf.keras.layers.Input(shape=(args.vector_size), dtype='int32'),
-            tf.keras.layers.Embedding(input_dim=args.vocab_size + 1, output_dim=hparams[HP_EMBEDDING_SIZE],
+def train_test_model(args, ckpts_dir, lc_filename, run_dir, hparams, train_tfrecord, train_tfrecord_idx, val_tfrecord, val_tfrecord_idx):
+    
+    dict_gpus = {'1': ['/gpu:0'], '2': ['/gpu:0', '/gpu:1'], '3': ['/gpu:0', '/gpu:1', '/gpu:2'], '4': ['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3']}
+    # create an instance of strategy to perform synchronous training across multiple gpus
+    strategy = tf.distribute.MirroredStrategy(devices=dict_gpus[str(args.gpus)])
+    with strategy.scope():
+        # Define model to train: AlexNet
+        model = tf.keras.models.Sequential(
+            [
+                tf.keras.layers.Input(shape=(args.vector_size), dtype='int32'),
+                tf.keras.layers.Embedding(input_dim=args.vocab_size + 1, output_dim=hparams['embedding_size'],
                                       input_length=args.vector_size, mask_zero=True, trainable=True),
-            tf.keras.layers.Reshape((args.vector_size, hparams[HP_EMBEDDING_SIZE], 1)),
-            tf.keras.layers.Conv2D(96, kernel_size=(11, 11), strides=(4, 4), padding='same'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
-            tf.keras.layers.Conv2D(256, kernel_size=(5, 5), strides=(1, 1), padding='same'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
-            tf.keras.layers.Conv2D(384, kernel_size=(3, 3), strides=(1, 1), padding='same'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.Conv2D(384, kernel_size=(3, 3), strides=(1, 1), padding='same'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.Conv2D(256, kernel_size=(3, 3), strides=(1, 1), padding='same'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(units=4096),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.Dropout(hparams[HP_DROPOUT]),
-            tf.keras.layers.Dense(units=4096),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.Dropout(hparams[HP_DROPOUT]),
-            tf.keras.layers.Dense(units=1000),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('relu'),
-            tf.keras.layers.Dropout(hparams[HP_DROPOUT]),
-            tf.keras.layers.Dense(args.num_classes),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Activation('softmax'),
-        ]
-    )
-
-    model.compile(loss='sparse_categorical_crossentropy', metrics=['accuracy'],
+                tf.keras.layers.Reshape((args.vector_size, hparams['embedding_size'], 1)),
+                tf.keras.layers.Conv2D(96, kernel_size=(11, 11), strides=(4, 4), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
+                tf.keras.layers.Conv2D(256, kernel_size=(5, 5), strides=(1, 1), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
+                tf.keras.layers.Conv2D(384, kernel_size=(3, 3), strides=(1, 1), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.Conv2D(384, kernel_size=(3, 3), strides=(1, 1), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.Conv2D(256, kernel_size=(3, 3), strides=(1, 1), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
+                tf.keras.layers.Flatten(),
+                tf.keras.layers.Dense(units=4096),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.Dropout(hparams['dropout_rate']),
+                tf.keras.layers.Dense(units=4096),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.Dropout(hparams['dropout_rate']),
+                tf.keras.layers.Dense(units=1000),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('relu'),
+                tf.keras.layers.Dropout(hparams['dropout_rate']),
+                tf.keras.layers.Dense(args.num_classes),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Activation('softmax'),
+            ]
+        )
+        
+        with open(os.path.join(run_dir, 'model'), 'w+') as model_file:
+            model.summary(print_fn=lambda x: model_file.write(x + '\n'))
+        
+        model.compile(loss='sparse_categorical_crossentropy', metrics=['accuracy'],
                   optimizer='adam')
 
-    # define shapes and types of data and labels
-    shapes = (
-        (hparams[HP_BATCH_SIZE], args.vector_size),
-        (hparams[HP_BATCH_SIZE]))
-    dtypes = (
-        tf.int64,
-        tf.int64)
+        # define shapes and types of data and labels
+        shapes = (
+            (hparams['batch_size'], args.vector_size),
+            (hparams['batch_size']))
+        dtypes = (
+            tf.int64,
+            tf.int64)
 
-    # distribute dataset
-    def train_dataset_fn(input_context):
-        with tf.device("/gpu:{}".format(input_context.input_pipeline_id)):
-            device_id = input_context.input_pipeline_id
-            return dali_tf.DALIDataset(fail_on_device_mismatch=False,
-                                       pipeline=TFRecordPipeline(hparams[HP_BATCH_SIZE], args.train_tfrecord, args.train_tfrecord_idx,
+        # distribute dataset
+        def train_dataset_fn(input_context):
+            with tf.device("/gpu:{}".format(input_context.input_pipeline_id)):
+                device_id = input_context.input_pipeline_id
+                return dali_tf.DALIDataset(fail_on_device_mismatch=False,
+                                       pipeline=TFRecordPipeline(hparams['batch_size'], train_tfrecord, train_tfrecord_idx,
                                                                  device_id=device_id, shard_id=device_id,
                                                                  num_shards=args.gpus),
-                                       batch_size=hparams[HP_BATCH_SIZE], output_shapes=shapes, output_dtypes=dtypes,
+                                       batch_size=hparams['batch_size'], output_shapes=shapes, output_dtypes=dtypes,
                                        device_id=device_id)
 
-    def val_dataset_fn(input_context):
-        with tf.device("/gpu:{}".format(input_context.input_pipeline_id)):
-            device_id = input_context.input_pipeline_id
-            return dali_tf.DALIDataset(fail_on_device_mismatch=False,
-                                       pipeline=TFRecordPipeline(hparams[HP_BATCH_SIZE], args.val_tfrecord, args.val_tfrecord_idx,
+        def val_dataset_fn(input_context):
+            with tf.device("/gpu:{}".format(input_context.input_pipeline_id)):
+                device_id = input_context.input_pipeline_id
+                return dali_tf.DALIDataset(fail_on_device_mismatch=False,
+                                       pipeline=TFRecordPipeline(hparams['batch_size'], val_tfrecord, val_tfrecord_idx,
                                                                  device_id=device_id, shard_id=device_id,
                                                                  num_shards=args.gpus),
-                                       batch_size=hparams[HP_BATCH_SIZE], output_shapes=shapes, output_dtypes=dtypes,
+                                       batch_size=hparams['batch_size'], output_shapes=shapes, output_dtypes=dtypes,
                                        device_id=device_id)
 
-    # get distributed datasets
-    input_options = tf.distribute.InputOptions(
-        experimental_place_dataset_on_device=True,
-        experimental_prefetch_to_device=False,
-        experimental_replication_mode=tf.distribute.InputReplicationMode.PER_REPLICA)
+        # get distributed datasets
+        input_options = tf.distribute.InputOptions(
+            experimental_place_dataset_on_device=True,
+            experimental_prefetch_to_device=False,
+            experimental_replication_mode=tf.distribute.InputReplicationMode.PER_REPLICA)
 
-    train_dataset = strategy.distribute_datasets_from_function(train_dataset_fn, input_options)
-    val_dataset = strategy.distribute_datasets_from_function(val_dataset_fn, input_options)
+        train_dataset = strategy.distribute_datasets_from_function(train_dataset_fn, input_options)
+        val_dataset = strategy.distribute_datasets_from_function(val_dataset_fn, input_options)
 
-    if args.early_stopping == 'true':
-        history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.validation_steps, verbose=2,
+        if args.early_stopping == 'true':
+            history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.validation_steps, verbose=2,
                                 callbacks=[tf.keras.callbacks.LearningRateScheduler(scheduler), CreateCheckpoints(ckpts_dir),
                                            hp.KerasCallback(os.path.join(args.full_input_path, f'logs-fold{args.fold}-hparams'), hparams), EarlyStoppingAtMinLoss()])
 
-    elif args.early_stopping == 'false':
-        history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.training_steps, verbose=2,
-                                callbacks=[CreateCheckpoints(ckpts_dir),tf.keras.callbacks.LearningRateScheduler(scheduler),
-                                  hp.KerasCallback(os.path.join(args.full_input_path, f'logs-fold{args.fold}-hparams'), hparams)])
+        elif args.early_stopping == 'false':
+#        history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.training_steps, verbose=2,
+#                                callbacks=[CreateCheckpoints(ckpts_dir),tf.keras.callbacks.LearningRateScheduler(scheduler),
+#                                  hp.KerasCallback(os.path.join(args.full_input_path, f'logs-fold{args.fold}-hparams'), hparams)])
+            history = model.fit(train_dataset, epochs=args.epochs, steps_per_epoch=args.training_steps, verbose=2,
+                                callbacks=[CreateCheckpoints(ckpts_dir),tf.keras.callbacks.LearningRateScheduler(scheduler),LRTensorBoard(log_dir=run_dir)], validation_data=val_dataset, validation_steps=args.validation_steps, validation_freq=5)
+        _, accuracy = model.evaluate(val_dataset, steps=args.validation_steps, verbose=2)
 
-    _, accuracy = model.evaluate(val_dataset, validation_steps=args.validation_steps)
+        # create learning curves
+        learning_curves(history, lc_filename, 'hp')
 
-    # create learning curves
-    learning_curves(history, lc_filename)
-
-    return accuracy
+        return accuracy
 
 
-def run(args, run_dir, ckpts_dir, lc_filename, hparams, strategy):
+def run(args, run_dir, ckpts_dir, lc_filename, hparams, train_tfrecord, train_tfrecord_idx, val_tfrecord, val_tfrecord_idx):
     with tf.summary.create_file_writer(run_dir).as_default():
-        hp.hparams(hparams)  # record the values used in this trial
-        accuracy = train_test_model(args, ckpts_dir, lc_filename, hparams, strategy)
-        tf.summary.scalar(METRIC_ACCURACY, accuracy, step=1)
+        #hp.hparams(hparams)  # record the values used in this trial
+        accuracy = train_test_model(args, ckpts_dir, lc_filename, run_dir, hparams, train_tfrecord, train_tfrecord_idx, val_tfrecord, val_tfrecord_idx)
+        tf.summary.scalar('accuracy', accuracy, step=1)
 
 if __name__ == '__main__':
     
@@ -290,13 +304,13 @@ if __name__ == '__main__':
     READ_LENGTH = 250
     args.num_classes = len(class_mapping)
     NUM_DEVICES = args.gpus  # number of GPUs
-    args.vocab_size = 8390658
+    args.vocab_size = 8390657
     args.vector_size = READ_LENGTH - K_VALUE + 1
 
-    args.train_tfrecord = os.path.join(args.input_path, 'tfrecords', f'training_data_fold{args.fold}.tfrec')
-    args.train_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/training_data_fold{args.fold}.tfrec.idx')
-    args.val_tfrecord = os.path.join(args.input_path, 'tfrecords', f'validation_data_fold{args.fold}.tfrec')
-    args.val_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/validation_data_fold{args.fold}.tfrec.idx')
+    train_tfrecord = os.path.join(args.input_path, 'tfrecords', f'training_data_fold{args.fold}.tfrec')
+    train_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/training_data_fold{args.fold}.tfrec.idx')
+    val_tfrecord = os.path.join(args.input_path, 'tfrecords', f'validation_data_fold{args.fold}.tfrec')
+    val_tfrecord_idx = os.path.join(args.input_path, 'tfrecords', f'idx_files/validation_data_fold{args.fold}.tfrec.idx')
 
     # write down settings for training
     f = open(os.path.join(args.full_input_path, f'HP-info-cv-fold{args.fold}'), 'w')
@@ -304,53 +318,51 @@ if __name__ == '__main__':
         f'read length: {READ_LENGTH}\nk value: {K_VALUE}\nnumber of devices: {NUM_DEVICES}\nnumber of classes: {args.num_classes}\n'
         f'number of kmers: {args.vocab_size}\ninput size: {args.vector_size}\n')
 
-    with tf.summary.create_file_writer(os.path.join(args.full_input_path, 'logs/hparam_tuning')).as_default():
-        hp.hparams_config(
-            hparams=[HP_DROPOUT, HP_EMBEDDING_SIZE, HP_BATCH_SIZE],
-            metrics=[hp.Metric(METRIC_ACCURACY, display_name='Accuracy')],
-        )   
+#    with tf.summary.create_file_writer(os.path.join(args.full_input_path, 'logs/hparam_tuning')).as_default():
+#        hp.hparams_config(
+#            hparams=[HP_DROPOUT_RATE, HP_EMBEDDING_SIZE, HP_BATCH_SIZE],
+#            metrics=[hp.Metric(METRIC_ACCURACY, display_name='Accuracy')],
+#        )   
 
     print("Fit model on training data")
-    # create an instance of strategy to perform synchronous training across multiple gpus
-    strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1'])
-    #strategy = tf.distribute.MirroredStrategy(devices=['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3'])
-    session_num = 0
-    with strategy.scope():
-        for batch_size in HP_BATCH_SIZE.domain.values:
-            for dropout_rate in (HP_DROPOUT.domain.min_value, HP_DROPOUT.domain.max_value):
-                for optimizer in HP_EMBEDDING_SIZE.domain.values:
-                    hparams  = {
-                        HP_BATCH_SIZE: batch_size,
-                        HP_DROPOUT: dropout_rate,
-                        HP_EMBEDDING_SIZE: optimizer
-                    }
-                    tf.compat.v1.reset_default_graph()
-                    start = datetime.datetime.now()
-                    run_name = "run-%d" % session_num
+    session_num = 1
+    #with strategy.scope():
+    for batch_size in HP_BATCH_SIZE:
+        for dropout_rate in HP_DROPOUT_RATE:
+            for embedding_size in HP_EMBEDDING_SIZE:
+                hparams  = {
+                    'batch_size': batch_size,
+                    'dropout_rate': dropout_rate,
+                    'embedding_size': embedding_size
+                }
+                print(hparams)
+                tf.compat.v1.reset_default_graph()
+                start = datetime.datetime.now()
+                run_name = "run-%d" % session_num
 
-                    CKPTS_DIR = os.path.join(args.full_input_path, f'{run_name}', 'ckpts')
-                    LC_FILENAME = os.path.join(args.full_input_path, f'{run_name}', f'LearningCurves.png')
+                CKPTS_DIR = os.path.join(args.full_input_path, f'{run_name}', 'ckpts')
+                LC_FILENAME = os.path.join(args.full_input_path, f'{run_name}', f'LearningCurves.png')
                     
-                    GLOBAL_BATCH_SIZE = NUM_DEVICES * hparams[HP_BATCH_SIZE]
-                    args.training_steps = math.ceil(args.training_size / GLOBAL_BATCH_SIZE)
-                    args.validation_steps = math.ceil(args.validation_size / GLOBAL_BATCH_SIZE)
+                GLOBAL_BATCH_SIZE = NUM_DEVICES * batch_size
+                args.training_steps = math.ceil(args.training_size / GLOBAL_BATCH_SIZE)
+                args.validation_steps = math.ceil(args.validation_size / GLOBAL_BATCH_SIZE)
 
-                    f.write(f'Run {run_name}\n')
-                    for h in hparams:
-                        f.write(f'{h.name}:\t{hparams[h]}\n')
-                    f.write(f'global batch size: {GLOBAL_BATCH_SIZE}\n'
-                            f'training steps: {args.training_steps}\n'
-                            f'validation steps: {args.validation_steps}\n')
+                f.write(f'\nRun {run_name}\n')
+                for h_name, h_value  in hparams.items():
+                    f.write(f'{h_name}:\t{h_value}\n')
+                f.write(f'global batch size: {GLOBAL_BATCH_SIZE}\n'
+                        f'training steps: {args.training_steps}\n'
+                        f'validation steps: {args.validation_steps}\n')
                     
-                    print(f'Starting trial: {run_name}')
-                    print({h.name: hparams[h] for h in hparams})
-                    run(args, os.path.join(args.full_input_path, f'logs-fold{args.fold}/hparam_tuning', run_name), CKPTS_DIR, LC_FILENAME, hparams, strategy)
-                    end = datetime.datetime.now()
-                    total_time = end - start
-                    hours, seconds = divmod(total_time.seconds, 3600)
-                    minutes, seconds = divmod(seconds, 60)
-                    print("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
-                    f.write(f'runtime: {hours}:{minutes}:{seconds}.{total_time.microseconds}\n')
+                print(f'Starting trial: {run_name}')
+                run(args, os.path.join(args.full_input_path, f'logs-fold{args.fold}/hparam_tuning', run_name), CKPTS_DIR, LC_FILENAME, hparams, train_tfrecord, train_tfrecord_idx, val_tfrecord, val_tfrecord_idx)
+                end = datetime.datetime.now()
+                total_time = end - start
+                hours, seconds = divmod(total_time.seconds, 3600)
+                minutes, seconds = divmod(seconds, 60)
+                print("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
+                f.write(f'runtime: {hours}:{minutes}:{seconds}.{total_time.microseconds}\n')
+                session_num += 1
     f.close()
 
 

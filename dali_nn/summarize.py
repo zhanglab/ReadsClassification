@@ -44,7 +44,7 @@ def create_barplot_testing(test_data, filename, class_mapping):
     ax.set_ylabel('# reads', fontsize=15)
     plt.savefig(f'{filename}', bbox_inches='tight')
 
-def learning_curves(history, filename):
+def learning_curves(history, filename, mode='std'):
     # plot learning curves
     plt.clf()
     fig = plt.figure(dpi=500)
@@ -54,20 +54,23 @@ def learning_curves(history, filename):
     fig.subplots_adjust(bottom=0.2)
     fig.set_size_inches(7, 7)
     # Set range of y axis to 0.0 - max of the four lists
-    combined_lists = history.history['loss'] + history.history['val_loss'] + history.history['accuracy'] + \
+    if mode == 'std':
+        combined_lists = history.history['loss'] + history.history['val_loss'] + history.history['accuracy'] + \
                      history.history['val_accuracy']
+    elif mode == 'hp':
+        combined_lists = history.history['loss'] + history.history['accuracy']
+
     max_range = max(combined_lists)
     ax2.set_ylim(0, 1)
     ax1.set_ylim(0, max_range)
     # Get x-axis values
     list_num_epochs = list(range(1, len(history.history['loss']) + 1, 1))
     x_coords = [i for i in range(1, len(history.history['loss']) + 1)]
-
-    ax2.plot(list_num_epochs, history.history['val_accuracy'], color='salmon', linewidth=2.0,
+    if mode == 'std':
+        ax2.plot(list_num_epochs, history.history['val_accuracy'], color='salmon', linewidth=2.0,
              label='Average Validation Accuracy')
-    ax2.plot(list_num_epochs, history.history['accuracy'], color='lightsalmon', linewidth=2.0,
-             label='Average Training Accuracy')
-    ax1.plot(list_num_epochs, history.history['val_loss'], color='dodgerblue', linewidth=2.0, label='Validation Loss')
+        ax1.plot(list_num_epochs, history.history['val_loss'], color='dodgerblue', linewidth=2.0, label='Validation Loss')
+    ax2.plot(list_num_epochs, history.history['accuracy'], color='lightsalmon', linewidth=2.0, label='Average Training Accuracy')
     ax1.plot(list_num_epochs, history.history['loss'], color='skyblue', linewidth=2.0, label='Training Loss')
     ax1.set_ylabel('Loss', fontsize=14, labelpad=12)
     ax1.set_xlabel('Number of epochs', fontsize=14, labelpad=12)

@@ -1,4 +1,11 @@
 import numpy as np
+<<<<<<< HEAD
+from Bio import SeqIO
+#import tensorflow as tf
+import argparse
+import sys
+=======
+>>>>>>> 7d085726df5c31623f41b692ab7e9c37de104aa1
 
 def get_reverse_seq(read):
     """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
@@ -14,6 +21,7 @@ def get_reverse_seq(read):
 def vocab_dict(filename):
     """ Turns the vocabulary into a dict={kmer: id} """
     kmer_to_id = {}
+    num_kmer = 1
     with open(filename) as handle:
         for line in handle:
             kmer = line.rstrip().split('\t')[0]
@@ -38,12 +46,12 @@ def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     for i in range(len(read)):
         if i + k_value >= len(read) + 1:
             break
-        kmer = seq[i:i + k_value]
+        kmer = read[i:i + k_value]
         idx = get_kmer_index(kmer, dict_kmers)
         list_kmers.append(idx)
 
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
-
+    
     return np.array(list_kmers)

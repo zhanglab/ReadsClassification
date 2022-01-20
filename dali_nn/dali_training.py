@@ -36,6 +36,15 @@ print("NCCL DEBUG SET")
 os.environ["NCCL_DEBUG"] = "WARN"
 
 
+# get list of all visible GPUs
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+    # enable memory growth to prevent the runtime initialization to allocate all memory on the device
+    tf.config.experimental.set_memory_growth(gpu, True)
+if gpus:
+    tf.config.experimental.set_visible_devices(gpus, 'GPU')
+
+
 def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATION_STEPS, train_tfrecord, train_tfrecord_idx,
                  val_tfrecord, val_tfrecord_idx, LR_LOGS_DIR, CKPTS_DIR, LC_FILENAME, BP_FILENAME, LAST_EPOCH, VECTOR_SIZE, EMBEDDING_SIZE, DROPOUT_RATE, VOCAB_SIZE, NUM_CLASSES, full_input_path):
 
@@ -51,12 +60,12 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
         tf.int64)
 
     # get list of all visible GPUs
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    for gpu in gpus:
+#    gpus = tf.config.experimental.list_physical_devices('GPU')
+#    for gpu in gpus:
         # enable memory growth to prevent the runtime initialization to allocate all memory on the device
-        tf.config.experimental.set_memory_growth(gpu, True)
-    if gpus:
-        tf.config.experimental.set_visible_devices(gpus, 'GPU')
+#        tf.config.experimental.set_memory_growth(gpu, True)
+#    if gpus:
+#        tf.config.experimental.set_visible_devices(gpus, 'GPU')
 
     # def dataset_options():
     #     options = tf.data.Options()
@@ -143,7 +152,7 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
     class TFRecordPipeline(Pipeline):
         def __init__(self, batch_size, tfrecord, tfrecord_idx, device_id=0, shard_id=0, num_shards=1, num_threads=4, seed=0):
             super(TFRecordPipeline, self).__init__(batch_size, num_threads, device_id, seed)
-            self.input = ops.TFRecordReader(path=tfrecord, random_shuffle=True, shard_id=shard_id, num_shards=num_shards,
+            self.input = ops.TFRecordReader(path=tfrecord, random_shuffle=False, shard_id=shard_id, num_shards=num_shards,
                                             index_path=tfrecord_idx,
                                             features={"read": tfrec.VarLenFeature([], tfrec.int64, 0),
                                                     "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
@@ -155,9 +164,9 @@ def run_training(args, NUM_DEVICES, BATCH_SIZE, EPOCHS, TRAINING_STEPS, VALIDATI
             labels = labels.gpu()
             return (reads, labels)
 
-    dict_gpus = {'1': '/gpu:0', '2': '/gpu:0, /gpu:1', '3': '/gpu:0, /gpu:1, /gpu:2', '4': '/gpu:0, /gpu:1, /gpu:2, /gpu:3'}
+    dict_gpus = {'1': ['/gpu:0'], '2': ['/gpu:0', '/gpu:1'], '3': ['/gpu:0', '/gpu:1', '/gpu:2'], '4': ['/gpu:0', '/gpu:1', '/gpu:2', '/gpu:3']}
     # create an instance of strategy to perform synchronous training across multiple gpus
-    strategy = tf.distribute.MirroredStrategy(devices=[dict_gpus[str(NUM_DEVICES)]])
+    strategy = tf.distribute.MirroredStrategy(devices=dict_gpus[str(NUM_DEVICES)])
     with strategy.scope():
         # Define model to train: AlexNet
         if args.model is not None:
