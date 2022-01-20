@@ -19,7 +19,7 @@ def create_meta_tfrecords(args):
     """ Converts metagenomic reads to tfrecords """
     outfile = open('/'.join([args.output_dir, args.output_prefix + '-read_ids.tsv']), 'w')
     with tf.compat.v1.python_io.TFRecordWriter(args.output_tfrec) as writer:
-        with gzip.open(args.input_fastq "rt") as handle:
+        with gzip.open(args.input_fastq, "rt") as handle:
             for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
                 read = str(rec.seq)
                 read_id = rec.id
