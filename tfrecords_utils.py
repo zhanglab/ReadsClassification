@@ -1,11 +1,4 @@
 import numpy as np
-<<<<<<< HEAD
-from Bio import SeqIO
-#import tensorflow as tf
-import argparse
-import sys
-=======
->>>>>>> 7d085726df5c31623f41b692ab7e9c37de104aa1
 
 def get_reverse_seq(read):
     """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
@@ -19,7 +12,7 @@ def get_reverse_seq(read):
 
 
 def vocab_dict(filename):
-    """ Turns the vocabulary into a dict={kmer: id} """
+    """ Returns dictionary mapping kmers to their id. """
     kmer_to_id = {}
     num_kmer = 1
     with open(filename) as handle:
