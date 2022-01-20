@@ -13,8 +13,8 @@ def wrap_read(value):
 def wrap_label(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-def wrap_ID(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+# def wrap_ID(value):
+    # return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 def create_meta_tfrecords(args):
     """ Converts metagenomic reads to tfrecords """
@@ -29,7 +29,7 @@ def create_meta_tfrecords(args):
                 data = \
                     {
                         'read': wrap_read(kmer_array),
-                        'read_id': wrap_ID(count)
+                        'read_id': wrap_label(count)
                     }
                 feature = tf.train.Features(feature=data)
                 example = tf.train.Example(features=feature)
