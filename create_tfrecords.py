@@ -77,7 +77,7 @@ def main():
 
     args = parser.parse_args()
     args.output_prefix = args.input_fastq.split('/')[-1].split('.')[0]
-    args.output_tfrec = os.path.join(args.output_dir, output_prefix + '.tfrec')
+    args.output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
     args.kmer_vector_length = args.read_length - args.k_value + 1
     # get dictionary mapping kmers to indexes
     args.dict_kmers = vocab_dict(args.vocab)
