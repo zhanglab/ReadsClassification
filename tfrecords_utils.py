@@ -1,9 +1,11 @@
-import os
 import numpy as np
+<<<<<<< HEAD
 from Bio import SeqIO
 #import tensorflow as tf
 import argparse
 import sys
+=======
+>>>>>>> 7d085726df5c31623f41b692ab7e9c37de104aa1
 
 def get_reverse_seq(read):
     """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
@@ -22,12 +24,9 @@ def vocab_dict(filename):
     num_kmer = 1
     with open(filename) as handle:
         for line in handle:
-            kmer = line.rstrip()
-            #kmer = line.rstrip().split('\t')[0]
-            #idx = line.rstrip().split('\t')[1]
-            #kmer_to_id[kmer] = int(idx)
-            kmer_to_id[kmer] = num_kmer
-            num_kmer += 1
+            kmer = line.rstrip().split('\t')[0]
+            idx = line.rstrip().split('\t')[1]
+            kmer_to_id[kmer] = int(idx)
     return kmer_to_id
 
 def get_kmer_index(kmer, dict_kmers):
@@ -44,26 +43,15 @@ def get_kmer_index(kmer, dict_kmers):
 def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     """ Converts a DNA sequence split into a list of k-mers """
     list_kmers = []
-<<<<<<< HEAD:tools/tfrecords_utils.py
-#    for i in range(len(read)):
-#        if i + k_value >= len(read) + 1:
-#            break
-    for i in range(0, len(read)-k_value, 1):
-        kmer = read[i:i + k_value]
-        idx = kmer2index(kmer, dict_kmers)
-=======
     for i in range(len(read)):
         if i + k_value >= len(read) + 1:
             break
-        kmer = seq[i:i + k_value]
+        kmer = read[i:i + k_value]
         idx = get_kmer_index(kmer, dict_kmers)
->>>>>>> debae18cf1762d4a75da007aa4a029d7afec6507:tfrecords_utils.py
         list_kmers.append(idx)
+
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
-<<<<<<< HEAD:tools/tfrecords_utils.py
-=======
-
->>>>>>> debae18cf1762d4a75da007aa4a029d7afec6507:tfrecords_utils.py
+    
     return np.array(list_kmers)
