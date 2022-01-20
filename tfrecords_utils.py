@@ -13,13 +13,12 @@ def get_reverse_seq(read):
 
 def vocab_dict(filename):
     """ Returns dictionary mapping kmers to their id. """
+    """ Starts index at 1 instead to use 0 as a special padding value.  """
     kmer_to_id = {}
-    num_kmer = 1
-    with open(filename) as handle:
-        for line in handle:
-            kmer = line.rstrip().split('\t')[0]
-            idx = line.rstrip().split('\t')[1]
-            kmer_to_id[kmer] = int(idx)
+    with open(filename) as infile:
+        for count, line in enumerate(infile, 1):
+            kmer = line.rstrip()
+            kmer_to_id[kmer] = count
     return kmer_to_id
 
 def get_kmer_index(kmer, dict_kmers):
@@ -46,5 +45,5 @@ def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
-    
+
     return np.array(list_kmers)
