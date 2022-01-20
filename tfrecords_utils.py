@@ -5,11 +5,8 @@ from Bio import SeqIO
 import argparse
 import sys
 
-def forward2reverse(read):
-    """
-    Converts an k-mer to its reverse complement.
-    All ambiguous bases are treated as Ns.
-    """
+def get_reverse_seq(read):
+    """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
     translation_dict = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N",
                         "K": "N", "M": "N", "R": "N", "Y": "N", "S": "N",
                         "W": "N", "B": "N", "V": "N", "H": "N", "D": "N",
@@ -20,9 +17,7 @@ def forward2reverse(read):
 
 
 def vocab_dict(filename):
-    """
-    Turns the vocabulary into a dict={kmer: id}.
-    """
+    """ Turns the vocabulary into a dict={kmer: id} """
     kmer_to_id = {}
     num_kmer = 1
     with open(filename) as handle:
@@ -35,32 +30,40 @@ def vocab_dict(filename):
             num_kmer += 1
     return kmer_to_id
 
-def kmer2index(kmer, dict_kmers):
+def get_kmer_index(kmer, dict_kmers):
     """Convert kmers into their corresponding index"""
     if kmer in dict_kmers:
         idx = dict_kmers[kmer]
-    elif forward2reverse(kmer) in dict_kmers:
-        idx = dict_kmers[forward2reverse(kmer)]
+    elif get_reverse_seq(kmer) in dict_kmers:
+        idx = dict_kmers[get_reverse_seq(kmer)]
     else:
         idx = dict_kmers['unknown']
 
     return idx
 
-def seq2kmer(read, k_value, dict_kmers, kmer_vector_length):
-    """
-    Converts a DNA sequence split into a list of k-mers.
-    Returns:
-         kmer_array: a numpy array of corresponding k-mer indexes.
-    """
+def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
+    """ Converts a DNA sequence split into a list of k-mers """
     list_kmers = []
+<<<<<<< HEAD:tools/tfrecords_utils.py
 #    for i in range(len(read)):
 #        if i + k_value >= len(read) + 1:
 #            break
     for i in range(0, len(read)-k_value, 1):
         kmer = read[i:i + k_value]
         idx = kmer2index(kmer, dict_kmers)
+=======
+    for i in range(len(read)):
+        if i + k_value >= len(read) + 1:
+            break
+        kmer = seq[i:i + k_value]
+        idx = get_kmer_index(kmer, dict_kmers)
+>>>>>>> debae18cf1762d4a75da007aa4a029d7afec6507:tfrecords_utils.py
         list_kmers.append(idx)
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
+<<<<<<< HEAD:tools/tfrecords_utils.py
+=======
+
+>>>>>>> debae18cf1762d4a75da007aa4a029d7afec6507:tfrecords_utils.py
     return np.array(list_kmers)
