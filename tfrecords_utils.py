@@ -1,9 +1,4 @@
-import os
 import numpy as np
-from Bio import SeqIO
-import tensorflow as tf
-import argparse
-import sys
 
 def get_reverse_seq(read):
     """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
