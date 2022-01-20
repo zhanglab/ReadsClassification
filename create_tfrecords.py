@@ -3,6 +3,7 @@ import numpy as np
 from Bio import SeqIO
 import tensorflow as tf
 import argparse
+import gzip
 import sys
 from tfrecords_utils import vocab_dict, get_kmer_arr
 
