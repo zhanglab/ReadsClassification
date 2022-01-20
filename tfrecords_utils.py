@@ -5,11 +5,8 @@ import tensorflow as tf
 import argparse
 import sys
 
-def forward2reverse(read):
-    """
-    Converts an k-mer to its reverse complement.
-    All ambiguous bases are treated as Ns.
-    """
+def get_reverse_seq(read):
+    """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
     translation_dict = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N",
                         "K": "N", "M": "N", "R": "N", "Y": "N", "S": "N",
                         "W": "N", "B": "N", "V": "N", "H": "N", "D": "N",
@@ -20,9 +17,7 @@ def forward2reverse(read):
 
 
 def vocab_dict(filename):
-    """
-    Turns the vocabulary into a dict={kmer: id}.
-    """
+    """ Turns the vocabulary into a dict={kmer: id} """
     kmer_to_id = {}
     with open(filename) as handle:
         for line in handle:
@@ -31,29 +26,25 @@ def vocab_dict(filename):
             kmer_to_id[kmer] = int(idx)
     return kmer_to_id
 
-def kmer2index(kmer, dict_kmers):
+def get_kmer_index(kmer, dict_kmers):
     """Convert kmers into their corresponding index"""
     if kmer in dict_kmers:
         idx = dict_kmers[kmer]
-    elif forward2reverse(kmer) in dict_kmers:
-        idx = dict_kmers[forward2reverse(kmer)]
+    elif get_reverse_seq(kmer) in dict_kmers:
+        idx = dict_kmers[get_reverse_seq(kmer)]
     else:
         idx = dict_kmers['unknown']
 
     return idx
 
-def seq2kmer(read, k_value, dict_kmers, kmer_vector_length):
-    """
-    Converts a DNA sequence split into a list of k-mers.
-    Returns:
-         kmer_array: a numpy array of corresponding k-mer indexes.
-    """
+def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
+    """ Converts a DNA sequence split into a list of k-mers """
     list_kmers = []
     for i in range(len(read)):
         if i + k_value >= len(read) + 1:
             break
         kmer = seq[i:i + k_value]
-        idx = kmer2index(kmer, dict_kmers)
+        idx = get_kmer_index(kmer, dict_kmers)
         list_kmers.append(idx)
 
     if len(list_kmers) < kmer_vector_length:
