@@ -1,4 +1,5 @@
 import numpy as np
+import gzip
 
 def get_reverse_seq(read):
     """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
