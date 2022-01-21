@@ -127,6 +127,7 @@ def main():
     if hvd.rank() == 0:
         # create output directories
         if not os.path.isdir(args.output_dir):
+            os.makedirs(args.output_dir)
             for i in range(NUM_CLASSES):
                 os.makedirs(os.path.join(args.output_dir, f'bin-{i}'))
 
@@ -146,8 +147,8 @@ def main():
     #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
 
     # get list of testing tfrecords and number of reads per tfrecords
-    test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'{args.set_type}*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, f'{args.set_type}*.idx')))
+    test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
+    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count.tsv')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv')))
 
