@@ -159,6 +159,12 @@ def main():
     gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
     gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
 
+    print(test_files_per_gpu)
+    print(hvd.rank(), len(gpu_test_files), gpu_test_files)
+    print(hvd.rank(), len(gpu_test_idx_files), gpu_test_idx_files)
+    print(hvd.rank(), len(gpu_num_reads_files), gpu_num_reads_files)
+    print(hvd.rank(), len(gpu_read_ids_files), gpu_read_ids_files)
+
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
         # get number of reads in test file
