@@ -126,9 +126,9 @@ def main():
 
     if hvd.rank() == 0:
         # create output directories
-        if not os.path.isdir(output_dir):
+        if not os.path.isdir(args.output_dir):
             for i in range(NUM_CLASSES):
-                os.makedirs(os.path.join(output_dir, f'bin-{i}'))
+                os.makedirs(os.path.join(args.output_dir, f'bin-{i}'))
 
     # load model
     if args.ckpt is not None:
@@ -199,7 +199,7 @@ def main():
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
-        with open(os.path.join(output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
+        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 gpu_bins[pred_species[j]].append(all_read_ids[j])
                 out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
@@ -216,7 +216,7 @@ def main():
             reads = {records[j].split('\n')[0].split(' ')[0]: records[j] for j in range(len(records))}
 
         # report species abundance and create bins
-        with open(os.path.join(output_dir, f'{gpu_test_files[i].split(".")[0]}-results.tsv'), 'w') as out_f:
+        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-results.tsv'), 'w') as out_f:
             for key, value in gpu_bins.items():
                 out_f.write(f'{key}\t{len(value)}\n')
                 # create fastq files from bins
@@ -229,7 +229,7 @@ def main():
     hours, seconds = divmod(total_time.seconds, 3600)
     minutes, seconds = divmod(seconds, 60)
 
-    with open(os.path.join(output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
+    with open(os.path.join(args.output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
         outfile.write(f'batch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files: {len(gpu_test_files)}\nnumber of reads classified: {num_reads_classified}\n')
         if args.ckpt:
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
