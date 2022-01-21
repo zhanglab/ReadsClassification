@@ -149,7 +149,7 @@ def main():
     # get list of testing tfrecords and number of reads per tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
-    num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count.tsv')))
+    num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv')))
     print(test_files)
     print(test_idx_files)
