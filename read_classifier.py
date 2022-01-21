@@ -13,6 +13,7 @@ import glob
 import datetime
 import numpy as np
 import math
+import gzip
 from collections import defaultdict
 from models import AlexNet
 import argparse
@@ -209,7 +210,7 @@ def main():
             dict_read_ids = {content[j].rstrip().split('\t')[1]: content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
         # get reads
-        with open(os.path.join(args.input_fastq, f'{gpu_test_files[i].split('.')[0]}.fq'), 'r') as f:
+        with gzip.open(os.path.join(args.input_fastq, f'{gpu_test_files[i].split('.')[0]}.fastq.gz'), 'rt') as f:
             content = f.readlines()
             records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
             reads = {records[j].split('\n')[0].split(' ')[0]: records[j] for j in range(len(records))}
