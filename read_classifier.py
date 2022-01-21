@@ -199,7 +199,7 @@ def main():
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
-        with open(os.path.join(output_dir, f'{gpu_test_files[i].split('.')[0]}-prob.tsv'), 'w') as out_f:
+        with open(os.path.join(output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 gpu_bins[pred_species[j]].append(all_read_ids[j])
                 out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
@@ -210,17 +210,17 @@ def main():
             dict_read_ids = {content[j].rstrip().split('\t')[1]: content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
         # get reads
-        with gzip.open(os.path.join(args.input_fastq, f'{gpu_test_files[i].split('.')[0]}.fastq.gz'), 'rt') as f:
+        with gzip.open(os.path.join(args.input_fastq, f'{gpu_test_files[i].split(".")[0]}.fastq.gz'), 'rt') as f:
             content = f.readlines()
             records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
             reads = {records[j].split('\n')[0].split(' ')[0]: records[j] for j in range(len(records))}
 
         # report species abundance and create bins
-        with open(os.path.join(output_dir, f'{gpu_test_files[i].split('.')[0]}-results.tsv'), 'w') as out_f:
+        with open(os.path.join(output_dir, f'{gpu_test_files[i].split(".")[0]}-results.tsv'), 'w') as out_f:
             for key, value in gpu_bins.items():
                 out_f.write(f'{key}\t{len(value)}\n')
                 # create fastq files from bins
-                with open(os.path.join(args.output_dir, f'bin-{key}', f'{gpu_test_files[i].split('.')[0]}.fq'), 'w') as out_fq:
+                with open(os.path.join(args.output_dir, f'bin-{key}', f'{gpu_test_files[i].split(".")[0]}.fq'), 'w') as out_fq:
                     list_reads_in_bin = [reads[j] for j in value]
                     out_fq.write(''.join(list_reads_in_bin))
 
