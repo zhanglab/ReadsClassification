@@ -151,10 +151,6 @@ def main():
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv')))
-    print(test_files)
-    print(test_idx_files)
-    print(num_reads_files)
-    print(read_ids_files)
 
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
@@ -162,15 +158,8 @@ def main():
     gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
     gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
     gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-    print(len(gpu_test_files))
-    print(gpu_test_files)
-    print(len(gpu_test_idx_files))
-    print(gpu_test_idx_files)
-    print(len(gpu_num_reads_files))
-    print(gpu_num_reads_files)
-    print(len(gpu_read_ids_files))
-    print(gpu_read_ids_files)
 
+    num_reads_classified = 0
     for i in range(len(gpu_test_files)):
         # get number of reads in test file
         with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
