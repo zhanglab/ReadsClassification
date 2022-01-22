@@ -85,9 +85,6 @@ def main():
     args.kmer_vector_length = args.read_length - args.k_value + 1
     # get dictionary mapping kmers to indexes
     args.dict_kmers = vocab_dict(args.vocab)
-    # create output directory
-    if not os.path.isdir(args.output_dir):
-        os.makedirs(args.output_dir)
 
     if args.dataset_type == 'sim':
         create_tfrecords(args)
