@@ -154,12 +154,18 @@ def main():
 
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
-    gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-    gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-    gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-    gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+    if hvd.rank() != hvd.size() - 1:
+        gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+    else:
+        gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:len(test_files)]
+        gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:len(test_files)]
+        gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
+        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)]
 
-    print(test_files_per_gpu)
+    print(len(test_files), test_files)
     print(hvd.rank(), len(gpu_test_files), gpu_test_files)
     print(hvd.rank(), len(gpu_test_idx_files), gpu_test_idx_files)
     print(hvd.rank(), len(gpu_num_reads_files), gpu_num_reads_files)
