@@ -29,6 +29,34 @@ Reads were simulated using ART read simulator (give parameters) and converted to
 The complete dataset information is given in the following table:
 
 | Genome | Species | Training | Validation | Testing |
+|:------:|:-------:|:--------:|:----------:|:-------:|
+|GCA_000495505.1| Campylobacter testudinum |   34796  |   14912    |         |
+|GCA_000832905.1| Bacillus_E coagulans |   65989  |   28281    |         |
+
+
+
+
+0       GCF_000814265.1 34816   14920
+1       GCA_000832905.1 65989   28281
+2       GCA_001697145.1 39226   16810
+2       GCF_900636525.1 36393   15597
+3       GCA_002243705.1 55116   23620
+4       GCA_003325215.1 106463  45627
+4       GCF_001629755.1 93674   40146
+4       GCF_001629775.1 93674   40146
+4       GCF_002211865.1 95237   40815
+4       GCF_002211965.1 99505   42645
+4       GCF_002794415.1 99711   42733
+4       GCF_003994555.1 95193   40797
+4       GCF_003994635.1 95266   40828
+4       GCF_004126495.1 94717   40593
+4       GCF_900475895.1 93835   40215
+5       GCA_006974205.1 100264  42970
+5       GCF_003182655.1 100793  43197
+5       GCF_003355135.1 99456   42624
+
+
+
 0 Campylobacter testudinum d__Bacteria;p__Campylobacterota;c__Campylobacteria;o__Campylobacterales;f__Campylobacteraceae;g__Campylobacter;s__Campylobacter testudinum
 1 Bacillus_E coagulans d__Bacteria;p__Firmicutes;c__Bacilli;o__Bacillales;f__Bacillaceae_C;g__Bacillus_E;s__Bacillus_E coagulans
 2 Streptococcus anginosus_C d__Bacteria;p__Firmicutes;c__Bacilli;o__Lactobacillales;f__Streptococcaceae;g__Streptococcus;s__Streptococcus anginosus_C
