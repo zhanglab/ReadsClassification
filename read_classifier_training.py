@@ -209,7 +209,7 @@ def main():
         if not os.path.exists(tensorboard_dir):
             os.makedirs(tensorboard_dir)
 
-        # writer = tf.summary.create_file_writer(tensorboard_dir)
+        writer = tf.summary.create_file_writer(tensorboard_dir)
         # conv_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
         # emb_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
         # dense_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
