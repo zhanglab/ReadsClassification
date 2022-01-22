@@ -66,9 +66,6 @@ def create_tfrecords(args):
         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
             f.write(f'{count}')
 
-    outfile.close()
-
-
 def main():
 
     parser = argparse.ArgumentParser()
