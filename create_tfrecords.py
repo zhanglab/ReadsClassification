@@ -36,6 +36,9 @@ def create_meta_tfrecords(args):
                 serialized = example.SerializeToString()
                 writer.write(serialized)
 
+                if count == 10:
+                    break
+
         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
             f.write(f'{count}')
 
