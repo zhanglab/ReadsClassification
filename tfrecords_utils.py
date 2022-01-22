@@ -35,9 +35,7 @@ def get_kmer_index(kmer, dict_kmers):
 def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     """ Converts a DNA sequence split into a list of k-mers """
     list_kmers = []
-    for i in range(len(read)):
-        if i + k_value >= len(read) + 1:
-            break
+    for i in range(0, len(read)-k_value+1, 1):
         kmer = read[i:i + k_value]
         idx = get_kmer_index(kmer, dict_kmers)
         list_kmers.append(idx)
@@ -45,5 +43,5 @@ def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
-
+    print(len(list_kmers), len(read))
     return np.array(list_kmers)
