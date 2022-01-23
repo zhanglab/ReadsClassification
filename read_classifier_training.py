@@ -219,7 +219,7 @@ def main():
 
         # create summary file
         with open(os.path.join(args.output_dir, 'training-summary'), 'w') as f:
-            f.write(f'Number of classes: {NUM_CLASSES}\nEpochs: {args.epochs}\nVector size: {VECTOR_SIZE}\nVocabulary size: {VOCAB_SIZE}\nEmbedding size: {EMBEDDING_SIZE}\nDropout rate: {args.dropout_rate}\nBatch size per gpu: {args.batch_size}\nGlobal batch size: {args.batch_size*hvd.size()}\nNumber of gpus: {hvd.size()}\nTraining set size: {args.num_train_samples}\nValidation set size: {args.num_val_samples}\nNumber of steps per epoch: {nstep_per_epoch}\nNumber of steps for validation dataset: {val_steps}\nInitial learning rate: {args.init_lr}\nLearning rate decay: every {args.lr_decay} epochs')
+            f.write(f'Number of classes\t{NUM_CLASSES}\nEpochs\t{args.epochs}\nVector size\t{VECTOR_SIZE}\nVocabulary size\t{VOCAB_SIZE}\nEmbedding size\t{EMBEDDING_SIZE}\nDropout rate\t{args.dropout_rate}\nBatch size per gpu\t{args.batch_size}\nGlobal batch size\t{args.batch_size*hvd.size()}\nNumber of gpus\t{hvd.size()}\nTraining set size\t{args.num_train_samples}\nValidation set size\t{args.num_val_samples}\nNumber of steps per epoch\t{nstep_per_epoch}\nNumber of steps for validation dataset\t{val_steps}\nInitial learning rate\t{args.init_lr}\nLearning rate decay\t{args.lr_decay}')
 
 
     start = datetime.datetime.now()
@@ -301,9 +301,6 @@ def main():
 
     end = datetime.datetime.now()
 
-    td_writer.close()
-    vd_writer.close()
-
     if hvd.rank() == 0:
         total_time = end - start
         hours, seconds = divmod(total_time.seconds, 3600)
@@ -311,6 +308,8 @@ def main():
         with open(os.path.join(args.output_dir, 'training-summary'), 'a') as f:
             f.write("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
         print("\nTook %02d:%02d:%02d.%d\n" % (hours, minutes, seconds, total_time.microseconds))
+        td_writer.close()
+        vd_writer.close()
 
 if __name__ == "__main__":
     main()
