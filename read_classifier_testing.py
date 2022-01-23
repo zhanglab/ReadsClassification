@@ -150,11 +150,21 @@ def main():
     # get list of testing tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'{args.set_type}*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, f'{args.set_type}*.idx')))
+    num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
 
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
-    gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-    gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+    # gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+    # gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+
+    if hvd.rank() != hvd.size() - 1:
+        gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+    else:
+        gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:len(test_files)]
+        gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:len(test_files)]
+        gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
 
     # create empty confusion matrix with rows = true classes and columns = predicted classes
     cm = np.zeros((NUM_CLASSES, NUM_CLASSES))
@@ -166,7 +176,8 @@ def main():
     f_prob = open(os.path.join(output_dir, f'probabilities-{hvd.rank()}.tsv'), 'w')
     for i in range(len(gpu_test_files)):
         # get number of reads in test file
-        num_reads = args.num_reads - (len(test_files)*1000000) if i == len(test_files) - 1 else 1000000
+        with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
+            num_reads = int(f.readline()[0])
         num_reads_tested += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
