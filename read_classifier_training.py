@@ -235,7 +235,7 @@ def main():
                 tf.summary.scalar("train_loss", loss_value, step=batch)
                 tf.summary.scalar("train_accuracy", train_accuracy.result().numpy(), step=batch)
                 writer.flush()
-            td_writer(f'{epoch}\t{batch}\t{opt.learning_rate}\t{loss_value}\t{train_accuracy.result().numpy()}\n')
+            td_writer.write(f'{epoch}\t{batch}\t{opt.learning_rate}\t{loss_value}\t{train_accuracy.result().numpy()}\n')
 
         # evaluate model at the end of every epoch
         if batch % nstep_per_epoch == 0:
@@ -257,7 +257,7 @@ def main():
                     tf.summary.scalar("val_loss", val_loss.result().numpy(), step=epoch)
                     tf.summary.scalar("val_accuracy", val_accuracy.result().numpy(), step=epoch)
                     writer.flush()
-                vd_writer(f'{epoch}\t{batch}\t{val_loss}\t{val_accuracy}\n')
+                vd_writer.write(f'{epoch}\t{batch}\t{val_loss}\t{val_accuracy}\n')
                 # save embedding weights
                 # emb_weights = model.get_layer('embedding').get_weights()
                 # with emb_summary_writer.as_default():
