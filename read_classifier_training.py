@@ -210,8 +210,8 @@ def main():
             os.makedirs(tensorboard_dir)
 
         writer = tf.summary.create_file_writer(tensorboard_dir)
-        td_writer = open(os.path.join(args.output_dir, 'logs', 'training_data.tsv'))
-        vd_writer = open(os.path.join(args.output_dir, 'logs', 'validation_data.tsv'))
+        td_writer = open(os.path.join(args.output_dir, 'logs', 'training_data.tsv'), 'w')
+        vd_writer = open(os.path.join(args.output_dir, 'logs', 'validation_data.tsv'), 'w')
         # conv_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
         # emb_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
         # dense_summary_writer = tf.summary.create_file_writer(tensorboard_dir)
@@ -300,6 +300,9 @@ def main():
         out_v.close()
 
     end = datetime.datetime.now()
+
+    td_writer.close()
+    vd_writer.close()
 
     if hvd.rank() == 0:
         total_time = end - start
