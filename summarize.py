@@ -163,7 +163,15 @@ def ROCcurve(args, class_mapping, species_in_test_set):
             jstat_optimal_index = np.argmax(J_stats[j])
             opt_thresholds[j] = thresholds[j][jstat_optimal_index]
             jstat_opt_thresholds[j] = round(J_stats[j][jstat_optimal_index], 2)
-            print(j, opt_thresholds[j], jstat_opt_thresholds[j])
+            if j == 0:
+                print(j, opt_thresholds[j], jstat_opt_thresholds[j])
+                print(fpr[j])
+                print(tpr[j])
+                print(J_stats[j])
+                print(thresholds[j])
+                print(jstat_optimal_index)
+                print(opt_thresholds[j])
+                print(jstat_opt_thresholds[j])
             f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_opt_thresholds[j]}\n')
         else:
             f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
