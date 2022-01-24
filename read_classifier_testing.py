@@ -175,7 +175,7 @@ def main():
     for i in range(len(gpu_test_files)):
         # get number of reads in test file
         with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
-            num_reads = int(f.readline()[0])
+            num_reads = int(f.readlines()[0])
         num_reads_tested += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
