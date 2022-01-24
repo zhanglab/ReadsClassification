@@ -7,24 +7,24 @@ import itertools
 import numpy as np
 from sklearn import metrics
 from sklearn.metrics import roc_curve, auc, roc_auc_score
-from sklearn.metrics import jaccard_score
-from sklearn.metrics import precision_recall_curve
-from sklearn.metrics import average_precision_score
+# from sklearn.metrics import jaccard_score
+# from sklearn.metrics import precision_recall_curve
+# from sklearn.metrics import average_precision_score
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.ioff()
 
-def get_colors(tax_rank, list_taxa, input_path):
-    colors = ['salmon', 'red', 'orange', 'limegreen', 'deepskyblue', 'dodgerblue',
-    'slategrey', 'royalblue', 'darkorchid', 'violet', 'magenta', 'navy', 'green', 'gold',
-    'chocolate', 'black', 'yellow', 'deeppink', 'blue', 'cyan']
-    # select a number of colors equal to the number of taxa
-    colors_s = random.choices(colors, k=(len(list_taxa)))
-    dict_colors = dict(zip(list_taxa, colors_s))
-    with open(os.path.join(input_path, f'{tax_rank}-colors.json'), "w") as f:
-        json.dump(dict_colors, f)
-    return dict_colors
+# def get_colors(tax_rank, list_taxa, input_path):
+#     colors = ['salmon', 'red', 'orange', 'limegreen', 'deepskyblue', 'dodgerblue',
+#     'slategrey', 'royalblue', 'darkorchid', 'violet', 'magenta', 'navy', 'green', 'gold',
+#     'chocolate', 'black', 'yellow', 'deeppink', 'blue', 'cyan']
+#     # select a number of colors equal to the number of taxa
+#     colors_s = random.choices(colors, k=(len(list_taxa)))
+#     dict_colors = dict(zip(list_taxa, colors_s))
+#     with open(os.path.join(input_path, f'{tax_rank}-colors.json'), "w") as f:
+#         json.dump(dict_colors, f)
+#     return dict_colors
 
 # def create_barplot_training(train_data, val_data, filename, class_mapping):
 #     list_taxa = [class_mapping[str(i)] for i in range(len(class_mapping))]
@@ -135,38 +135,28 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
 
 
 def ROCcurve(args, class_mapping, species_in_test_set):
-    # tpr, fpr and thresholds are computed based on sklearn tutorial https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
-    # get arrays of predicted probabilities and true values
+
     list_pred_files = sorted(glob.glob(os.path.join(args.results_dir, 'pred-probs-*.npy')))
     list_true_files = sorted(glob.glob(os.path.join(args.results_dir, 'true-probs-*.npy')))
 
-    print(len(list_true_files))
+    print(len(list_true_files), len(list_pred_files))
 
     fpr = {}
     tpr = {}
     thresholds = {}
     J_stats = [None] * len(species_in_test_set)
     opt_thresholds = [None] * len(species_in_test_set)
-    J_stats_max = defaultdict(int)
 
-    for i in range(len(list_pred_files)):
-        pred_arr = np.load(list_pred_files[i])
-        true_arr = np.load(list_true_files[i])
-        for j in species_in_test_set:
-            fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
-            # Compute Youden's J statistics for each taxon
-            J_stats[j] = tpr[j] - fpr[j]
-            jstat_max_index = np.argmax(J_stats[j])
-            if j == 0:
-                print(i, j, J_stats_max[j], J_stats[j][jstat_max_index])
-                print(j, fpr[j], tpr[j], thresholds[j], J_stats[j], jstat_max_index, thresholds[j][jstat_max_index])
-                print(len(fpr[j]), len(tpr[j]), len(thresholds[j]), len(J_stats[j]))
-            if J_stats_max[j] < J_stats[j][jstat_max_index]:
-                J_stats_max[j] = J_stats[j][jstat_max_index]
-                opt_thresholds[j] = thresholds[j][jstat_max_index]
+    # for i in range(len(list_pred_files)):
+    pred_arr = np.load(list_pred_files[0])
+    true_arr = np.load(list_true_files[0])
+    for j in species_in_test_set:
+        fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
+        # Compute Youden's J statistics for each species
+        J_stats[j] = tpr[j] - fpr[j]
+        jstat_optimal_index = np.argmax(J_stats[j])
+        opt_thresholds[j] = thresholds[j][jstat_max_index]
 
-
-    print(f'size of J_stats: {len(J_stats)}\tsize of opt_thresholds: {len(opt_thresholds)}')
     print(opt_thresholds)
 
     f = open(os.path.join(args.output_dir, f'decision_thresholds.tsv'), 'w')
@@ -203,17 +193,18 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     # plt.plot(fpr["macro"], tpr["macro"], label='macro-average ROC curve (area = {0:0.2f})'.format(roc_auc["macro"]),color='navy', linestyle=':', linewidth=4)
 
     # only plot ROC curves for test sets with 20 species
-    # if len(species_in_test_set) == 20:
-        # for i, color in zip(species_in_test_set, colors):
-        #     plt.plot(fpr[i], tpr[i], color=color, lw=lw,label='ROC curve of class {0} (area = {1:0.2f})'.format(class_mapping[str(i)], roc_auc[i]))
-        #
-        # plt.plot([0, 1], [0, 1], 'k--', lw=lw)
-        # plt.xlim([0.0, 1.0])
-        # plt.ylim([0.0, 1.05])
-        # plt.xlabel('False Positive Rate')
-        # plt.ylabel('True Positive Rate')
-        # #plt.legend(loc=(0, -.6), prop=dict(size=9))
-        # plt.savefig(os.path.join(output_path, f'ROCcurves.png'),bbox_inches='tight')
-        # figlegend = plt.figure()
-        # plt.figlegend(*ax.get_legend_handles_labels())
-        # figlegend.savefig(os.path.join(output_path, f'ROCcurves_Legend.png'), bbox_inches='tight')
+    if len(species_in_test_set) <= 20:
+        colors = np.random.rand(len(species_in_test_set), 3)
+        for i, color in zip(species_in_test_set, colors):
+            plt.plot(fpr[i], tpr[i], color=color, lw=lw,label='ROC curve of species {0} (area = {1:0.2f})'.format(class_mapping[str(i)], roc_auc[i]))
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        #plt.legend(loc=(0, -.6), prop=dict(size=9))
+        plt.savefig(os.path.join(args.output_dir, f'ROCcurves.png'),bbox_inches='tight')
+        figlegend = plt.figure()
+        plt.figlegend(*ax.get_legend_handles_labels())
+        figlegend.savefig(os.path.join(args.output_dir, f'ROCcurves_Legend.png'), bbox_inches='tight')
