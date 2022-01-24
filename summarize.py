@@ -172,6 +172,7 @@ def ROCcurve(args, class_mapping, species_in_test_set):
                 print(jstat_optimal_index)
                 print(opt_thresholds[j])
                 print(jstat_opt_thresholds[j])
+                print(min(thresholds[j]), max(thresholds[j]))
             f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_opt_thresholds[j]}\n')
         else:
             f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
@@ -203,11 +204,11 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     #
     # plt.plot(fpr["macro"], tpr["macro"], label='macro-average ROC curve (area = {0:0.2f})'.format(roc_auc["macro"]),color='navy', linestyle=':', linewidth=4)
 
-    # only plot ROC curves for test sets with 20 species
     if len(species_in_test_set) <= 20:
+        # plot ROC curves
         colors = np.random.rand(len(species_in_test_set), 3)
         plt.clf()
-        ax = plt.gca()
+        # ax = plt.gca()
         plt.figure()
         lw = 2
         for i, color in zip(species_in_test_set, colors):
@@ -218,8 +219,19 @@ def ROCcurve(args, class_mapping, species_in_test_set):
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        #plt.legend(loc=(0, -.6), prop=dict(size=9))
+        plt.legend(loc=(0, -.6), prop=dict(size=9))
         plt.savefig(os.path.join(args.output_dir, f'ROCcurves.png'),bbox_inches='tight')
-        figlegend = plt.figure()
-        plt.figlegend(*ax.get_legend_handles_labels())
-        figlegend.savefig(os.path.join(args.output_dir, f'ROCcurves_Legend.png'), bbox_inches='tight')
+        # figlegend = plt.figure()
+        # plt.figlegend(*ax.get_legend_handles_labels())
+        # figlegend.savefig(os.path.join(args.output_dir, f'ROCcurves_Legend.png'), bbox_inches='tight')
+
+        # plot TPR and FPR
+        plt.clf()
+        # for i, color in zip(species_in_test_set, colors):
+        plt.plot(fpr[0], thresholds[0], color='red', lw=lw, label='FPR')
+        plt.plot(tpr[0], thresholds[0], color='blue', lw=lw, label='TPR')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('Thresholds')
+        plt.ylabel('Value')
+        plt.savefig(os.path.join(args.output_dir, f'TPR-FPR-label-0.png'),bbox_inches='tight')
