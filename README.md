@@ -59,39 +59,4 @@ The complete dataset information with the number of reads in the training, valid
 |GCF_003967055.1|Serratia marcescens|-|-|60862|
 
 
-
-0 Campylobacter testudinum d__Bacteria;p__Campylobacterota;c__Campylobacteria;o__Campylobacterales;f__Campylobacteraceae;g__Campylobacter;s__Campylobacter testudinum
-1 Bacillus_E coagulans d__Bacteria;p__Firmicutes;c__Bacilli;o__Bacillales;f__Bacillaceae_C;g__Bacillus_E;s__Bacillus_E coagulans
-2 Streptococcus anginosus_C d__Bacteria;p__Firmicutes;c__Bacilli;o__Lactobacillales;f__Streptococcaceae;g__Streptococcus;s__Streptococcus anginosus_C
-3 Anoxybacillus flavithermus d__Bacteria;p__Firmicutes;c__Bacilli;o__Bacillales;f__Bacillaceae;g__Anoxybacillus;s__Anoxybacillus flavithermus
-4 Salmonella diarizonae d__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Enterobacterales;f__Enterobacteriaceae;g__Salmonella;s__Salmonella diarizonae
-5 Serratia marcescens d__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Enterobacterales;f__Enterobacteriaceae;g__Serratia;s__Serratia marcescens
-
-genus
-0 Campylobacter
-1 Bacillus_E
-2 Streptococcus
-3 Anoxybacillus
-4 Salmonella
-5 Serratia
-
-Family
-0 Campylobacteraceae
-1 Bacillaceae_C
-2 Streptococcaceae
-3 Bacillaceae
-4 Enterobacteriaceae
-
-Order
-0 Campylobacterales
-1 Bacillales
-2 Lactobacillales
-3 Enterobacterales
-
-Class
-0 Campylobacteria
-1 Bacilli
-2 Gammaproteobacteria
-
-
 ## Contact
