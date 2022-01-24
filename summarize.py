@@ -155,7 +155,8 @@ def ROCcurve(args, class_mapping, species_in_test_set):
         # Compute Youden's J statistics for each species
         J_stats[j] = tpr[j] - fpr[j]
         jstat_optimal_index = np.argmax(J_stats[j])
-        opt_thresholds[j] = thresholds[j][jstat_max_index]
+        # get optimal cut off corresponding to a high TPR and low FPR
+        opt_thresholds[j] = thresholds[j][jstat_optimal_index]
 
     print(opt_thresholds)
 
