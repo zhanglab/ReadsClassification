@@ -198,6 +198,9 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     # only plot ROC curves for test sets with 20 species
     if len(species_in_test_set) <= 20:
         colors = np.random.rand(len(species_in_test_set), 3)
+        plt.clf()
+        ax = plt.gca()
+        plt.figure()
         lw = 2
         for i, color in zip(species_in_test_set, colors):
             plt.plot(fpr[i], tpr[i], color=color, lw=lw,label='ROC curve of species {0} (area = {1:0.2f})'.format(class_mapping[str(i)], roc_auc[i]))
