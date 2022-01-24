@@ -26,9 +26,9 @@ The data (fastq files and tfrecords) along with the trained model, testing resul
 
 Reads were simulated using ART read simulator (give parameters) and converted to tfrecords. Each training, validation and testing subsets contains an even number of reads per genome and species. 
 
-The complete dataset information is given in the following table:
+The complete dataset information with the number of reads in the training, validation adntesting sets is given in the following table:
 
-| Genome | Species | Training | Validation | Testing |
+| GTDB Genome ID | Species | Training | Validation | Testing |
 |:------:|:-------:|:--------:|:----------:|:-------:|
 |GCA_000495505.1| Campylobacter testudinum |   34796  |   14912    |    -    |
 |GCF_000814265.1| Bacillus_E coagulans |   34816  |   14920    |    -    |
