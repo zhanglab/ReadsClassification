@@ -6,7 +6,7 @@ from collections import defaultdict
 import itertools
 import numpy as np
 from sklearn import metrics
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_curve, auc
 # from sklearn.metrics import jaccard_score
 # from sklearn.metrics import precision_recall_curve
 # from sklearn.metrics import average_precision_score
@@ -145,29 +145,29 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     fpr = {}
     tpr = {}
     thresholds = {}
+    roc_auc = {}
     J_stats = [None] * len(species_in_test_set)
     opt_thresholds = [None] * len(species_in_test_set)
-
+    jstat_opt_thresholds = [None] * len(species_in_test_set)
     # for i in range(len(list_pred_files)):
     pred_arr = np.load(list_pred_files[0])
     true_arr = np.load(list_true_files[0])
-    for j in species_in_test_set:
-        fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
-        # Compute Youden's J statistics for each species
-        J_stats[j] = tpr[j] - fpr[j]
-        jstat_optimal_index = np.argmax(J_stats[j])
-        # get optimal cut off corresponding to a high TPR and low FPR
-        opt_thresholds[j] = thresholds[j][jstat_optimal_index]
-        print(j, thresholds[j])
-
-    print(opt_thresholds)
-
     f = open(os.path.join(args.output_dir, f'decision_thresholds.tsv'), 'w')
     for j in range(len(class_mapping)):
         if j in species_in_test_set:
-            f.write(f'{j}\t{class_mapping[str(j)]}\t{opt_thresholds[j]}\n')
+            fpr[j], tpr[j], thresholds[j] = roc_curve(true_arr[:, j], pred_arr[:, j])
+            roc_auc[j] = auc(fpr[j], tpr[j])
+            # Compute Youden's J statistics for each species:
+            # get optimal cut off corresponding to a high TPR and low FPR
+            J_stats[j] = tpr[j] - fpr[j]
+            jstat_optimal_index = np.argmax(J_stats[j])
+            opt_thresholds[j] = thresholds[j][jstat_optimal_index]
+            jstat_decision_threshold[j] = round(J_stats[j][jstat_optimal_index], 2)
+            print(j, opt_thresholds[j], jstat_decision_threshold)
+            f.write(f'{j}\t{class_mapping[str(j)]}\t{jstat_decision_threshold}\n')
         else:
             f.write(f'{j}\t{class_mapping[str(j)]}\t0.5\n')
+
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
         # roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
