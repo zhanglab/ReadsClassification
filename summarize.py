@@ -140,6 +140,7 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     list_true_files = sorted(glob.glob(os.path.join(args.results_dir, 'true-probs-*.npy')))
 
     print(len(list_true_files), len(list_pred_files))
+    print(len(species_in_test_set), species_in_test_set)
 
     fpr = {}
     tpr = {}
@@ -157,6 +158,7 @@ def ROCcurve(args, class_mapping, species_in_test_set):
         jstat_optimal_index = np.argmax(J_stats[j])
         # get optimal cut off corresponding to a high TPR and low FPR
         opt_thresholds[j] = thresholds[j][jstat_optimal_index]
+        print(j, thresholds[j])
 
     print(opt_thresholds)
 
@@ -196,6 +198,7 @@ def ROCcurve(args, class_mapping, species_in_test_set):
     # only plot ROC curves for test sets with 20 species
     if len(species_in_test_set) <= 20:
         colors = np.random.rand(len(species_in_test_set), 3)
+        lw = 2
         for i, color in zip(species_in_test_set, colors):
             plt.plot(fpr[i], tpr[i], color=color, lw=lw,label='ROC curve of species {0} (area = {1:0.2f})'.format(class_mapping[str(i)], roc_auc[i]))
 
