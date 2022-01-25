@@ -75,11 +75,13 @@ def parse_linclust(args, set_1, set_2, outputfile):
     # save new testing set to fastq files for testing (one unique fastq file)
     print(f'size of new testing set: {len(reads_id_for_new_testing_set)}')
     for count, i in enumerate(range(0, len(reads_id_for_new_testing_set), 2500000)):
+        end = i + 2500000 if count < len(reads_id_for_new_testing_set) // 2500000 else len(reads_id_for_new_testing_set)
+        print(i, end, count)
         with open(os.path.join(args.output_dir, f'updated-testing-set-{count}.fq'), 'w') as outfile:
-            end = i + 2500000 if count < len(reads_id_for_new_testing_set) // 2500000 else len(reads_id_for_new_testing_set)
-            print(i, end, count)
             for j in range(i, end, 1):
                 outfile.write(''.join(set_2[reads_id_for_new_testing_set[j]]))
+        with open(os.path.join(args.output_dir, f'updated-testing-set-{count}-read_count'), 'w') as outfile:
+            outfile.write(f'{end-i}\n')
 
     # genome_dict_new_testing_set = defaultdict(list)
     # for i in range(len(reads_id_for_new_testing_set)):
