@@ -43,5 +43,4 @@ def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
-    print(len(list_kmers), len(read))
     return np.array(list_kmers)
