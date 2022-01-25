@@ -74,10 +74,12 @@ def parse_linclust(args, set_1, set_2, outputfile):
 
     # save new testing set to fastq files for testing (one unique fastq file)
     print(f'size of new testing set: {len(reads_id_for_new_testing_set)}')
-    with open(os.path.join(args.input_dir, 'updated-testing-set.fq'), 'w') as outfile:
-        for i in range(len(reads_id_for_new_testing_set)):
-            outfile.write(''.join(set_2[reads_id_for_new_testing_set[i]]))
-
+    for count, i in enumerate(range(0, len(reads_id_for_new_testing_set), 2500000)):
+        with open(os.path.join(args.output_dir, f'updated-testing-set-{count}.fq'), 'w') as outfile:
+            end = i + 2500000 if count < len(reads_id_for_new_testing_set) // 2500000 else len(reads_id_for_new_testing_set)
+            print(i, end, count)
+            for j in range(i, end, 1):
+                outfile.write(''.join(set_2[reads_id_for_new_testing_set[j]]))
 
     # genome_dict_new_testing_set = defaultdict(list)
     # for i in range(len(reads_id_for_new_testing_set)):
@@ -137,6 +139,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_dir', type=str, help='path to input files')
+    parser.add_argument('--output_dir', type=str, help='path to output directory')
     parser.add_argument('--path_set_1', type=str, nargs='+', help='path to fastq files from set 1')
     parser.add_argument('--path_set_2', type=str, nargs='+', help='path to fastq files from set 2')
     parser.add_argument('--set_1_name', type=str, help='name of set 1')
@@ -145,7 +148,7 @@ def main():
     # parser.add_argument('--seq_ids', type=str, help='path to file containing list of sequence id')
     args = parser.parse_args()
     # create output file
-    outputfile = os.path.join(args.input_dir, f'{args.set_1_name}-{args.set_2_name}-linclust-output-parsing')
+    outputfile = os.path.join(args.output_dir, f'{args.set_1_name}-{args.set_2_name}-linclust-output-parsing')
     # get reads in set 1
     set_1_files = []
     for i in range(len(args.path_set_1)):
