@@ -132,10 +132,10 @@ def main():
             os.makedirs(output_dir)
 
     # load model
-    if args.ckpt is not None:
+    if args.ckpts is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-        checkpoint.restore(os.path.join(args.ckpt, f'{args.ckpt_prefix}-{args.epoch}')).expect_partial()
+        checkpoint.restore(os.path.join(args.ckpts, f'{args.ckpt_prefix}-{args.epoch}')).expect_partial()
     elif args.model is not None:
         model = tf.keras.models.load_model(args.model, 'model')
             # restore the checkpointed values to the model
@@ -255,7 +255,7 @@ def main():
     with open(os.path.join(output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
         outfile.write(f'testing set: {args.set_type}\nnumber of classes: {NUM_CLASSES}\nvector size: {VECTOR_SIZE}\nvocabulary size: {VOCAB_SIZE}\nembedding size: {EMBEDDING_SIZE}\ndropout rate: {DROPOUT_RATE}\nbatch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files tested: {len(gpu_test_files)}\nnumber of reads tested: {num_reads_tested}\n')
 
-        if args.ckpt:
+        if args.ckpts:
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
         else:
             outfile.write(f'model saved at last epoch')
