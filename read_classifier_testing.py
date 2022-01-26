@@ -14,7 +14,7 @@ import datetime
 import numpy as np
 import math
 from models import AlexNet
-from summarize import get_metrics, ROCcurve
+# from summarize import get_metrics, ROCcurve
 import argparse
 
 # disable eager execution
@@ -166,6 +166,8 @@ def main():
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
 
+    print(f'{hvd.rank()}\t{test_files_per_gpu}\t{len(gpu_test_files)}\t{len(gpu_test_idx_files)}\t{len(gpu_num_reads_files)}')
+
     # create empty confusion matrix with rows = true classes and columns = predicted classes
     cm = np.zeros((NUM_CLASSES, NUM_CLASSES))
     # record the number of correct and incorrect predictions
@@ -178,6 +180,7 @@ def main():
         # get number of reads in test file
         with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
             num_reads = int(f.readlines()[0])
+        print(f'{hvd.rank()}\t{gpu_test_files[i]}\t{num_reads}')
         num_reads_tested += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
