@@ -98,7 +98,8 @@ def main():
     parser.add_argument('--epoch', type=int, help='epoch of checkpoint')
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
     parser.add_argument('--model', type=str, help='path to directory containing saved model')
-    parser.add_argument('--ckpt', type=str, help='path to directory containing checkpoint file', required=('--epoch' and '--checkpoint' in sys.argv))
+    parser.add_argument('--ckpts', type=str, help='path to directory containing checkpoint file', required=('--epoch' and '--checkpoint' in sys.argv))
+    parser.add_argument('--ckpt_prefix', type=str, help='prefix of checkpoint files', required=('--ckpts' in sys.argv))
     args = parser.parse_args()
 
     # define some training and model parameters
@@ -134,7 +135,7 @@ def main():
     if args.ckpt is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-        checkpoint.restore(os.path.join(args.ckpt, f'ckpt-{args.epoch}')).expect_partial()
+        checkpoint.restore(os.path.join(args.ckpt, f'{args.ckpt_prefix}-{args.epoch}')).expect_partial()
     elif args.model is not None:
         model = tf.keras.models.load_model(args.model, 'model')
             # restore the checkpointed values to the model
