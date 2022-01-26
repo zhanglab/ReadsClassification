@@ -125,9 +125,10 @@ def main():
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
+    output_dir = os.path.join(args.output_dir, f'testing-{args.set_type}-set')
+
     if hvd.rank() == 0:
         # create output directory
-        output_dir = os.path.join(args.output_dir, f'testing-{args.set_type}-set')
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
