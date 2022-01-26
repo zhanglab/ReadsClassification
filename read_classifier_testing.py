@@ -148,8 +148,8 @@ def main():
     #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
 
     # get list of testing tfrecords
-    test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'{args.set_type}*.tfrec')))
-    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, f'{args.set_type}*.idx')))
+    test_files = sorted(glob.glob(os.path.join(args.tfrecords, f'*{args.set_type}*.tfrec')))
+    test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, f'*{args.set_type}*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
 
     # split tfrecords between gpus
