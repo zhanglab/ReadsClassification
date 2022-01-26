@@ -74,8 +74,8 @@ def parse_linclust(args, set_1, set_2, outputfile):
 
     # save new testing set to fastq files for testing (one unique fastq file)
     print(f'size of new testing set: {len(reads_id_for_new_testing_set)}')
-    for count, i in enumerate(range(0, len(reads_id_for_new_testing_set), 2500000)):
-        end = i + 2500000 if count < len(reads_id_for_new_testing_set) // 2500000 else len(reads_id_for_new_testing_set)
+    for count, i in enumerate(range(0, len(reads_id_for_new_testing_set), args.num_reads)):
+        end = i + args.num_reads if count < len(reads_id_for_new_testing_set) // args.num_reads else len(reads_id_for_new_testing_set)
         print(i, end, count)
         with open(os.path.join(args.output_dir, f'updated-testing-set-{count}.fq'), 'w') as outfile:
             for j in range(i, end, 1):
@@ -147,6 +147,7 @@ def main():
     parser.add_argument('--set_1_name', type=str, help='name of set 1')
     parser.add_argument('--set_2_name', type=str, help='name of set 2')
     parser.add_argument('--linclust_out', type=str, help='path to linclust output')
+    parser.add_argument('--num_reads', type=int, help='number of reads per subset fastq files', default=1000000)
     # parser.add_argument('--seq_ids', type=str, help='path to file containing list of sequence id')
     args = parser.parse_args()
     # create output file
