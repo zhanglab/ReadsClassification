@@ -147,7 +147,7 @@ def main():
     parser.add_argument('--set_1_name', type=str, help='name of set 1')
     parser.add_argument('--set_2_name', type=str, help='name of set 2')
     parser.add_argument('--linclust_out', type=str, help='path to linclust output')
-    parser.add_argument('--num_reads', type=int, help='number of reads per subset fastq files', default=1000000)
+    parser.add_argument('--num_reads', type=int, help='number of reads per subset fastq files', default=500000)
     # parser.add_argument('--seq_ids', type=str, help='path to file containing list of sequence id')
     args = parser.parse_args()
     # create output file
