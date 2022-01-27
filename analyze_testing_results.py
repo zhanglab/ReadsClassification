@@ -88,7 +88,7 @@ def main():
     # create summary file
     create_prob_file(args.results_dir, pred_species, true_species, probs, species_mapping_dict, 'species')
     # create ROC curves and get decision threshold
-    ROCcurve(args, species_mapping_dict, list(set(true_species)))
+    # ROCcurve(args, species_mapping_dict, list(set(true_species)))
 
     # analyze results at higher taxonomic levels
     for r in ['genus', 'family', 'order', 'class']:
