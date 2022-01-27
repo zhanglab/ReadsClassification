@@ -209,10 +209,11 @@ def main():
         pred_species = [np.argmax(j) for j in all_predictions]
         pred_probabilities = [np.amax(j) for j in all_predictions]
         true_species = all_labels[0].numpy()
-        true_one_hot = tf.one_hot(true_species, NUM_CLASSES)
+        # true_one_hot = tf.one_hot(true_species, NUM_CLASSES)
 
         # save probabilities
-        np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}'), true_one_hot)
+        # np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}'), true_one_hot)
+        np.save(os.path.join(output_dir, f'true-probs-{hvd.rank()}-{i}'), true_species)
         np.save(os.path.join(output_dir, f'pred-probs-{hvd.rank()}-{i}'), all_predictions)
 
         # adjust the list of predicted and true species if necessary
