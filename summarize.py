@@ -120,7 +120,7 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
         if num_testing_reads != 0:
             labels_in_test_set.append(i)
         if class_mapping_dict[str(i)] in target_taxa:
-            print(f'{i}\t{class_mapping_dict[i]}\t{num_testing_reads}')
+            print(f'{i}\t{class_mapping_dict[str(i)]}\t{num_testing_reads}')
 
     # get precision and recall for all species in testing set
     for i in labels_in_test_set:
@@ -133,7 +133,7 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
         precision = float(true_positives)/(true_positives+false_positives)
         recall = float(true_positives)/(true_positives+false_negatives)
         if class_mapping_dict[str(i)] in target_taxa:
-            print(f'{rank}\t{class_mapping_dict[i]}\t{true_positives}\t{len(other_labels)}\t{false_positives}\t{false_negatives}\t{num_testing_reads}\t{precision}\t{recall}')
+            print(f'{rank}\t{class_mapping_dict[str(i)]}\t{true_positives}\t{len(other_labels)}\t{false_positives}\t{false_negatives}\t{num_testing_reads}\t{precision}\t{recall}')
         f.write(f'{class_mapping_dict[str(i)]}\t{round(precision,5)}\t{round(recall,5)}\t{num_testing_reads}\n')
 
     accuracy =  float(correct_predictions)/total_num_reads
