@@ -109,6 +109,8 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     f = open(os.path.join(results_dir, f'{rank}-metrics-classification-report.tsv'), 'w')
     f.write(f'{rank}\tprecision\trecall\tnumber\n')
 
+    target_taxa = ['Chloroflexus aurantiacus', 'Chloroflexus', 'Chloroflexaceae', 'Chloroflexales', 'Chloroflexia']
+
     # get labels of species present only in testing set and total number of reads in testing set
     labels_in_test_set = []
     total_num_reads = 0
@@ -117,6 +119,8 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
         total_num_reads += num_testing_reads
         if num_testing_reads != 0:
             labels_in_test_set.append(i)
+        if class_mapping_dict[i] in target_taxa:
+            print(f'{i}\t{class_mapping_dict[i]}\t{num_testing_reads}')
 
     # get precision and recall for all species in testing set
     for i in labels_in_test_set:
@@ -128,6 +132,8 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
         num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
         precision = float(true_positives)/(true_positives+false_positives)
         recall = float(true_positives)/(true_positives+false_negatives)
+        if class_mapping_dict[i] in target_taxa:
+            print(f'{rank}\t{class_mapping_dict[i]}\t{true_positives}\t{len(other_labels)}\t{false_positives}\t{false_negatives}\t{num_testing_reads}\t{precision}\t{recall}')
         f.write(f'{class_mapping_dict[str(i)]}\t{round(precision,5)}\t{round(recall,5)}\t{num_testing_reads}\n')
 
     accuracy =  float(correct_predictions)/total_num_reads
