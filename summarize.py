@@ -113,7 +113,7 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank, labels_in_test_set):
     print(f'# taxa at rank {rank} in test set: {len(labels_in_test_set)}')
     # get labels of species present only in testing set and total number of reads in testing set
     # labels_in_test_set = []
-    # total_num_reads = 0
+    total_num_reads = 0
     # for i in range(len(class_mapping_dict)):
     #     num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
     #     total_num_reads += num_testing_reads
@@ -131,6 +131,7 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank, labels_in_test_set):
         false_negatives = sum([cm[i, j] for j in other_labels])
         correct_predictions += true_positives
         num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
+        total_num_reads += num_testing_reads
         precision = float(true_positives)/(true_positives+false_positives)
         recall = float(true_positives)/(true_positives+false_negatives)
         if class_mapping_dict[str(i)] in target_taxa:
