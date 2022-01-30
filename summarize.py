@@ -99,7 +99,7 @@ plt.ioff()
 #     plt.savefig(f'{filename}', bbox_inches='tight')
 
 
-def get_metrics(cm, class_mapping_dict, results_dir, rank):
+def get_metrics(cm, class_mapping_dict, results_dir, rank, labels_in_test_set):
     """ precision = True Positives / (True Positives + False Positives) """
     """ recall = True Positives / (True Positives + False Negatives) """
     """ accuracy = number of correct predictions / (number of reads in testing set) """
@@ -110,22 +110,23 @@ def get_metrics(cm, class_mapping_dict, results_dir, rank):
     f.write(f'{rank}\tprecision\trecall\tnumber\n')
 
     target_taxa = ['Chloroflexus aurantiacus', 'Chloroflexus', 'Chloroflexaceae', 'Chloroflexales', 'Chloroflexia']
-
+    print(f'# taxa at rank {rank} in test set: {len(labels_in_test_set)}')
     # get labels of species present only in testing set and total number of reads in testing set
-    labels_in_test_set = []
-    total_num_reads = 0
-    for i in range(len(class_mapping_dict)):
-        num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
-        total_num_reads += num_testing_reads
-        if num_testing_reads != 0:
-            labels_in_test_set.append(i)
+    # labels_in_test_set = []
+    # total_num_reads = 0
+    # for i in range(len(class_mapping_dict)):
+    #     num_testing_reads = sum([cm[i, j] for j in range(len(class_mapping_dict))])
+    #     total_num_reads += num_testing_reads
+    #     if num_testing_reads != 0:
+    #         labels_in_test_set.append(i)
         # if class_mapping_dict[str(i)] in target_taxa:
         #     print(f'{i}\t{class_mapping_dict[str(i)]}\t{num_testing_reads}')
 
     # get precision and recall for all species in testing set
     for i in labels_in_test_set:
         true_positives = cm[i, i]
-        other_labels = [j for j in labels_in_test_set if j != i]
+        # other_labels = [j for j in labels_in_test_set if j != i]
+        other_labels = [j for j in range(len(class_mapping_dict)) if j != i]
         false_positives = sum([cm[j, i] for j in other_labels])
         false_negatives = sum([cm[i, j] for j in other_labels])
         correct_predictions += true_positives
