@@ -86,7 +86,7 @@ def main():
     cm = get_cm(true_species, pred_species, args.results_dir, species_mapping_dict, 'species')
     write_cm_to_file(cm, species_mapping_dict, args.results_dir, 'species')
     # get precision and recall for each species
-    get_metrics(cm, species_mapping_dict, args.results_dir, 'species')
+    get_metrics(cm, species_mapping_dict, args.results_dir, 'species', list(set(true_species)))
     # create summary file
     create_prob_file(args.results_dir, pred_species, true_species, probs, species_mapping_dict, 'species')
     # create ROC curves and get decision threshold
@@ -107,7 +107,7 @@ def main():
         cm = get_cm(rank_true_classes, rank_pred_classes, args.results_dir, rank_mapping_dict, r)
         write_cm_to_file(cm, rank_mapping_dict, args.results_dir, r)
         # get precision and recall
-        get_metrics(cm, rank_mapping_dict, args.results_dir, r)
+        get_metrics(cm, rank_mapping_dict, args.results_dir, r, list(set(rank_true_classes)))
         # create summary file
         create_prob_file(args.results_dir, rank_pred_classes, rank_true_classes, probs, rank_mapping_dict, r)
 
