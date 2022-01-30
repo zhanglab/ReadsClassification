@@ -57,6 +57,7 @@ def get_cm(true_classes, predicted_classes, results_dir, class_mapping, rank):
 
     accuracy = round(float(num_correct_pred)/len(true_classes), 5)
     print(f'{rank}\t{accuracy}')
+    print(f'{len(true_classes)}\t{len(predicted_classes)}')
     return cm
 
 
@@ -80,6 +81,7 @@ def main():
     cm = np.zeros((len(species_mapping_dict), len(species_mapping_dict)))
     # get predictions and ground truth
     pred_species, true_species, probs = get_prob(results_prob, species_mapping_dict)
+    print(f'# reads in pred_species and true_species: {len(pred_species)}\t{len(true_species)}\t{len(probs)}')
     # fill out confusion matrix at the species level
     cm = get_cm(true_species, pred_species, args.results_dir, species_mapping_dict, 'species')
     write_cm_to_file(cm, species_mapping_dict, args.results_dir, 'species')
