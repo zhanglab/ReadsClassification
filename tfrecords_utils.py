@@ -42,7 +42,6 @@ def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length, read_length):
         idx = get_kmer_index(kmer, dict_kmers)
         list_kmers.append(idx)
 
-    print(len(list_kmers))
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
