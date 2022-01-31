@@ -32,10 +32,10 @@ def get_kmer_index(kmer, dict_kmers):
 
     return idx
 
-def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
+def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length, read_length):
     """ Converts a DNA sequence split into a list of k-mers """
-    if len(read) > args.read_length:
-        read = read[:args.read_length]
+    if len(read) > read_length:
+        read = read[:read_length]
     list_kmers = []
     for i in range(0, len(read)-k_value+1, 1):
         kmer = read[i:i + k_value]
