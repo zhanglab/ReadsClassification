@@ -5,6 +5,7 @@ import tensorflow as tf
 import argparse
 import gzip
 import sys
+import math
 from tfrecords_utils import vocab_dict, get_kmer_arr
 
 def wrap_read(value):
@@ -16,12 +17,50 @@ def wrap_label(value):
 # def wrap_ID(value):
     # return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
+# def create_meta_tfrecords(args):
+#     """ Converts metagenomic reads to tfrecords """
+#     outfile = open('/'.join([args.output_dir, args.output_prefix + '-read_ids.tsv']), 'w')
+#     with tf.compat.v1.python_io.TFRecordWriter(args.output_tfrec) as writer:
+#         with gzip.open(args.input_fastq, "rt") as handle:
+#             for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
+#                 read = str(rec.seq)
+#                 read_id = rec.description
+#                 outfile.write(f'{read_id}\t{count}\n')
+#                 kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length)
+#                 data = \
+#                     {
+#                         'read': wrap_read(kmer_array),
+#                         'read_id': wrap_label(count)
+#                     }
+#                 feature = tf.train.Features(feature=data)
+#                 example = tf.train.Example(features=feature)
+#                 serialized = example.SerializeToString()
+#                 writer.write(serialized)
+#
+#                 if count == 10:
+#                     break
+#
+#         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
+#             f.write(f'{count}')
+#
+#     outfile.close()
+
+def get_reads(args):
+    with gzip.open(args.input_fastq, "rt") as handle:
+        reads = [rec for rec in SeqIO.parse(handle, 'fastq')]
+    return reads
+
 def create_meta_tfrecords(args):
     """ Converts metagenomic reads to tfrecords """
-    outfile = open('/'.join([args.output_dir, args.output_prefix + '-read_ids.tsv']), 'w')
-    with tf.compat.v1.python_io.TFRecordWriter(args.output_tfrec) as writer:
-        with gzip.open(args.input_fastq, "rt") as handle:
-            for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
+    list_reads = get_reads(args)
+    num_tfrec = math.ceil(len(list_reads)/500000)
+    for i in range(num_tfrec):
+        output_tfrec = os.path.join(args.output_dir, args.output_prefix + f'-{num_tfrec}.tfrec')
+        outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids-{num_tfrec}.tsv']), 'w')
+        start = i*500000
+        end = (i*500000) + 500000 if i < num_tfrec - 1 else (i*500000) + len(list_reads)
+        with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
+            for count, rec in enumerate(list_reads[start:end], 1):
                 read = str(rec.seq)
                 read_id = rec.description
                 outfile.write(f'{read_id}\t{count}\n')
@@ -37,16 +76,19 @@ def create_meta_tfrecords(args):
                 writer.write(serialized)
 
                 if count == 10:
+                    print(num_tfrec, len(list_reads), len(reads_subset))
                     break
 
-        with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-            f.write(f'{count}')
+        outfile.close()
 
-    outfile.close()
+    with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
+        f.write(f'{len(list_reads)}')
+
 
 def create_tfrecords(args):
     """ Converts simulated reads to tfrecord """
-    with tf.compat.v1.python_io.TFRecordWriter(args.output_tfrec) as writer:
+    output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
+    with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         with open(args.input_fastq) as handle:
             for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
                 read = str(rec.seq)
@@ -78,7 +120,6 @@ def main():
 
     args = parser.parse_args()
     args.output_prefix = args.input_fastq.split('/')[-1].split('.')[0]
-    args.output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
     args.kmer_vector_length = args.read_length - args.k_value + 1
     # get dictionary mapping kmers to indexes
     args.dict_kmers = vocab_dict(args.vocab)
