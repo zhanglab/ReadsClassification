@@ -47,7 +47,7 @@ def wrap_label(value):
 
 def get_reads(args):
     with gzip.open(args.input_fastq, "rt") as infile:
-        content = infile.readlines
+        content = infile.readlines()
         reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
     return reads
 
@@ -62,8 +62,11 @@ def create_meta_tfrecords(args):
         end = (i*500000) + 500000 if i < num_tfrec - 1 else (i*500000) + len(list_reads)
         with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
             for count, rec in enumerate(list_reads[start:end], 1):
-                read = str(rec.seq)
-                read_id = rec.description
+                # read = str(rec.seq)
+                # read_id = rec.description
+                read = rec.split('\n')[1]
+                read_id = rec.split('\n')[0]
+                print(read, read_id)
                 outfile.write(f'{read_id}\t{count}\n')
                 kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length)
                 data = \
