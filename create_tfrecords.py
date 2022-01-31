@@ -80,7 +80,7 @@ def create_meta_tfrecords(args):
                 writer.write(serialized)
 
                 if count == 10:
-                    print(num_tfrec, len(list_reads), len(reads_subset))
+                    print(num_tfrec, len(list_reads), len(list_reads[start:end]))
                     break
 
         outfile.close()
