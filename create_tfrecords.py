@@ -46,8 +46,9 @@ def wrap_label(value):
 #     outfile.close()
 
 def get_reads(args):
-    with gzip.open(args.input_fastq, "rt") as handle:
-        reads = [rec for rec in SeqIO.parse(handle, 'fastq')]
+    with gzip.open(args.input_fastq, "rt") as infile:
+        content = infile.readlines
+        reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
     return reads
 
 def create_meta_tfrecords(args):
