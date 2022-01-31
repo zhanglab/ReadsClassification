@@ -34,12 +34,15 @@ def get_kmer_index(kmer, dict_kmers):
 
 def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length):
     """ Converts a DNA sequence split into a list of k-mers """
+    if len(read) > args.read_length:
+        read = read[:args.read_length]
     list_kmers = []
     for i in range(0, len(read)-k_value+1, 1):
         kmer = read[i:i + k_value]
         idx = get_kmer_index(kmer, dict_kmers)
         list_kmers.append(idx)
 
+    print(len(list_kmers))
     if len(list_kmers) < kmer_vector_length:
         # pad list of kmers with 0s to the right
         list_kmers = list_kmers + [0] * (kmer_vector_length - len(list_kmers))
