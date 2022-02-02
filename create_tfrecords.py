@@ -55,11 +55,13 @@ def create_meta_tfrecords(args):
     """ Converts metagenomic reads to tfrecords """
     list_reads = get_reads(args)
     num_tfrec = math.ceil(len(list_reads)/500000)
+    print(len(list_reads), num_tfrec)
     for i in range(num_tfrec):
         output_tfrec = os.path.join(args.output_dir, args.output_prefix + f'-{num_tfrec}.tfrec')
         outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids-{num_tfrec}.tsv']), 'w')
         start = i*500000
         end = (i*500000) + 500000 if i < num_tfrec - 1 else (i*500000) + len(list_reads)
+        print(i, output_tfrec, start, end, len(list_reads[start:end]))
         with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
             for count, rec in enumerate(list_reads[start:end], 1):
                 # read = str(rec.seq)
