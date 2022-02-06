@@ -226,8 +226,8 @@ def main():
             content = f.readlines()
             records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
             reads = {records[j].split('\n')[0]: records[j] for j in range(len(records))}
-            
-        print(reads)
+
+        print(hvd.rank(), gpu_test_files[i])
         # report species abundance and create bins
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
             for key, value in gpu_bins.items():
