@@ -124,11 +124,10 @@ def main():
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
-    if hvd.rank() == 0:
-        # create output directories
-        if not os.path.isdir(args.output_dir):
-            os.makedirs(args.output_dir)
-
+    # if hvd.rank() == 0:
+    #     # create output directories
+    #     if not os.path.isdir(args.output_dir):
+    #         os.makedirs(args.output_dir)
 
     # load model
     if args.ckpt is not None:
