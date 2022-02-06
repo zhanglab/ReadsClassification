@@ -211,8 +211,6 @@ def main():
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
-        print(all_read_ids)
-
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 gpu_bins[str(pred_species[j])].append(all_read_ids[j])
@@ -236,7 +234,7 @@ def main():
                 if len(value) > 0:
                     # create fastq files from bins
                     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
-                        list_reads_in_bin = [reads[j] for j in value]
+                        list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
                         out_fq.write(''.join(list_reads_in_bin))
 
     end = datetime.datetime.now()
