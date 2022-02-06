@@ -165,84 +165,89 @@ def main():
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)]
 
-    num_reads_classified = 0
-    for i in range(len(gpu_test_files)):
-        # get number of reads in test file
-        with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
-            num_reads = int(f.readline()[0])
-        num_reads_classified += num_reads
-        # compute number of required steps to iterate over entire test file
-        test_steps = math.ceil(num_reads/(args.batch_size))
+    print(f'{hvd.rank()}\t{len(gpu_test_files)}\t{len(gpu_test_idx_files)}\t{len(gpu_num_reads_files)}\t{gpu_read_ids_files}')
 
-        num_preprocessing_threads = 4
-        test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True,
-                                            deterministic=False, training=False)
+    if hvd.rank() == 0:
+        print(f'{gpu_test_files}\n{gpu_test_idx_files}\n{gpu_num_reads_files}\n{gpu_read_ids_files}')
 
-        test_input = test_preprocessor.get_device_dataset()
-
-        # create empty arrays to store the predicted and true values
-        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        all_read_ids = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-
-        for batch, (reads, read_ids) in enumerate(test_input.take(test_steps), 1):
-            batch_predictions = testing_step(reads, read_ids, loss, test_loss, test_accuracy, model)
-            if batch == 1:
-                all_read_ids = [read_ids]
-                all_predictions = batch_predictions
-            else:
-                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_read_ids = tf.concat([all_read_ids, [read_ids]], 1)
-
-        # get list of true species, predicted species and predicted probabilities
-        all_predictions = all_predictions.numpy()
-        pred_species = [np.argmax(j) for j in all_predictions]
-        pred_probabilities = [np.amax(j) for j in all_predictions]
-        all_read_ids = all_read_ids[0].numpy()
-
-        # adjust the list of predicted species and read ids if necessary
-        if len(pred_species) > num_reads:
-            num_extra_reads = (test_steps*args.batch_size) - num_reads
-            pred_species = pred_species[:-num_extra_reads]
-            all_read_ids = all_read_ids[:-num_extra_reads]
-
-        # fill out dictionary of bins and create summary file of predicted probabilities
-        gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
-            for j in range(num_reads):
-                gpu_bins[pred_species[j]].append(all_read_ids[j])
-                out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
-
-        # get dictionary mapping read ids to labels
-        with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-            content = f.readlines()
-            dict_read_ids = {content[j].rstrip().split('\t')[1]: content[j].rstrip().split('\t')[0] for j in range(len(content))}
-
-        # get reads
-        with gzip.open(os.path.join(args.input_fastq, f'{gpu_test_files[i].split(".")[0]}.fastq.gz'), 'rt') as f:
-            content = f.readlines()
-            records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
-            reads = {records[j].split('\n')[0].split(' ')[0]: records[j] for j in range(len(records))}
-
-        # report species abundance and create bins
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-results.tsv'), 'w') as out_f:
-            for key, value in gpu_bins.items():
-                out_f.write(f'{key}\t{len(value)}\n')
-                # create fastq files from bins
-                with open(os.path.join(args.output_dir, f'bin-{key}', f'{gpu_test_files[i].split(".")[0]}.fq'), 'w') as out_fq:
-                    list_reads_in_bin = [reads[j] for j in value]
-                    out_fq.write(''.join(list_reads_in_bin))
-
-    end = datetime.datetime.now()
-    total_time = end - start
-    hours, seconds = divmod(total_time.seconds, 3600)
-    minutes, seconds = divmod(seconds, 60)
-
-    with open(os.path.join(args.output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
-        outfile.write(f'batch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files: {len(gpu_test_files)}\nnumber of reads classified: {num_reads_classified}\n')
-        if args.ckpt:
-            outfile.write(f'checkpoint saved at epoch: {args.epoch}')
-        else:
-            outfile.write(f'model saved at last epoch')
+    # num_reads_classified = 0
+    # for i in range(len(gpu_test_files)):
+    #     # get number of reads in test file
+    #     with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
+    #         num_reads = int(f.readline()[0])
+    #     num_reads_classified += num_reads
+    #     # compute number of required steps to iterate over entire test file
+    #     test_steps = math.ceil(num_reads/(args.batch_size))
+    #
+    #     num_preprocessing_threads = 4
+    #     test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True,
+    #                                         deterministic=False, training=False)
+    #
+    #     test_input = test_preprocessor.get_device_dataset()
+    #
+    #     # create empty arrays to store the predicted and true values
+    #     all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+    #     all_read_ids = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+    #
+    #     for batch, (reads, read_ids) in enumerate(test_input.take(test_steps), 1):
+    #         batch_predictions = testing_step(reads, read_ids, loss, test_loss, test_accuracy, model)
+    #         if batch == 1:
+    #             all_read_ids = [read_ids]
+    #             all_predictions = batch_predictions
+    #         else:
+    #             all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+    #             all_read_ids = tf.concat([all_read_ids, [read_ids]], 1)
+    #
+    #     # get list of true species, predicted species and predicted probabilities
+    #     all_predictions = all_predictions.numpy()
+    #     pred_species = [np.argmax(j) for j in all_predictions]
+    #     pred_probabilities = [np.amax(j) for j in all_predictions]
+    #     all_read_ids = all_read_ids[0].numpy()
+    #
+    #     # adjust the list of predicted species and read ids if necessary
+    #     if len(pred_species) > num_reads:
+    #         num_extra_reads = (test_steps*args.batch_size) - num_reads
+    #         pred_species = pred_species[:-num_extra_reads]
+    #         all_read_ids = all_read_ids[:-num_extra_reads]
+    #
+    #     # fill out dictionary of bins and create summary file of predicted probabilities
+    #     gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
+    #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
+    #         for j in range(num_reads):
+    #             gpu_bins[pred_species[j]].append(all_read_ids[j])
+    #             out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
+    #
+    #     # get dictionary mapping read ids to labels
+    #     with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+    #         content = f.readlines()
+    #         dict_read_ids = {content[j].rstrip().split('\t')[1]: content[j].rstrip().split('\t')[0] for j in range(len(content))}
+    #
+    #     # get reads
+    #     with gzip.open(os.path.join(args.input_fastq, f'{gpu_test_files[i].split(".")[0]}.fastq.gz'), 'rt') as f:
+    #         content = f.readlines()
+    #         records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
+    #         reads = {records[j].split('\n')[0].split(' ')[0]: records[j] for j in range(len(records))}
+    #
+    #     # report species abundance and create bins
+    #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-results.tsv'), 'w') as out_f:
+    #         for key, value in gpu_bins.items():
+    #             out_f.write(f'{key}\t{len(value)}\n')
+    #             # create fastq files from bins
+    #             with open(os.path.join(args.output_dir, f'bin-{key}', f'{gpu_test_files[i].split(".")[0]}.fq'), 'w') as out_fq:
+    #                 list_reads_in_bin = [reads[j] for j in value]
+    #                 out_fq.write(''.join(list_reads_in_bin))
+    #
+    # end = datetime.datetime.now()
+    # total_time = end - start
+    # hours, seconds = divmod(total_time.seconds, 3600)
+    # minutes, seconds = divmod(seconds, 60)
+    #
+    # with open(os.path.join(args.output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
+    #     outfile.write(f'batch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files: {len(gpu_test_files)}\nnumber of reads classified: {num_reads_classified}\n')
+    #     if args.ckpt:
+    #         outfile.write(f'checkpoint saved at epoch: {args.epoch}')
+    #     else:
+    #         outfile.write(f'model saved at last epoch')
 
 
 if __name__ == "__main__":
