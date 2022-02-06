@@ -212,9 +212,10 @@ def main():
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
+
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
-                gpu_bins[pred_species[j]].append(all_read_ids[j])
+                gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                 out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
 
         # get dictionary mapping read ids to labels
