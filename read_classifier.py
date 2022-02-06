@@ -128,8 +128,7 @@ def main():
         # create output directories
         if not os.path.isdir(args.output_dir):
             os.makedirs(args.output_dir)
-            for i in range(NUM_CLASSES):
-                os.makedirs(os.path.join(args.output_dir, f'bin-{i}'))
+
 
     # load model
     if args.ckpt is not None:
@@ -215,7 +214,7 @@ def main():
 
         if hvd.rank() == 0:
             print(all_read_ids)
-            
+
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 gpu_bins[str(pred_species[j])].append(all_read_ids[j])
@@ -236,10 +235,11 @@ def main():
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
             for key, value in gpu_bins.items():
                 out_f.write(f'{key}\t{len(value)}\n')
-                # create fastq files from bins
-                with open(os.path.join(args.output_dir, f'bin-{key}', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fq'), 'w') as out_fq:
-                    list_reads_in_bin = [reads[j] for j in value]
-                    out_fq.write(''.join(list_reads_in_bin))
+                if len(value) > 0:
+                    # create fastq files from bins
+                    with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
+                        list_reads_in_bin = [reads[j] for j in value]
+                        out_fq.write(''.join(list_reads_in_bin))
 
     end = datetime.datetime.now()
     total_time = end - start
