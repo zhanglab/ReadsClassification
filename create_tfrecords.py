@@ -14,76 +14,30 @@ def wrap_read(value):
 def wrap_label(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-# def wrap_ID(value):
-    # return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-# def create_meta_tfrecords(args):
-#     """ Converts metagenomic reads to tfrecords """
-#     outfile = open('/'.join([args.output_dir, args.output_prefix + '-read_ids.tsv']), 'w')
-#     with tf.compat.v1.python_io.TFRecordWriter(args.output_tfrec) as writer:
-#         with gzip.open(args.input_fastq, "rt") as handle:
-#             for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
-#                 read = str(rec.seq)
-#                 read_id = rec.description
-#                 outfile.write(f'{read_id}\t{count}\n')
-#                 kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length)
-#                 data = \
-#                     {
-#                         'read': wrap_read(kmer_array),
-#                         'read_id': wrap_label(count)
-#                     }
-#                 feature = tf.train.Features(feature=data)
-#                 example = tf.train.Example(features=feature)
-#                 serialized = example.SerializeToString()
-#                 writer.write(serialized)
-#
-#                 if count == 10:
-#                     break
-#
-#         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-#             f.write(f'{count}')
-#
-#     outfile.close()
-
-def get_reads(args):
-    with gzip.open(args.input_fastq, "rt") as infile:
-        content = infile.readlines()
-        reads = [''.join(content[i:i+4]) for i in range(0, len(content), 4)]
-    return reads
-
 def create_meta_tfrecords(args):
     """ Converts metagenomic reads to tfrecords """
-    list_reads = get_reads(args)
-    num_tfrec = math.ceil(len(list_reads)/500000)
-    print(len(list_reads), num_tfrec)
-    for i in range(num_tfrec):
-        output_tfrec = os.path.join(args.output_dir, args.output_prefix + f'-{i}.tfrec')
-        outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids-{i}.tsv']), 'w')
-        start = i*500000
-        end = (i*500000) + 500000 if i < num_tfrec - 1 else (i*500000) + len(list_reads)
-        print(i, output_tfrec, start, end, len(list_reads[start:end]))
-        with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
-            for count, rec in enumerate(list_reads[start:end], 1):
-                # read = str(rec.seq)
-                # read_id = rec.description
-                read = rec.split('\n')[1]
-                read_id = rec.split('\n')[0]
-                outfile.write(f'{read_id}\t{count}\n')
-                kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
-                data = \
-                    {
-                        'read': wrap_read(kmer_array),
-                        'read_id': wrap_label(count)
-                    }
-                feature = tf.train.Features(feature=data)
-                example = tf.train.Example(features=feature)
-                serialized = example.SerializeToString()
-                writer.write(serialized)
+    output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
+    outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids.tsv']), 'w')
+    with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
+        for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
+            read = str(rec.seq)
+            read_id = rec.description
+            outfile.write(f'{read_id}\t{count}\n')
+            kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
+            data = \
+                {
+                    'read': wrap_read(kmer_array),
+                    'read_id': wrap_label(count)
+                }
+            feature = tf.train.Features(feature=data)
+            example = tf.train.Example(features=feature)
+            serialized = example.SerializeToString()
+            writer.write(serialized)
 
-        outfile.close()
+        with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
+            f.write(f'{count}')
 
-    with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-        f.write(f'{len(list_reads)}')
+    outfile.close()
 
 
 def create_tfrecords(args):
