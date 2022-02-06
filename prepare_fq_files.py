@@ -9,7 +9,7 @@ def split_fq_file(reads, out_filename):
     for i in range(n_files):
         start = i*500000
         end = (i*500000) + 500000 if i < n_files - 1 else (i*500000) + len(reads)
-        with gzip.open(os.path.join(out_filename, f'-{i}.fastq.gz'), 'wt') as outfile:
+        with gzip.open('-'.join([out_filename, f'{i}.fastq.gz']), 'wt') as outfile:
             outfile.write(''.join(reads[start:end]))
 
 
