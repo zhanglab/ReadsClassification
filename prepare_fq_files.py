@@ -21,11 +21,12 @@ def get_reads(fq_file):
 
 def main():
     fq_file = sys.argv[1]
+    output_dir = sys.argv[2]
     # get list of reads
     reads = get_reads(fq_file)
     # split list of fq file if
     if len(reads) > 500000:
-        out_filename = os.path.join('/'.join(fq_file.split('/')[0:-2]), ''.join(fq_file.split('/')[-1].split('.')[0]))
+        out_filename = os.path.join(output_dir, ''.join(fq_file.split('/')[-1].split('.')[0]))
         split_fq_file(reads, out_filename)
 
 if __name__ == "__main__":
