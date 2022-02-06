@@ -19,23 +19,24 @@ def create_meta_tfrecords(args):
     output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
     outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids.tsv']), 'w')
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
-        for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
-            read = str(rec.seq)
-            read_id = rec.description
-            outfile.write(f'{read_id}\t{count}\n')
-            kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
-            data = \
-                {
-                    'read': wrap_read(kmer_array),
-                    'read_id': wrap_label(count)
-                }
-            feature = tf.train.Features(feature=data)
-            example = tf.train.Example(features=feature)
-            serialized = example.SerializeToString()
-            writer.write(serialized)
+        with open(args.input_fastq) as handle:
+            for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
+                read = str(rec.seq)
+                read_id = rec.description
+                outfile.write(f'{read_id}\t{count}\n')
+                kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
+                data = \
+                    {
+                        'read': wrap_read(kmer_array),
+                        'read_id': wrap_label(count)
+                    }
+                feature = tf.train.Features(feature=data)
+                example = tf.train.Example(features=feature)
+                serialized = example.SerializeToString()
+                writer.write(serialized)
 
-        with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-            f.write(f'{count}')
+            with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
+                f.write(f'{count}')
 
     outfile.close()
 
