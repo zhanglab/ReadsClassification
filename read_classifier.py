@@ -172,7 +172,7 @@ def main():
     for i in range(len(gpu_test_files)):
         # get number of reads in test file
         with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
-            num_reads = int(f.readline()[0])
+            num_reads = int(f.readline())
         num_reads_classified += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
@@ -208,10 +208,12 @@ def main():
             pred_species = pred_species[:-num_extra_reads]
             all_read_ids = all_read_ids[:-num_extra_reads]
 
+        print(len(pred_species), len(all_read_ids))
+
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
+        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                 out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
@@ -232,8 +234,6 @@ def main():
             for key, value in gpu_bins.items():
                 out_f.write(f'{key}\t{len(value)}\n')
                 if len(value) > 0:
-                    print(dict_read_ids[str(value[0])])
-                    print(reads[dict_read_ids[str(value[0])]])
                     # create fastq files from bins
                     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
                         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
