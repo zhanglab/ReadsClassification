@@ -213,6 +213,9 @@ def main():
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
+        if hvd.rank() == 0:
+            print(all_read_ids)
+            
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split(".")[0]}-prob.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 gpu_bins[str(pred_species[j])].append(all_read_ids[j])
@@ -227,7 +230,7 @@ def main():
         with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
             content = f.readlines()
             records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
-            reads = {records[j].split('\n')[0].split(' ')[0]: records[j] for j in range(len(records))}
+            reads = {records[j].split('\n')[0]: records[j] for j in range(len(records))}
 
         # report species abundance and create bins
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
