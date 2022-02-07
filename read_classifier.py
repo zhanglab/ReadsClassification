@@ -250,6 +250,7 @@ def main():
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
         else:
             outfile.write(f'model saved at last epoch')
+        outfile.write(f'\nrun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}')
 
 
 if __name__ == "__main__":
