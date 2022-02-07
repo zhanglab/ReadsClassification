@@ -24,7 +24,7 @@ def get_prob(probs, results, count_all, count_ab_thld):
                 num_reads_abv_thld += 1
         num_reads += len(list_probs)
 
-    print(f'#reads: {num_reads}\n{num_reads_abv_thld}')
+    print(f'#reads: {num_reads}\n{num_reads_abv_thld}\t{round(num_reads_abv_thld/num_reads, 5)*100}')
 
 
 def combine_data(args, results):
@@ -41,7 +41,7 @@ def create_summary(args, data, probs, species_mapping_dict, outfilename, conditi
                 new_probs = [i for i in probs[key] if i >= 0.5]
             else:
                 new_probs = probs[key]
-            out_f.write(f'{key}\t{species_mapping_dict[key]}\t{value}\t{min(new_probs)}\t{max(new_probs)}\t{np.median(new_probs)}\t{np.mean(new_probs)}\n')
+            out_f.write(f'{key}\t{species_mapping_dict[str(key)]}\t{value}\t{min(new_probs)}\t{max(new_probs)}\t{np.median(new_probs)}\t{np.mean(new_probs)}\n')
 
 def main():
     parser = argparse.ArgumentParser()
@@ -56,7 +56,6 @@ def main():
 
     # get softmax layer output from each GPU
     results_prob = sorted(glob.glob(os.path.join(args.results_dir, '*-prob.tsv')))
-    print(results_prob)
 
     # get probabilities
     probs = defaultdict(list) # key = species label, value = list of predicted probabilities
