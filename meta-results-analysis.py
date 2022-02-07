@@ -15,6 +15,7 @@ def get_prob(probs, results, count_all, count_ab_thld):
         df = pd.read_csv(r, delimiter='\t', header=None)
         list_probs = df.iloc[:,1].tolist()
         labels = df.iloc[:,0].tolist()
+        print(r, len(list_probs))
         for i in range(len(list_probs)):
             probs[labels[i]].append(list_probs[i])
             count_all[labels[i]] += 1
@@ -23,7 +24,7 @@ def get_prob(probs, results, count_all, count_ab_thld):
                 num_reads_abv_thld += 1
         num_reads += len(list_probs)
 
-    print(f'#reads: {num_reads}\n{num_reads_abv_thld}\t{round(num_reads_abv_thld/num_reads, 3)*100}')
+    print(f'#reads: {num_reads}\n{num_reads_abv_thld}')
 
 
 def combine_data(args, results_prob):
@@ -45,7 +46,7 @@ def create_summary(args, data, probs, species_mapping_dict, outfilename, conditi
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_dir', type=str, help='directory containing json dictionary files mapping taxa to labels', required=True)
-    parser.add_argument('--results_dir', type=str, help='directory containing testing results', required=True)
+    parser.add_argument('--results_dir', type=str, help='directory containing dl toda results', required=True)
     parser.add_argument('--output_dir', type=str, help='output directory', required=True)
     args = parser.parse_args()
 
@@ -55,6 +56,7 @@ def main():
 
     # get softmax layer output from each GPU
     results_prob = sorted(glob.glob(os.path.join(args.results_dir, '*-prob.tsv')))
+    print(results_prob)
 
     # get probabilities
     probs = defaultdict(list) # key = species label, value = list of predicted probabilities
