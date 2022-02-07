@@ -27,7 +27,7 @@ def get_prob(probs, results, count_all, count_ab_thld):
     print(f'#reads: {num_reads}\n{num_reads_abv_thld}')
 
 
-def combine_data(args, results_prob):
+def combine_data(args, results):
     with open(os.path.join(args.output_dir, 'meta-all-probabilites'), 'w') as out_f:
         for r in results:
             with open(r, 'r') as in_f:
