@@ -208,8 +208,6 @@ def main():
             pred_species = pred_species[:-num_extra_reads]
             all_read_ids = all_read_ids[:-num_extra_reads]
 
-        print(len(pred_species), len(all_read_ids))
-
         # fill out dictionary of bins and create summary file of predicted probabilities
         gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
@@ -219,25 +217,25 @@ def main():
                 out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
 
         # get dictionary mapping read ids to labels
-        with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-            content = f.readlines()
-            dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
+        # with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+        #     content = f.readlines()
+        #     dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
         # get reads
-        with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
-            content = f.readlines()
-            records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
-            reads = {records[j].split('\n')[0]: records[j] for j in range(len(records))}
+        # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
+        #     content = f.readlines()
+        #     records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
+        #     reads = {records[j].split('\n')[0]: records[j] for j in range(len(records))}
 
         # report species abundance and create bins
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
             for key, value in gpu_bins.items():
                 out_f.write(f'{key}\t{len(value)}\n')
-                if len(value) > 0:
-                    # create fastq files from bins
-                    with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
-                        list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
-                        out_fq.write(''.join(list_reads_in_bin))
+                # if len(value) > 0:
+                #     # create fastq files from bins
+                #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
+                #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
+                #         out_fq.write(''.join(list_reads_in_bin))
 
     end = datetime.datetime.now()
     total_time = end - start
