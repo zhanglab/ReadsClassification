@@ -149,12 +149,13 @@ def main():
     #        print(f'latest ckpt: {latest_ckpt}')
     #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
 
+    print(f'load data: {datetime.datetime.now()}')
     # get list of testing tfrecords and number of reads per tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
-
+    print(f'split files: {datetime.datetime.now()}')
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
     if hvd.rank() != hvd.size() - 1:
@@ -168,6 +169,7 @@ def main():
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
+    print(f'start testing: {datetime.datetime.now()}')
 
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
@@ -256,6 +258,8 @@ def main():
                 #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
                 #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
                 #         out_fq.write(''.join(list_reads_in_bin))
+
+    print(f'end testing: {datetime.datetime.now()}')
 
     end = datetime.datetime.now()
     total_time = end - start
