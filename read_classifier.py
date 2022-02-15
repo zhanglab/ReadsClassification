@@ -80,25 +80,28 @@ class DALIPreprocessor(object):
         return self.dalidataset
 
 @tf.function
-def testing_step(reads, labels, loss, test_loss, test_accuracy, model):
+def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
-    test_accuracy.update_state(labels, probs)
-    loss_value = loss(labels, probs)
-    test_loss.update_state(loss_value)
-    return probs
+    if test_loss != None and test_accuracy != None and loss != None:
+        test_accuracy.update_state(labels, probs)
+        loss_value = loss(labels, probs)
+        test_loss.update_state(loss_value)
+    pred_labels = tf.math.argmax(probs)
+    return pred_labels
 
 def main():
     start = datetime.datetime.now()
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
-    parser.add_argument('--fq_files', type=str, help='path to directory containing metagenomic data', required=True)
+    parser.add_argument('--data_type', type=str, help='path to dali indexes files', required=True, choices=['test', 'meta'])
+    # parser.add_argument('--fq_files', type=str, help='path to directory containing metagenomic data')
     parser.add_argument('--class_mapping', type=str, help='path to json file containing dictionary mapping taxa to labels', required=True)
     parser.add_argument('--output_dir', type=str, help='directory to store results', required=True)
     parser.add_argument('--epoch', type=int, help='epoch of checkpoint')
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
     parser.add_argument('--model', type=str, help='path to directory containing saved model')
-    parser.add_argument('--ckpt', type=str, help='path to directory containing checkpoint file', required=('--epoch' and '--checkpoint' in sys.argv))
+    parser.add_argument('--ckpt', type=str, help='path to directory containing checkpoint file', required=('--epoch' in sys.argv))
     args = parser.parse_args()
 
     # define some training and model parameters
@@ -116,18 +119,19 @@ def main():
     keras.mixed_precision.set_global_policy(policy)
 
     # define metrics
-    loss = tf.losses.SparseCategoricalCrossentropy()
-    test_loss = tf.keras.metrics.Mean(name='test_loss')
-    test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+    if args.data_type == 'test':
+        loss = tf.losses.SparseCategoricalCrossentropy()
+        test_loss = tf.keras.metrics.Mean(name='test_loss')
+        test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
     init_lr = 0.0001
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
-    # if hvd.rank() == 0:
-    #     # create output directories
-    #     if not os.path.isdir(args.output_dir):
-    #         os.makedirs(args.output_dir)
+    if hvd.rank() == 0:
+        # create output directories
+        if not os.path.isdir(args.output_dir):
+            os.makedirs(args.output_dir)
 
     # load model
     if args.ckpt is not None:
@@ -148,7 +152,7 @@ def main():
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
-    read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv')))
+    read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
 
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
@@ -156,17 +160,13 @@ def main():
         gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu] if args.data_type == 'meta' else None
     else:
         gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
-        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)]
+        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
-    print(f'{hvd.rank()}\t{len(gpu_test_files)}\t{len(gpu_test_idx_files)}\t{len(gpu_num_reads_files)}\t{gpu_read_ids_files}')
-
-    if hvd.rank() == 0:
-        print(f'{gpu_test_files}\n{gpu_test_idx_files}\n{gpu_num_reads_files}\n{gpu_read_ids_files}')
 
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
@@ -184,37 +184,47 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
 
         # create empty arrays to store the predicted and true values
-        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        all_read_ids = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        #all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
-        for batch, (reads, read_ids) in enumerate(test_input.take(test_steps), 1):
-            batch_predictions = testing_step(reads, read_ids, loss, test_loss, test_accuracy, model)
+        for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+            # batch_predictions = testing_step(reads, read_ids, loss, test_loss, test_accuracy, model)
+            if args.data_type == 'meta':
+                batch_pred_sp = testing_step(reads, labels, model)
+            elif args.data_type == 'test':
+                batch_pred_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+
             if batch == 1:
-                all_read_ids = [read_ids]
-                all_predictions = batch_predictions
+                all_labels = [labels]
+                all_pred_sp = [batch_pred_sp]
+                # all_predictions = batch_predictions
             else:
-                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_read_ids = tf.concat([all_read_ids, [read_ids]], 1)
+                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        all_predictions = all_predictions.numpy()
-        pred_species = [np.argmax(j) for j in all_predictions]
-        pred_probabilities = [np.amax(j) for j in all_predictions]
-        all_read_ids = all_read_ids[0].numpy()
+        # all_predictions = all_predictions.numpy()
+        # pred_species = [np.argmax(j) for j in all_predictions]
+        # pred_probabilities = [np.amax(j) for j in all_predictions]
+        all_pred_sp = all_pred_sp[0].numpy()
+        all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        if len(pred_species) > num_reads:
+        if len(all_pred_sp > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
-            pred_species = pred_species[:-num_extra_reads]
-            all_read_ids = all_read_ids[:-num_extra_reads]
+            # pred_species = pred_species[:-num_extra_reads]
+            all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
-        gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
+        # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob.tsv'), 'w') as out_f:
+        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             for j in range(num_reads):
-                gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                out_f.write(f'{pred_species[j]}\t{pred_probabilities[j]}\n')
+                # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+                out_f.write(f'{all_pred_sp[j]}\t{all_labels[j]}\n')
 
         # get dictionary mapping read ids to labels
         # with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
@@ -228,9 +238,9 @@ def main():
         #     reads = {records[j].split('\n')[0]: records[j] for j in range(len(records))}
 
         # report species abundance and create bins
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
-            for key, value in gpu_bins.items():
-                out_f.write(f'{key}\t{len(value)}\n')
+        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
+            # for key, value in gpu_bins.items():
+                # out_f.write(f'{key}\t{len(value)}\n')
                 # if len(value) > 0:
                 #     # create fastq files from bins
                 #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
