@@ -18,7 +18,7 @@ from collections import defaultdict
 from models import AlexNet
 import argparse
 
-print(f'start code: {hvd.rank()}\t{datetime.datetime.now()}')
+print(f'start code: {datetime.datetime.now()}')
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
@@ -39,7 +39,7 @@ print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
     # tf.config.experimental.set_memory_growth(gpu, True)
 if gpus:
     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-    
+
 print(f'end initialize hvd and set up gpus: {hvd.rank()}\t{datetime.datetime.now()}')
 
 # define the DALI pipeline
