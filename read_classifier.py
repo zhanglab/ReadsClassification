@@ -1,3 +1,4 @@
+print(f'import libraries: {datetime.datetime.now()}')
 import tensorflow as tf
 import horovod.tensorflow as hvd
 import tensorflow.keras as keras
