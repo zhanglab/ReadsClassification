@@ -87,7 +87,8 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
     pred_labels = tf.math.argmax(probs)
-    return pred_labels
+    pred_probs = tf.reduce_max(probs)
+    return pred_labels, pred_probs
 
 def main():
     start = datetime.datetime.now()
@@ -186,22 +187,25 @@ def main():
         # create empty arrays to store the predicted and true values
         #all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             # batch_predictions = testing_step(reads, read_ids, loss, test_loss, test_accuracy, model)
             if args.data_type == 'meta':
-                batch_pred_sp = testing_step(reads, labels, model)
+                batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             elif args.data_type == 'test':
-                batch_pred_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+                batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
+                all_prob_sp = [batch_prob_sp]
                 # all_predictions = batch_predictions
             else:
                 # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
@@ -209,6 +213,7 @@ def main():
         # pred_species = [np.argmax(j) for j in all_predictions]
         # pred_probabilities = [np.amax(j) for j in all_predictions]
         all_pred_sp = all_pred_sp[0].numpy()
+        all_prob_sp = all_prob_sp[0].numpy()
         all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
@@ -216,6 +221,7 @@ def main():
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             # pred_species = pred_species[:-num_extra_reads]
             all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
@@ -229,7 +235,7 @@ def main():
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\n')
+                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
 
 
 
