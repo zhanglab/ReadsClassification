@@ -212,7 +212,7 @@ def main():
         all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        if len(all_pred_sp > num_reads:
+        if len(all_pred_sp) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             # pred_species = pred_species[:-num_extra_reads]
             all_pred_sp = all_pred_sp[:-num_extra_reads]
