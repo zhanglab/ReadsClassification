@@ -1,22 +1,25 @@
-print(f'import libraries: {datetime.datetime.now()}')
+import datetime
+print(f'import tensorflow: {datetime.datetime.now()}')
 import tensorflow as tf
+print(f'import horovod: {datetime.datetime.now()}')
 import horovod.tensorflow as hvd
-import tensorflow.keras as keras
+print(f'import nvidia dali: {datetime.datetime.now()}')
 from nvidia.dali.pipeline import pipeline_def
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 import nvidia.dali.tfrecord as tfrec
 import nvidia.dali.plugin.tf as dali_tf
+print(f'import model: {datetime.datetime.now()}')
+from models import AlexNet
+print(f'import remaining libraries: {datetime.datetime.now()}')
 import os
 import sys
 import json
 import glob
-import datetime
 import numpy as np
 import math
 import gzip
 from collections import defaultdict
-from models import AlexNet
 import argparse
 
 print(f'start code: {datetime.datetime.now()}')
@@ -121,8 +124,8 @@ def main():
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
     # create dtype policy
-    policy = keras.mixed_precision.Policy('mixed_float16')
-    keras.mixed_precision.set_global_policy(policy)
+    policy = tf.keras.mixed_precision.Policy('mixed_float16')
+    tf.keras.mixed_precision.set_global_policy(policy)
 
     # define metrics
     if args.data_type == 'test':
@@ -132,7 +135,7 @@ def main():
 
     init_lr = 0.0001
     opt = tf.keras.optimizers.Adam(init_lr)
-    opt = keras.mixed_precision.LossScaleOptimizer(opt)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
 
     print(f'end set up variables values: {hvd.rank()}\t{datetime.datetime.now()}')
 
