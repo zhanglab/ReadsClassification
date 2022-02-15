@@ -87,7 +87,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
     pred_labels = tf.math.argmax(probs)
-    pred_probs = tf.reduce_max(probs)
+    pred_probs = tf.reduce_max(probs, axis=1)
     return pred_labels, pred_probs
 
 def main():
@@ -197,9 +197,9 @@ def main():
             elif args.data_type == 'test':
                 batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
-            if hvd.rank() == 0:
-                print(f'probs: {batch_prob_sp}')
-                print(f'preds: {batch_pred_sp}')
+            if hvd.rank() == 0 and batch == 1:
+                print(f'probs: {batch_prob_sp}\t{batch_prob_sp.get_shape()}')
+                print(f'preds: {batch_pred_sp}\t{batch_pred_sp.get_shape()}')
 
             if batch == 1:
                 all_labels = [labels]
