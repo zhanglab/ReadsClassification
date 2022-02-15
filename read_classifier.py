@@ -197,6 +197,10 @@ def main():
             elif args.data_type == 'test':
                 batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
+            if hvd.rank() == 0:
+                print(f'probs: {batch_prob_sp}')
+                print(f'preds: {batch_pred_sp}')
+
             if batch == 1:
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
@@ -207,6 +211,8 @@ def main():
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
+
+
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
