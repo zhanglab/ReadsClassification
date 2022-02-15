@@ -18,6 +18,7 @@ from collections import defaultdict
 from models import AlexNet
 import argparse
 
+print(f'start code: {hvd.rank()}\t{datetime.datetime.now()}')
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
@@ -38,6 +39,8 @@ print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
     # tf.config.experimental.set_memory_growth(gpu, True)
 if gpus:
     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+    
+print(f'end initialize hvd and set up gpus: {hvd.rank()}\t{datetime.datetime.now()}')
 
 # define the DALI pipeline
 @pipeline_def
@@ -92,6 +95,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 
 def main():
     start = datetime.datetime.now()
+    print(f'start parsing command line arguments: {hvd.rank()}\t{datetime.datetime.now()}')
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
@@ -129,11 +133,15 @@ def main():
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
+    print(f'end set up variables values: {hvd.rank()}\t{datetime.datetime.now()}')
+
     if hvd.rank() == 0:
+        print(f'create output directory: {hvd.rank()}\t{datetime.datetime.now()}')
         # create output directories
         if not os.path.isdir(args.output_dir):
             os.makedirs(args.output_dir)
 
+    print(f'load model: {hvd.rank()}\t{datetime.datetime.now()}')
     # load model
     if args.ckpt is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
@@ -149,13 +157,13 @@ def main():
     #        print(f'latest ckpt: {latest_ckpt}')
     #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
 
-    print(f'load data: {datetime.datetime.now()}')
+    print(f'load data: {hvd.rank()}\t{datetime.datetime.now()}')
     # get list of testing tfrecords and number of reads per tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
-    print(f'split files: {datetime.datetime.now()}')
+    print(f'split files: {hvd.rank()}\t{datetime.datetime.now()}')
     # split tfrecords between gpus
     test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
     if hvd.rank() != hvd.size() - 1:
@@ -169,7 +177,7 @@ def main():
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
-    print(f'start testing: {datetime.datetime.now()}')
+    print(f'start testing: {hvd.rank()}\t{datetime.datetime.now()}')
 
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
@@ -259,7 +267,7 @@ def main():
                 #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
                 #         out_fq.write(''.join(list_reads_in_bin))
 
-    print(f'end testing: {datetime.datetime.now()}')
+    print(f'end testing: {hvd.rank()}\t{datetime.datetime.now()}')
 
     end = datetime.datetime.now()
     total_time = end - start
