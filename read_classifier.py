@@ -229,7 +229,7 @@ def main():
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                out_f.write(f'{dict_read_ids[all_labels[j]]}\t{all_pred_sp[j]}\n')
+                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\n')
 
 
 
