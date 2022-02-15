@@ -197,10 +197,6 @@ def main():
             elif args.data_type == 'test':
                 batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
-            if hvd.rank() == 0 and batch == 1:
-                print(f'probs: {batch_prob_sp}\t{batch_prob_sp.get_shape()}')
-                print(f'preds: {batch_pred_sp}\t{batch_pred_sp.get_shape()}')
-
             if batch == 1:
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
