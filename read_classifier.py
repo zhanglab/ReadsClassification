@@ -86,7 +86,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    pred_labels = tf.math.argmax(probs)
+    pred_labels = tf.math.argmax(probs, axis=1)
     pred_probs = tf.reduce_max(probs, axis=1)
     return pred_labels, pred_probs
 
