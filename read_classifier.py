@@ -1,7 +1,7 @@
 import datetime
 print(f'import tensorflow: {datetime.datetime.now()}')
 # import tensorflow as tf
-from tensorflow import config, executing_eagerly, math, int64, reduce_max, keras, losses, train, zeros, dtypes
+from tensorflow import config, executing_eagerly, math, int64, reduce_max, keras, losses, train, zeros, dtypes, function
 print(f'import horovod: {datetime.datetime.now()}')
 import horovod.tensorflow as hvd
 print(f'import nvidia dali: {datetime.datetime.now()}')
@@ -87,7 +87,8 @@ class DALIPreprocessor(object):
     def get_device_dataset(self):
         return self.dalidataset
 
-@tf.function
+# @tf.function
+function
 def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
     if test_loss != None and test_accuracy != None and loss != None:
