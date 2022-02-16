@@ -126,8 +126,8 @@ def main():
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
     # create dtype policy
-    policy = keras.mixed_precision.Policy('mixed_float16')
-    keras.mixed_precision.set_global_policy(policy)
+    policy = tf.keras.mixed_precision.Policy('mixed_float16')
+    tf.keras.mixed_precision.set_global_policy(policy)
 
     # define metrics
     if args.data_type == 'test':
