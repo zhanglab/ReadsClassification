@@ -195,8 +195,7 @@ def main():
         test_steps = math.ceil(num_reads/(args.batch_size))
 
         num_preprocessing_threads = 4
-        test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True,
-                                            deterministic=False, training=False)
+        test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
 
@@ -221,9 +220,9 @@ def main():
                 # all_predictions = batch_predictions
             else:
                 # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_pred_sp = concat([all_pred_sp, [batch_pred_sp]], 1)
-                all_prob_sp = concat([all_prob_sp, [batch_prob_sp]], 1)
-                all_labels = concat([all_labels, [labels]], 1)
+                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+                all_labels = tf.concat([all_labels, [labels]], 1)
 
 
 
