@@ -1,7 +1,7 @@
 import datetime
 print(f'import tensorflow: {datetime.datetime.now()}')
-# import tensorflow as tf
-from tensorflow import config, executing_eagerly, math, int64, reduce_max, keras, losses, train, zeros, dtypes, function
+import tensorflow as tf
+# from tensorflow import config, executing_eagerly, math, int64, reduce_max, keras, losses, train, zeros, dtypes, function
 print(f'import horovod: {datetime.datetime.now()}')
 import horovod.tensorflow as hvd
 print(f'import nvidia dali: {datetime.datetime.now()}')
@@ -26,7 +26,7 @@ import argparse
 print(f'start code: {datetime.datetime.now()}')
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
-print(executing_eagerly())
+print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
 
@@ -37,7 +37,7 @@ os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 hvd.init()
 # Pin GPU to be used to process local rank (one GPU per process)
 # use hvd.local_rank() for gpu pinning instead of hvd.rank()
-gpus = config.experimental.list_physical_devices('GPU')
+gpus = tf.config.experimental.list_physical_devices('GPU')
 print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
 # comment next 2 lines if testing large dataset
 # for gpu in gpus:
@@ -82,21 +82,20 @@ class DALIPreprocessor(object):
 
         self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
             output_shapes=((batch_size, 239), (batch_size)),
-            batch_size=batch_size, output_dtypes=(int64, int64), device_id=device_id)
+            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
 
     def get_device_dataset(self):
         return self.dalidataset
 
-# @tf.function
-function
+@tf.function
 def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
     if test_loss != None and test_accuracy != None and loss != None:
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    pred_labels = math.argmax(probs, axis=1)
-    pred_probs = reduce_max(probs, axis=1)
+    pred_labels = tf.math.argmax(probs, axis=1)
+    pred_probs = tf.reduce_max(probs, axis=1)
     return pred_labels, pred_probs
     # return probs
 
@@ -132,13 +131,13 @@ def main():
 
     # define metrics
     if args.data_type == 'test':
-        loss = losses.SparseCategoricalCrossentropy()
-        test_loss = keras.metrics.Mean(name='test_loss')
-        test_accuracy = keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+        loss = tf.losses.SparseCategoricalCrossentropy()
+        test_loss = tf.keras.metrics.Mean(name='test_loss')
+        test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
     init_lr = 0.0001
-    opt = keras.optimizers.Adam(init_lr)
-    opt = keras.mixed_precision.LossScaleOptimizer(opt)
+    opt = tf.keras.optimizers.Adam(init_lr)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
 
     print(f'end set up variables values: {hvd.rank()}\t{datetime.datetime.now()}')
 
@@ -152,10 +151,10 @@ def main():
     # load model
     if args.ckpt is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
-        checkpoint = train.Checkpoint(optimizer=opt, model=model)
+        checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
     elif args.model is not None:
-        model = keras.models.load_model(args.model, 'model')
+        model = tf.keras.models.load_model(args.model, 'model')
             # restore the checkpointed values to the model
     #        checkpoint = tf.train.Checkpoint(model)
     #        checkpoint.restore(tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts')))
@@ -203,9 +202,9 @@ def main():
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        all_pred_sp = [zeros([args.batch_size], dtype=dtypes.float32, name=None)]
-        all_prob_sp = [zeros([args.batch_size], dtype=dtypes.float32, name=None)]
-        all_labels = [zeros([args.batch_size], dtype=dtypes.float32, name=None)]
+        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
