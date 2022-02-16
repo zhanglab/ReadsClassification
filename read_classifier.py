@@ -1,6 +1,7 @@
 import datetime
 print(f'import tensorflow: {datetime.datetime.now()}')
-import tensorflow as tf
+# import tensorflow as tf
+from tensorflow import config, executing_eagerly, math, int64, reduce_max, keras, losses, train, zeros, dtypes
 print(f'import horovod: {datetime.datetime.now()}')
 import horovod.tensorflow as hvd
 print(f'import nvidia dali: {datetime.datetime.now()}')
@@ -25,7 +26,7 @@ import argparse
 print(f'start code: {datetime.datetime.now()}')
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
-print(tf.executing_eagerly())
+print(executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
 
@@ -36,7 +37,7 @@ os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 hvd.init()
 # Pin GPU to be used to process local rank (one GPU per process)
 # use hvd.local_rank() for gpu pinning instead of hvd.rank()
-gpus = tf.config.experimental.list_physical_devices('GPU')
+gpus = config.experimental.list_physical_devices('GPU')
 print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
 # comment next 2 lines if testing large dataset
 # for gpu in gpus:
@@ -81,7 +82,7 @@ class DALIPreprocessor(object):
 
         self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
             output_shapes=((batch_size, 239), (batch_size)),
-            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
+            batch_size=batch_size, output_dtypes=(int64, int64), device_id=device_id)
 
     def get_device_dataset(self):
         return self.dalidataset
@@ -93,10 +94,10 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    # pred_labels = tf.math.argmax(probs, axis=1)
-    # pred_probs = tf.reduce_max(probs, axis=1)
-    # return pred_labels, pred_probs
-    return probs
+    pred_labels = math.argmax(probs, axis=1)
+    pred_probs = reduce_max(probs, axis=1)
+    return pred_labels, pred_probs
+    # return probs
 
 def main():
     start = datetime.datetime.now()
@@ -125,18 +126,18 @@ def main():
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
     # create dtype policy
-    policy = tf.keras.mixed_precision.Policy('mixed_float16')
-    tf.keras.mixed_precision.set_global_policy(policy)
+    policy = keras.mixed_precision.Policy('mixed_float16')
+    keras.mixed_precision.set_global_policy(policy)
 
     # define metrics
     if args.data_type == 'test':
-        loss = tf.losses.SparseCategoricalCrossentropy()
-        test_loss = tf.keras.metrics.Mean(name='test_loss')
-        test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+        loss = losses.SparseCategoricalCrossentropy()
+        test_loss = keras.metrics.Mean(name='test_loss')
+        test_accuracy = keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
     init_lr = 0.0001
-    opt = tf.keras.optimizers.Adam(init_lr)
-    opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
+    opt = keras.optimizers.Adam(init_lr)
+    opt = keras.mixed_precision.LossScaleOptimizer(opt)
 
     print(f'end set up variables values: {hvd.rank()}\t{datetime.datetime.now()}')
 
@@ -150,10 +151,10 @@ def main():
     # load model
     if args.ckpt is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
-        checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
+        checkpoint = train.Checkpoint(optimizer=opt, model=model)
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
     elif args.model is not None:
-        model = tf.keras.models.load_model(args.model, 'model')
+        model = keras.models.load_model(args.model, 'model')
             # restore the checkpointed values to the model
     #        checkpoint = tf.train.Checkpoint(model)
     #        checkpoint.restore(tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts')))
@@ -200,47 +201,47 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
 
         # create empty arrays to store the predicted and true values
-        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+        all_pred_sp = [zeros([args.batch_size], dtype=dtypes.float32, name=None)]
+        all_prob_sp = [zeros([args.batch_size], dtype=dtypes.float32, name=None)]
+        all_labels = [zeros([args.batch_size], dtype=dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
-                # batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
-                batch_predictions = testing_step(reads, labels, model)
+                batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
+                # batch_predictions = testing_step(reads, labels, model)
             elif args.data_type == 'test':
-                # batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-                batch_predictions = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+                batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+                # batch_predictions = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
-                # all_pred_sp = [batch_pred_sp]
-                # all_prob_sp = [batch_prob_sp]
-                all_predictions = batch_predictions
+                all_pred_sp = [batch_pred_sp]
+                all_prob_sp = [batch_prob_sp]
+                # all_predictions = batch_predictions
             else:
-                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-                # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-                all_labels = tf.concat([all_labels, [labels]], 1)
+                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                all_pred_sp = concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_prob_sp = concat([all_prob_sp, [batch_prob_sp]], 1)
+                all_labels = concat([all_labels, [labels]], 1)
 
 
 
         # get list of true species, predicted species and predicted probabilities
-        all_predictions = all_predictions.numpy()
-        pred_species = [np.argmax(j) for j in all_predictions]
-        pred_probabilities = [np.amax(j) for j in all_predictions]
-        # all_pred_sp = all_pred_sp[0].numpy()
-        # all_prob_sp = all_prob_sp[0].numpy()
+        # all_predictions = all_predictions.numpy()
+        # pred_species = [np.argmax(j) for j in all_predictions]
+        # pred_probabilities = [np.amax(j) for j in all_predictions]
+        all_pred_sp = all_pred_sp[0].numpy()
+        all_prob_sp = all_prob_sp[0].numpy()
         all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
         if len(all_pred_sp) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
-            pred_species = pred_species[:-num_extra_reads]
-            pred_probabilities = pred_probabilities[:-num_extra_reads]
-            # all_pred_sp = all_pred_sp[:-num_extra_reads]
-            # all_prob_sp = all_prob_sp[:-num_extra_reads]
+            # pred_species = pred_species[:-num_extra_reads]
+            # pred_probabilities = pred_probabilities[:-num_extra_reads]
+            all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
@@ -254,8 +255,8 @@ def main():
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             for j in range(num_reads):
                 # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
-                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
+                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
+                # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
 
 
 
