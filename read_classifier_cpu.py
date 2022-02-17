@@ -30,7 +30,7 @@ print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
 
-
+print('before hvd initialization')
 # Initialize Horovod
 hvd.init()
 
