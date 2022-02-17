@@ -19,7 +19,7 @@ import math
 import gzip
 from collections import defaultdict
 import argparse
-from multiprocessing.pool import ThreadPool
+import multiprocessing as mp
 
 print(f'start code: {datetime.datetime.now()}')
 print(f'# of cpu cores: {os.cpu_count()}')
@@ -210,7 +210,7 @@ def main():
 
     manager = mp.Manager()
     results_dict = manager.dict()
-    pool = ThreadPool(os.cpu_count())
+    pool = mp.pool.ThreadPool(os.cpu_count())
     results = pool.map(run_testing, args=(args, results_dict, test_files))
     pool.close()
     pool.join()
