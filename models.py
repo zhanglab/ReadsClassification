@@ -10,7 +10,7 @@ def AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE, 
     x = tf.keras.layers.Embedding(input_dim=VOCAB_SIZE+1, output_dim=EMBEDDING_SIZE, embeddings_initializer=tf.keras.initializers.HeNormal(),
                                           input_length=VECTOR_SIZE, mask_zero=True, trainable=True, name='embedding')(x)
     x = tf.keras.layers.Reshape((VECTOR_SIZE, EMBEDDING_SIZE, 1))(x)
-    x = tf.keras.layers.Conv2D(96, kernel_size=(11, 11), strides=(4, 4), padding='same', kernel_initializer=ktf.eras.initializers.HeNormal(), name='conv_1')(x)
+    x = tf.keras.layers.Conv2D(96, kernel_size=(11, 11), strides=(4, 4), padding='same', kernel_initializer=tf.keras.initializers.HeNormal(), name='conv_1')(x)
     x = tf.keras.layers.BatchNormalization(axis=1, momentum=0.99)(x)
     x = tf.keras.layers.Activation('relu')(x)
 #    x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), strides=(2, 2), padding='same')(x)
