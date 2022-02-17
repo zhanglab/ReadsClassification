@@ -20,6 +20,7 @@ import gzip
 from collections import defaultdict
 import argparse
 import multiprocessing as mp
+import itertools
 
 print(f'start code: {datetime.datetime.now()}')
 print(f'# of cpu cores: {os.cpu_count()}')
@@ -211,7 +212,7 @@ def main():
     manager = mp.Manager()
     results_dict = manager.dict()
     pool = mp.pool.ThreadPool(os.cpu_count())
-    results = pool.map(run_testing, args=(args, results_dict, test_files))
+    results = pool.map(run_testing, itertools.izip(itertools.repeat(args, len(test_files)), itertools.repeat(results_dict, len(test_files)), test_files)))
     pool.close()
     pool.join()
 
