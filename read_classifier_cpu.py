@@ -212,7 +212,7 @@ def main():
     manager = mp.Manager()
     results_dict = manager.dict()
     pool = mp.pool.ThreadPool(os.cpu_count())
-    results = pool.map(run_testing, zip(itertools.repeat(args, len(test_files)), itertools.repeat(results_dict, len(test_files)), test_files))
+    results = pool.starmap(run_testing, zip(itertools.repeat(args, len(test_files)), itertools.repeat(results_dict, len(test_files)), test_files))
     pool.close()
     pool.join()
 
