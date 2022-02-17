@@ -51,8 +51,7 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames):
 
 class DALIPreprocessor(object):
     def __init__(self, filenames, idx_filenames, batch_size, num_preprocessing_threads):
-        self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, batch_size=batch_size,
-                                      num_threads=num_preprocessing_threads, device_id=None)
+        self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, batch_size=batch_size, num_threads=num_preprocessing_threads, device='cpu', device_id=None, exec_pipelined=False)
         self.dalidataset = dali_tf.DALIDataset(pipeline=self.pipe,
             output_shapes=((batch_size, 239), (batch_size)),
             batch_size=batch_size, output_dtypes=(tf.int64, tf.int64))
