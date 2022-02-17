@@ -35,6 +35,7 @@ print(tf.executing_eagerly())
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 # Initialize Horovod
 hvd.init()
+print(f'initialized hvd: {hvd.rank()}\t{datetime.datetime.now()}')
 # Pin GPU to be used to process local rank (one GPU per process)
 # use hvd.local_rank() for gpu pinning instead of hvd.rank()
 gpus = tf.config.experimental.list_physical_devices('GPU')
