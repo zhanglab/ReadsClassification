@@ -50,11 +50,12 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames):
     return reads, labels
 
 class DALIPreprocessor(object):
-    def __init__(self, filenames, idx_filenames, batch_size, num_threads):
+    def __init__(self, filenames, idx_filenames, batch_size):
 
         self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames)
         self.daliop = dali_tf.DALIIterator()
-        self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
+        self.batch_size = batch_size
+        self.dalidataset = dali_tf.DALIDataset(pipeline=self.pipe,
             output_shapes=((batch_size, 239), (batch_size)),
             batch_size=batch_size, output_dtypes=(tf.int64, tf.int64))
 
@@ -85,8 +86,7 @@ def run_testing(args, results_dict, test_file):
     tfrec = os.path.join(args.tfrecords, '.'.join([test_file, 'tfrec']))
     idx_file = os.path.join(args.tfrecords, 'idx_files', '.'.join([test_file, 'tfrec.idx']))
 
-    num_preprocessing_threads = 1 # number of CPU threads
-    test_preprocessor = DALIPreprocessor(tfrec, idx_file, args.batch_size, num_preprocessing_threads)
+    test_preprocessor = DALIPreprocessor(tfrec, idx_file, args.batch_size)
     test_input = test_preprocessor.get_device_dataset()
 
     # create empty arrays to store the predicted and true values
