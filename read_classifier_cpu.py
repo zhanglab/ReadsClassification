@@ -76,14 +76,14 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 def run_testing(args, results_dict, test_file):
     num_reads_classified = 0
     # get number of reads in test file
-    with open(os.path.join(args.tfrecords, '-'.join([test_file[i], 'read_count'])), 'r') as f:
+    with open(os.path.join(args.tfrecords, '-'.join([test_file, 'read_count'])), 'r') as f:
         num_reads = int(f.readline())
     num_reads_classified += num_reads
     # compute number of required steps to iterate over entire test file
     test_steps = math.ceil(num_reads/(args.batch_size))
 
-    tfrec = os.path.join(args.tfrecords, '.'.join([test_file[i], 'tfrec']))
-    idx_file = os.path.join(args.tfrecords, 'idx_files', '.'.join([test_file[i], 'tfrec.idx']))
+    tfrec = os.path.join(args.tfrecords, '.'.join([test_file, 'tfrec']))
+    idx_file = os.path.join(args.tfrecords, 'idx_files', '.'.join([test_file, 'tfrec.idx']))
 
     num_preprocessing_threads = 1 # number of CPU threads
     test_preprocessor = DALIPreprocessor(tfrec, idx_file, args.batch_size, num_preprocessing_threads)
@@ -132,7 +132,7 @@ def run_testing(args, results_dict, test_file):
         all_labels = all_labels[:-num_extra_reads]
 
     # get dictionary mapping read ids to labels
-    with open(os.path.join(args.tfrecords, '-'.join([test_file[i], 'read_ids.tsv'])), 'r') as f:
+    with open(os.path.join(args.tfrecords, '-'.join([test_file, 'read_ids.tsv'])), 'r') as f:
         content = f.readlines()
         dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
