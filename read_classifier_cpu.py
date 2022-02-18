@@ -74,7 +74,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 def read_tfrecord(proto_example):
     data_description = {
         'read': tf.io.VarLenFeature(tf.int64),
-        'read_id': tf.io.VarLenFeature(tf.string)
+        'read_id': tf.io.VarLenFeature(tf.int64)
     }
     # load one example
     parsed_example = tf.io.parse_single_example(serialized=proto_example, features=data_description)
