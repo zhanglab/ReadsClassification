@@ -74,7 +74,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 def read_tfrecord(proto_example):
     data_description = {
         'read': tf.io.VarLenFeature(tf.int64),
-        'read_id': tf.io.VarLenFeature(tf.int64)
+        'read_id': tf.io.FixedLenSequenceFeature([], tf.int64, allow_missing=True)
     }
     # load one example
     parsed_example = tf.io.parse_single_example(serialized=proto_example, features=data_description)
@@ -100,6 +100,8 @@ def run_testing(args, results_dict, model, test_file):
 
     dataset = tf.data.TFRecordDataset([tfrec])
     dataset = dataset.map(map_func=read_tfrecord, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.padded_batch(args.batch_size,
+                                   padded_shapes=(tf.TensorShape([args.VECTOR_SIZE]), tf.TensorShape([None, ])))
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
     # num_preprocessing_threads = 1
@@ -175,10 +177,10 @@ def main():
     args = parser.parse_args()
 
     # define some training and model parameters
-    VECTOR_SIZE = 250 - 12 + 1
-    VOCAB_SIZE = 8390657
-    EMBEDDING_SIZE = 60
-    DROPOUT_RATE = 0.7
+    args.VECTOR_SIZE = 250 - 12 + 1
+    args.VOCAB_SIZE = 8390657
+    args.EMBEDDING_SIZE = 60
+    args.DROPOUT_RATE = 0.7
 
     # load class_mapping file mapping label IDs to species
     f = open(args.class_mapping)
@@ -205,7 +207,7 @@ def main():
 
     # load model
     if args.ckpt is not None:
-        model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
+        model = AlexNet(args.VECTOR_SIZE, args.EMBEDDING_SIZE, NUM_CLASSES, args.VOCAB_SIZE, args.DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
     elif args.model is not None:
