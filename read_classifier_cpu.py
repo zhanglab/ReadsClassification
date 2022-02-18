@@ -1,12 +1,12 @@
 import datetime
 print(f'import tensorflow: {datetime.datetime.now()}')
 import tensorflow as tf
-print(f'import nvidia dali: {datetime.datetime.now()}')
-from nvidia.dali.pipeline import pipeline_def
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
-import nvidia.dali.tfrecord as tfrec
-import nvidia.dali.plugin.tf as dali_tf
+# print(f'import nvidia dali: {datetime.datetime.now()}')
+# from nvidia.dali.pipeline import pipeline_def
+# import nvidia.dali.fn as fn
+# import nvidia.dali.types as types
+# import nvidia.dali.tfrecord as tfrec
+# import nvidia.dali.plugin.tf as dali_tf
 print(f'import model: {datetime.datetime.now()}')
 from models import AlexNet
 print(f'import remaining libraries: {datetime.datetime.now()}')
@@ -36,28 +36,28 @@ os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 print(f'end initialize code: {datetime.datetime.now()}')
 
 # define the DALI pipeline
-@pipeline_def
-def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames):
-    inputs = fn.readers.tfrecord(path=tfrec_filenames,
-                                 index_path=tfrec_idx_filenames,
-                                 random_shuffle=False,
-                                 features={
-                                     "read": tfrec.VarLenFeature([], tfrec.int64, 0),
-                                     "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
-    # retrieve reads and labels
-    reads = inputs["read"]
-    labels = inputs["read_id"]
-    return reads, labels
-
-class DALIPreprocessor(object):
-    def __init__(self, filenames, idx_filenames, batch_size, num_preprocessing_threads):
-        self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, batch_size=batch_size, num_threads=num_preprocessing_threads, device='cpu', device_id=None, exec_pipelined=False)
-        self.dalidataset = dali_tf.DALIDataset(pipeline=self.pipe,
-            output_shapes=((batch_size, 239), (batch_size)),
-            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64))
-
-    def get_device_dataset(self):
-        return self.dalidataset
+# @pipeline_def
+# def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames):
+#     inputs = fn.readers.tfrecord(path=tfrec_filenames,
+#                                  index_path=tfrec_idx_filenames,
+#                                  random_shuffle=False,
+#                                  features={
+#                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
+#                                      "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
+#     # retrieve reads and labels
+#     reads = inputs["read"]
+#     labels = inputs["read_id"]
+#     return reads, labels
+#
+# class DALIPreprocessor(object):
+#     def __init__(self, filenames, idx_filenames, batch_size, num_preprocessing_threads):
+#         self.pipe = get_dali_pipeline(tfrec_filenames=filenames, tfrec_idx_filenames=idx_filenames, batch_size=batch_size, num_threads=num_preprocessing_threads, device_id=None, exec_pipelined=False)
+#         self.dalidataset = dali_tf.DALIDataset(pipeline=self.pipe,
+#             output_shapes=((batch_size, 239), (batch_size)),
+#             batch_size=batch_size, output_dtypes=(tf.int64, tf.int64))
+#
+#     def get_device_dataset(self):
+#         return self.dalidataset
 
 @tf.function
 def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
@@ -71,6 +71,19 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     return pred_labels, pred_probs
     # return probs
 
+def read_tfrecord(proto_example):
+    data_description = {
+        'read': tf.io.VarLenFeature(tf.int64),
+        'read_id': tf.io.VarLenFeature(tf.string)
+    }
+    # load one example
+    parsed_example = tf.io.parse_single_example(serialized=proto_example, features=data_description)
+    read = parsed_example['read']
+    read = tf.sparse.to_dense(read)
+    label = parsed_example['read_id']
+    return read, label
+
+
 def run_testing(args, results_dict, test_file):
     num_reads_classified = 0
     # get number of reads in test file
@@ -83,9 +96,13 @@ def run_testing(args, results_dict, test_file):
     tfrec = os.path.join(args.tfrecords, '.'.join([test_file, 'tfrec']))
     idx_file = os.path.join(args.tfrecords, 'idx_files', '.'.join([test_file, 'tfrec.idx']))
 
-    num_preprocessing_threads = 1
-    test_preprocessor = DALIPreprocessor(tfrec, idx_file, args.batch_size, num_preprocessing_threads)
-    test_input = test_preprocessor.get_device_dataset()
+    dataset = tf.data.TFRecordDataset([tfrec])
+    dataset = dataset.map(map_func=read_tfrecord, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+    # num_preprocessing_threads = 1
+    # test_preprocessor = DALIPreprocessor(tfrec, idx_file, args.batch_size, num_preprocessing_threads)
+    # test_input = test_preprocessor.get_device_dataset()
 
     # create empty arrays to store the predicted and true values
     # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
@@ -93,7 +110,7 @@ def run_testing(args, results_dict, test_file):
     all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
     all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
-    for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+    for batch, (reads, labels) in enumerate(dataset.take(test_steps), 1):
         if args.data_type == 'meta':
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # batch_predictions = testing_step(reads, labels, model)
