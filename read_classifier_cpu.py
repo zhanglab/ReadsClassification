@@ -84,7 +84,7 @@ def read_tfrecord(proto_example):
     return read, label
 
 
-def run_testing(args, results_dict, test_file):
+def run_testing(args, results_dict, model, test_file):
     num_reads_classified = 0
     # get number of reads in test file
     with open(os.path.join(args.tfrecords, '-'.join([test_file, 'read_count'])), 'r') as f:
@@ -227,7 +227,7 @@ def main():
     manager = mp.Manager()
     results_dict = manager.dict()
     pool = mp.pool.ThreadPool(os.cpu_count())
-    results = pool.starmap(run_testing, zip(itertools.repeat(args, len(test_files)), itertools.repeat(results_dict, len(test_files)), test_files))
+    results = pool.starmap(run_testing, zip(itertools.repeat(args, len(test_files)), itertools.repeat(results_dict, len(test_files)), itertools.repeat(model, len(test_files)), test_files))
     pool.close()
     pool.join()
 
