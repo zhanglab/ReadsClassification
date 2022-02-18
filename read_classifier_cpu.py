@@ -79,8 +79,9 @@ def read_tfrecord(proto_example):
     # load one example
     parsed_example = tf.io.parse_single_example(serialized=proto_example, features=data_description)
     read = parsed_example['read']
-    # read = tf.sparse.to_dense(read)
+    read = tf.sparse.to_dense(read)
     label = parsed_example['read_id']
+    label = tf.sparse.to_dense(label)
     print(f'read: {read}\nlabel: {label}')
     return read, label
 
