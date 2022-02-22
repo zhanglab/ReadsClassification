@@ -172,7 +172,7 @@ def main():
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
     print(f'split files: {hvd.rank()}\t{datetime.datetime.now()}')
     # split tfrecords between gpus
-    test_files_per_gpu = math.ceil(len(test_files)/hvd.size())
+    test_files_per_gpu = len(test_files)//hvd.size()
     if hvd.rank() != hvd.size() - 1:
         gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
