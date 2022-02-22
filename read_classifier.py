@@ -41,10 +41,10 @@ print(f'initialized hvd: {hvd.rank()}\t{datetime.datetime.now()}')
 gpus = tf.config.experimental.list_physical_devices('GPU')
 print(f'GPU RANK: {hvd.rank()}/{hvd.local_rank()} - LIST GPUs: {gpus}')
 # comment next 2 lines if testing large dataset
-# for gpu in gpus:
-    # tf.config.experimental.set_memory_growth(gpu, True)
-# if gpus:
-    # tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+for gpu in gpus:
+    tf.config.experimental.set_memory_growth(gpu, True)
+if gpus:
+    tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
 print(f'end initialize hvd and set up gpus: {hvd.rank()}\t{datetime.datetime.now()}')
 
@@ -56,7 +56,7 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
                                  random_shuffle=training,
                                  shard_id=shard_id,
                                  num_shards=num_gpus,
-                                 initial_fill=10000,
+                                 # initial_fill=10000,
                                  features={
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
                                      "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
