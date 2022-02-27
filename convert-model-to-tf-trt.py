@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow.python.compiler.tensorrt import trt_convert as trt
 from models import AlexNet
 import json
