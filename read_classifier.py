@@ -247,17 +247,22 @@ def main():
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
-        # get dictionary mapping read ids to labels
-        with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-            content = f.readlines()
-            dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
+        if args.data_type == 'meta':
+            # get dictionary mapping read ids to labels
+            with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+                content = f.readlines()
+                dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-            for j in range(num_reads):
-                # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
-                # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
-
+            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+                for j in range(num_reads):
+                    # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
+                    # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
+        elif args.data_type == 'test':
+            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+                for j in range(num_reads):
+                    # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+                    out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
 
 
         # get reads
