@@ -1,18 +1,12 @@
 import datetime
-print(f'import tensorflow: {datetime.datetime.now()}')
 import tensorflow as tf
-# from tensorflow import config, executing_eagerly, math, int64, reduce_max, keras, losses, train, zeros, dtypes, function
-print(f'import horovod: {datetime.datetime.now()}')
 import horovod.tensorflow as hvd
-print(f'import nvidia dali: {datetime.datetime.now()}')
 from nvidia.dali.pipeline import pipeline_def
 import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 import nvidia.dali.tfrecord as tfrec
 import nvidia.dali.plugin.tf as dali_tf
-print(f'import model: {datetime.datetime.now()}')
 from models import AlexNet
-print(f'import remaining libraries: {datetime.datetime.now()}')
 import os
 import sys
 import json
@@ -23,7 +17,6 @@ import gzip
 from collections import defaultdict
 import argparse
 
-print(f'start code: {datetime.datetime.now()}')
 # disable eager execution
 #tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
@@ -35,7 +28,6 @@ print(tf.executing_eagerly())
 os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 # Initialize Horovod
 hvd.init()
-print(f'initialized hvd: {hvd.rank()}\t{datetime.datetime.now()}')
 # Pin GPU to be used to process local rank (one GPU per process)
 # use hvd.local_rank() for gpu pinning instead of hvd.rank()
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -45,8 +37,6 @@ for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
 if gpus:
     tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
-
-print(f'end initialize hvd and set up gpus: {hvd.rank()}\t{datetime.datetime.now()}')
 
 # define the DALI pipeline
 @pipeline_def
@@ -140,15 +130,11 @@ def main():
     opt = tf.keras.optimizers.Adam(init_lr)
     opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
 
-    print(f'end set up variables values: {hvd.rank()}\t{datetime.datetime.now()}')
-
     if hvd.rank() == 0:
-        print(f'create output directory: {hvd.rank()}\t{datetime.datetime.now()}')
         # create output directories
         if not os.path.isdir(args.output_dir):
             os.makedirs(args.output_dir)
 
-    print(f'load model: {hvd.rank()}\t{datetime.datetime.now()}')
     # load model
     if args.ckpt is not None:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
@@ -164,13 +150,11 @@ def main():
     #        print(f'latest ckpt: {latest_ckpt}')
     #        model.load_weights(os.path.join(input_dir, f'run-{run_num}', f'ckpts/ckpts-{epoch}'))
 
-    print(f'load data: {hvd.rank()}\t{datetime.datetime.now()}')
     # get list of testing tfrecords and number of reads per tfrecords
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
-    print(f'split files: {hvd.rank()}\t{datetime.datetime.now()}')
     # split tfrecords between gpus
     test_files_per_gpu = len(test_files)//hvd.size()
     if hvd.rank() != hvd.size() - 1:
@@ -185,9 +169,10 @@ def main():
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
     print(f'start testing: {hvd.rank()}\t{datetime.datetime.now()}')
-
+    elapsed_time = []
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
+        start_time = time.time()
         # get number of reads in test file
         with open(os.path.join(args.tfrecords, gpu_num_reads_files[i]), 'r') as f:
             num_reads = int(f.readline())
@@ -207,6 +192,7 @@ def main():
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+
             if args.data_type == 'meta':
                 batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
                 # batch_predictions = testing_step(reads, labels, model)
@@ -224,8 +210,6 @@ def main():
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
-
-
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
@@ -263,8 +247,9 @@ def main():
                 for j in range(num_reads):
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
-
-
+        end_time = time.time()
+        elapsed_time = np.append(elapsed_time, end_time - start_time)
+    print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
         # get reads
         # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
         #     content = f.readlines()
@@ -280,8 +265,6 @@ def main():
                 #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
                 #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
                 #         out_fq.write(''.join(list_reads_in_bin))
-
-    print(f'end testing: {hvd.rank()}\t{datetime.datetime.now()}')
 
     end = datetime.datetime.now()
     total_time = end - start
