@@ -21,6 +21,10 @@ def main():
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
 
+    init_lr = 0.0001
+    opt = tf.keras.optimizers.Adam(init_lr)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
+
     model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
     checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
     checkpoint.restore(os.path.join(ckpt, f'ckpts-{epoch}')).expect_partial()
