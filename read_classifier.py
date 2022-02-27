@@ -59,10 +59,10 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
                                  # initial_fill=10000,
                                  features={
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
-                                     "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
+                                     "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
     # retrieve reads and labels and copy them to the gpus
     reads = inputs["read"].gpu()
-    labels = inputs["read_id"].gpu()
+    labels = inputs["label"].gpu()
     return reads, labels
 
 class DALIPreprocessor(object):
