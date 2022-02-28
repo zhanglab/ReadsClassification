@@ -34,7 +34,7 @@ def main():
 
     prec_modes = {'fp32': trt.TrtPrecisionMode.FP32, 'fp16': trt.TrtPrecisionMode.FP16, 'int8': trt.TrtPrecisionMode.INT8}
 
-    # conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS._replace(precision_mode=prec_modes[converter_mode], max_workspace_size_bytes=40000000000)
+    conversion_params = trt.DEFAULT_TRT_CONVERSION_PARAMS._replace(precision_mode=prec_modes[converter_mode], max_workspace_size_bytes=40000000000)
     # converter = trt.TrtGraphConverterV2(input_saved_model_dir=model, conversion_params=conversion_params)
     # converter.convert()
     # converter.save(output_saved_model_dir=out_model)
