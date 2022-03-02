@@ -86,6 +86,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
+
     # pred_labels = tf.math.argmax(probs, axis=1)
     # pred_probs = tf.reduce_max(probs, axis=1)
     # return pred_labels, pred_probs
@@ -96,6 +97,7 @@ def input_test(test_steps, test_input, model, loss, test_loss, test_accuracy):
     for batch in range(test_steps):
         for reads, labels in test_input:
             testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+    print(f'{test_loss.result().numpy()}\t{test_accuracy.result().numpy()}')
 
 def main():
     start = datetime.datetime.now()
@@ -262,10 +264,10 @@ def main():
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
-    sess = tf.compat.v1.Session()
-    with sess.as_default():
-        print(f'{type(test_loss)}\t{type(test_accuracy)}')
-        print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
+    # sess = tf.compat.v1.Session()
+    # with sess.as_default():
+    #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
+    #     print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
         # get reads
         # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
         #     content = f.readlines()
