@@ -263,7 +263,7 @@ def main():
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
 
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
         print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
         # get reads
         # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
