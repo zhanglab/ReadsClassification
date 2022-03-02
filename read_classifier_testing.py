@@ -269,10 +269,11 @@ def main():
         print(type(test_loss))
         print(type(tf.constant([1,2,3])))
         print(type(tf.constant([1,2,3]).eval()))
+        print(tf.constant([1,2,3]).eval())
         print(test_loss.result())
         print(type(test_loss.result()))
         print(test_loss.result())
-        print(test_loss.result().numpy())
+        print(test_loss.result().eval())
     #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
     #     print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
         # get reads
