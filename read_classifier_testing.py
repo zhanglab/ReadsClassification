@@ -97,7 +97,7 @@ def input_test(test_steps, test_input, model, loss, test_loss, test_accuracy):
     for batch in range(test_steps):
         for reads, labels in test_input:
             testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-    print(f'{test_loss.result().numpy()}\t{test_accuracy.result().numpy()}')
+
 
 def main():
     start = datetime.datetime.now()
@@ -264,8 +264,11 @@ def main():
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
-    # sess = tf.compat.v1.Session()
-    # with sess.as_default():
+    sess = tf.compat.v1.Session()
+    with sess.as_default():
+        print(type(test_loss))
+        print(type(tf.constant([1,2,3])))
+        print(type(tf.constant([1,2,3]).eval()))
     #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
     #     print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
         # get reads
