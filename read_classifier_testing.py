@@ -192,7 +192,7 @@ def main():
 
         test_input = test_preprocessor.get_device_dataset()
         input_test(test_steps, test_input, model, loss, test_loss, test_accuracy)
-        print(f'{i}\t{test_loss.result().numpy()}\t{test_accuracy.result().numpy()}')
+
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
@@ -262,6 +262,9 @@ def main():
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+
+    with tf.Session() as sess:
+        print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
         # get reads
         # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
         #     content = f.readlines()
