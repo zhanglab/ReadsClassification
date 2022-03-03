@@ -207,9 +207,9 @@ def main():
         prob_string = tf.strings.format("{}", (all_prob_sp))
         labels_string = tf.strings.format("{}", (all_labels))
 
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), tf.as_string(pred_string))
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), tf.as_string(prob_string))
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), tf.as_string(labels_string))
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
