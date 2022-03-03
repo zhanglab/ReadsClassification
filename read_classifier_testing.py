@@ -210,11 +210,12 @@ def main():
         # labels_string = tf.strings.format("{}", (all_labels))
 
         v_pred = tf.Variable(all_pred_sp)
-        tf.saved_model.save(v_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
-        v_from_file = tf.saved_model.load(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
-        print(f'v_from_file: {v_from_file}')
-        # variable.assign([[0,0,0,0],[0,0,0,0]])
-        # variablecheckpoint.restore(save_path)
+        ckpt = tf.train.Checkpoint(v=v_pred)
+        path = ckpt.write(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
+        # tf.saved_model.save(v_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
+        # v_from_file = tf.saved_model.load(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
+        # print(f'v_from_file: {v_from_file}')
+
 
 
 
