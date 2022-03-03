@@ -209,8 +209,10 @@ def main():
         # prob_string = tf.strings.format("{}", (all_prob_sp))
         # labels_string = tf.strings.format("{}", (all_labels))
 
-        ckpt_pred= tf.train.Checkpoint(v=all_pred_sp)
-        ckpt_pred.write(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
+        v_pred = tf.Variable(all_pred_sp)
+        tf.saved_model.save(v_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
+        v_from_file = tf.saved_model.load(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
+        print(f'v_from_file: {v_from_file}')
         # variable.assign([[0,0,0,0],[0,0,0,0]])
         # variablecheckpoint.restore(save_path)
 
