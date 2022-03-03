@@ -210,8 +210,8 @@ def main():
             #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # elif args.data_type == 'test':
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-            print(batch_pred_sp.numpy())
-            print(labels.numpy())
+            print(hvd.rank(), batch_pred_sp.numpy().shape, batch_pred_sp.numpy())
+            print(hvd.rank(), labels.numpy().shape, labels.numpy())
             if batch == 1:
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
