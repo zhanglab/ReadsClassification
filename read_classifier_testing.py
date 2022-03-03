@@ -96,7 +96,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 def input_test(test_steps, test_input, model, loss, test_loss, test_accuracy):
     for batch in range(test_steps):
         for reads, labels in test_input:
-            testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+            batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
 
 def main():
@@ -195,7 +195,7 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        batch_pred_sp, batch_prob_sp = input_test(test_steps, test_input, model, loss, test_loss, test_accuracy)
+        input_test(test_steps, test_input, model, loss, test_loss, test_accuracy)
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
