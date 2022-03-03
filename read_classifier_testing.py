@@ -98,7 +98,9 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
         if hvd.rank() == 0:
             print(hvd.rank(), batch_pred_sp, batch_prob_sp, labels)
-            print(tf.get_static_value(labels))
+            tf.print(labels)
+            tf.print(batch_pred_sp)
+            tf.print(batch_prob_sp)
 
 def main():
     start = datetime.datetime.now()
@@ -180,7 +182,7 @@ def main():
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
-    print(f'start testing: {hvd.rank()}\t{datetime.datetime.now()}')
+
     elapsed_time = []
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
@@ -263,6 +265,7 @@ def main():
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+    print(f'{hvd.rank()}\t# reads classified: {num_reads_classified}')
 
     #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
     #     print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
