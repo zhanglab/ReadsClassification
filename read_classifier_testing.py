@@ -104,6 +104,12 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
     return all_pred_sp, all_prob_sp, all_labels
 
+@tf.function
+def summarize_results(all_pred_sp, all_prob_sp, all_labels):
+    all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
+    all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
+    all_labels = all_labels.numpy()[args.batch_size:]
+
 
 def main():
     start = datetime.datetime.now()
@@ -205,6 +211,9 @@ def main():
         print(all_pred_sp, all_prob_sp, all_labels)
         print(type(all_pred_sp), type(all_prob_sp), type(all_labels))
         print(tf.shape(all_pred_sp), tf.shape(all_prob_sp), tf.shape(all_labels))
+        tf.config.experimental_run_functions_eagerly(True)
+        summarize_results(all_pred_sp, all_prob_sp, all_labels)
+        tf.config.experimental_run_functions_eagerly(False)
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
