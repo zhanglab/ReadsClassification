@@ -221,7 +221,7 @@ def main():
         print(hvd.rank(), 'after', all_pred_sp.shape)
         print(hvd.rank(), 'after', all_prob_sp.shape)
         print(hvd.rank(), 'after', all_labels.shape)
-        # print(f'{hvd.rank()}\t# reads: {num_reads}')
+        print(f'{hvd.rank()}\t# reads: {num_reads}')
         break
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
@@ -261,7 +261,7 @@ def main():
         #             out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
-    print('Througput: {:.0f} reads/s'.format(num_reads_classified / sum(elapsed_time))
+    print('Througput: {:.0f} reads/s'.format(num_reads_classified / sum(elapsed_time)))
     print(f'{hvd.rank()}\t# reads classified: {num_reads_classified}')
 
     #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
