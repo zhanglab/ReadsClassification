@@ -79,7 +79,7 @@ class DALIPreprocessor(object):
     def get_device_dataset(self):
         return self.dalidataset
 
-# @tf.function
+@tf.function
 def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
     if test_loss != None and test_accuracy != None and loss != None:
@@ -92,11 +92,13 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     return pred_labels, pred_probs
     # return probs
 
-# @tf.function
+@tf.function
 def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
+    # all_labels = []
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-
+    #     all_labels.append(labels)
+    # return all_labels
 
 
 def main():
@@ -196,7 +198,8 @@ def main():
 
         test_input = test_preprocessor.get_device_dataset()
         input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
-
+        # all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
+        # print(hvd.rank(), all_labels, type(all_labels))
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
