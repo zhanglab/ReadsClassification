@@ -94,14 +94,20 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 
 @tf.function
 def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
-    all_labels = []
+
+    all_pred_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
+    all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
+    all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
+
+    print(f'before: {tf.shape(all_pred_sp)}\t{tf.shape(all_prob_sp)}\t{tf.shape(all_labels)}')
+
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        all_labels.append(labels)
-    print(all_labels)
-    print(type(all_labels))
-    print(len(all_labels))
+        print(f'inside: {tf.shape(batch_pred_sp)}\t{tf.shape(batch_prob_sp)}')
 
+        all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+        all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+        all_labels = tf.concat([all_labels, [labels]], 1)
 
 
 def main():
