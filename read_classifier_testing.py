@@ -104,10 +104,9 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
     return all_pred_sp, all_prob_sp, all_labels
 
-@tf.function
+# @tf.function
 def write_tensor_to_file(output_file, tensor):
     tf.io.write_file(output_file, tensor)
-
 
 def main():
     start = datetime.datetime.now()
