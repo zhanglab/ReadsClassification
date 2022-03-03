@@ -99,9 +99,14 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
     all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
     all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
     print('before', hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
+    print('before', hvd.rank(), all_pred_sp.numpy())
+    print('before', hvd.rank(), all_labels.numpy())
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
         print('inside', hvd.rank(), batch, batch_pred_sp, batch_prob_sp, labels)
+        print('inside', hvd.rank(), batch_pred_sp.numpy())
+        print('inside', hvd.rank(), labels.numpy())
+
         if batch == 1:
             all_labels = [labels]
             all_pred_sp = [batch_pred_sp]
