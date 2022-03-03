@@ -126,9 +126,6 @@ def main():
     class_mapping = json.load(f)
     NUM_CLASSES = len(class_mapping)
 
-    # create tf session
-    sess = tf.compat.v1.Session()
-    
     # create dtype policy
     policy = tf.keras.mixed_precision.Policy('mixed_float16')
     tf.keras.mixed_precision.set_global_policy(policy)
@@ -268,8 +265,13 @@ def main():
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
-
+    # initialize all of the variables
+    init_op = tf.compat.v1.global_variables_initializer()
+    # create tf session
+    sess = tf.compat.v1.Session()
     with sess.as_default():
+        # initialize all of the variables in the session
+        sess.run(init_op)
         print(type(test_loss))
         print(type(tf.constant([1,2,3])))
         print(type(tf.constant([1,2,3]).eval()))
