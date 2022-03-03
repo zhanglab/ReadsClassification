@@ -200,9 +200,9 @@ def main():
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_pred_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
+        all_prob_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
+        all_labels = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
 
@@ -210,18 +210,11 @@ def main():
             #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # elif args.data_type == 'test':
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-            print(hvd.rank(), batch_pred_sp.numpy().shape, batch_pred_sp.numpy())
-            print(hvd.rank(), labels.numpy().shape, labels.numpy())
-            if batch == 1:
-                all_labels = [labels]
-                all_pred_sp = [batch_pred_sp]
-                all_prob_sp = [batch_prob_sp]
-                # all_predictions = batch_predictions
-            else:
-                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-                all_labels = tf.concat([all_labels, [labels]], 1)
+            all_pred_sp = tf.concat([all_pred_sp, batch_pred_sp], 0)
+            all_prob_sp = tf.concat([all_prob_sp, batch_prob_sp], 0)
+            all_labels = tf.concat([all_labels, labels], 0)
+            print(hvd.rank(), all_pred_sp.numpy().shape, all_pred_sp.numpy())
+            print(hvd.rank(), all_labels.numpy().shape, all_labels.numpy())
         break
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
