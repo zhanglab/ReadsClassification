@@ -209,6 +209,7 @@ def main():
 
         test_input = test_preprocessor.get_device_dataset()
         input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
+        break
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
