@@ -210,7 +210,7 @@ def main():
         # labels_string = tf.strings.format("{}", (all_labels))
 
         ckpt_pred= tf.train.Checkpoint(v=all_pred_sp)
-        ckpt_pred.write(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors')
+        ckpt_pred.write(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
         # variable.assign([[0,0,0,0],[0,0,0,0]])
         # variablecheckpoint.restore(save_path)
 
