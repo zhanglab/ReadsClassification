@@ -94,10 +94,22 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 
 @tf.function
 def input_test(test_steps, test_input, model, loss, test_loss, test_accuracy):
+    all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+    all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+    all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
     for batch in range(test_steps):
         for reads, labels in test_input:
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
+        if batch == 1:
+            all_labels = [labels]
+            all_pred_sp = [batch_pred_sp]
+            all_prob_sp = [batch_prob_sp]
+        else:
+            all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+            all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+            all_labels = tf.concat([all_labels, [labels]], 1)
+    return all_pred_sp, all_prob_sp, all_labels
 
 def main():
     start = datetime.datetime.now()
@@ -195,18 +207,14 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        input_test(test_steps, test_input, model, loss, test_loss, test_accuracy)
-
+        all_pred_sp, all_prob_sp, all_labels = input_test(test_steps, test_input, model, loss, test_loss, test_accuracy)
+        print(hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
-        # for batch in range(test_steps):
-        #     for reads, labels in test_input:
-        #         testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        # print(f'{i}\t{test_loss.result()}\t{test_accuracy.result()}')
         # for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
 
             # if args.data_type == 'meta':
@@ -234,15 +242,15 @@ def main():
         # all_pred_sp = all_pred_sp[0].numpy()
         # all_prob_sp = all_prob_sp[0].numpy()
         # all_labels = all_labels[0].numpy()
-        #
+
         # # adjust the list of predicted species and read ids if necessary
         # if len(all_pred_sp) > num_reads:
         #     num_extra_reads = (test_steps*args.batch_size) - num_reads
         #     # pred_species = pred_species[:-num_extra_reads]
         #     # pred_probabilities = pred_probabilities[:-num_extra_reads]
-        #     all_pred_sp = all_pred_sp[:-num_extra_reads]
-        #     all_prob_sp = all_prob_sp[:-num_extra_reads]
-        #     all_labels = all_labels[:-num_extra_reads]
+            # all_pred_sp = all_pred_sp[:-num_extra_reads]
+            # all_prob_sp = all_prob_sp[:-num_extra_reads]
+            # all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
