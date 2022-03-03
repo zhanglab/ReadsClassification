@@ -210,12 +210,18 @@ def main():
             #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # elif args.data_type == 'test':
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-            print(f'inside: {batch_pred_sp}\t{batch_prob_sp}\t{labels}')
             all_pred_sp = tf.concat([all_pred_sp, tf.cast(batch_pred_sp, tf.float32)], 0)
             all_prob_sp = tf.concat([all_prob_sp, tf.cast(batch_prob_sp, tf.float32)], 0)
             all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
-            print(hvd.rank(), all_pred_sp.numpy().shape, all_pred_sp.numpy())
-            print(hvd.rank(), all_labels.numpy().shape, all_labels.numpy())
+        print(hvd.rank(), 'before', all_pred_sp.numpy().shape)
+        print(hvd.rank(), 'before', all_labels.numpy().shape)
+        all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
+        all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
+        all_labels = all_labels.numpy()[args.batch_size:]
+        print(hvd.rank(), 'after', all_pred_sp.shape)
+        print(hvd.rank(), 'after', all_prob_sp.shape)
+        print(hvd.rank(), 'after', all_labels.shape)
+        print(f'{hvd.rank()}\t# reads: {num_reads}')
         break
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
@@ -255,7 +261,7 @@ def main():
         #             out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
-    print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+    print('Througput: {:.0f} reads/s'.format(num_reads_classified / sum(elapsed_time))
     print(f'{hvd.rank()}\t# reads classified: {num_reads_classified}')
 
     #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
