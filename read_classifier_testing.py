@@ -79,7 +79,7 @@ class DALIPreprocessor(object):
     def get_device_dataset(self):
         return self.dalidataset
 
-@tf.function
+# @tf.function
 def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
     if test_loss != None and test_accuracy != None and loss != None:
@@ -92,14 +92,11 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     return pred_labels, pred_probs
     # return probs
 
-@tf.function
+# @tf.function
 def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        if hvd.rank() == 0:
-            tf.print(labels, output_stream=sys.stdout)
-            tf.print(batch_pred_sp, output_stream=sys.stdout)
-            tf.print(batch_prob_sp, output_stream=sys.stdout)
+
 
 
 def main():
