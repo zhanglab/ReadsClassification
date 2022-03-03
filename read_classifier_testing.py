@@ -92,32 +92,11 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     return pred_labels, pred_probs
     # return probs
 
+# @tf.function
+# def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
+#     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+#         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
-def print_tensor(batch, batch_pred_sp, batch_prob_sp, labels):
-    print('inside', hvd.rank(), batch, batch_pred_sp, batch_prob_sp, labels)
-    print('inside', hvd.rank(), batch_pred_sp.numpy())
-    print('inside', hvd.rank(), batch_prob_sp.numpy())
-    print('inside', hvd.rank(), labels.numpy())
-
-@tf.function
-def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
-
-    # all_pred_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    # all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    # all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-
-    for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-        batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        print_tensor(batch, batch_pred_sp, batch_prob_sp, labels)
-
-        # if batch == 1:
-        #     all_labels = [labels]
-        #     all_pred_sp = [batch_pred_sp]
-        #     all_prob_sp = [batch_prob_sp]
-        # else:
-        #     all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-        #     all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-        #     all_labels = tf.concat([all_labels, [labels]], 1)
 
 
 def main():
@@ -216,35 +195,34 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
-        break
+        # input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
+
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
-        # for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+        for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
 
             # if args.data_type == 'meta':
-                # batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
-                # batch_predictions = testing_step(reads, labels, model)
+            #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # elif args.data_type == 'test':
-                # batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-                # batch_predictions = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-
-            # if batch == 1:
-            #     all_labels = [labels]
-            #     all_pred_sp = [batch_pred_sp]
-            #     all_prob_sp = [batch_prob_sp]
-            #     # all_predictions = batch_predictions
-            # else:
-            #     # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-            #     all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-            #     all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-            #     all_labels = tf.concat([all_labels, [labels]], 1)
-
+            batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+            print(batch_pred_sp.numpy())
+            print(labels.numpy())
+            if batch == 1:
+                all_labels = [labels]
+                all_pred_sp = [batch_pred_sp]
+                all_prob_sp = [batch_prob_sp]
+                # all_predictions = batch_predictions
+            else:
+                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+                all_labels = tf.concat([all_labels, [labels]], 1)
+        break
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
         # pred_species = [np.argmax(j) for j in all_predictions]
