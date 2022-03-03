@@ -203,13 +203,14 @@ def main():
         all_pred_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
         all_prob_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
         all_labels = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
-
+        print(hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
 
             # if args.data_type == 'meta':
             #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # elif args.data_type == 'test':
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+            print(f'inside: {batch_pred_sp}\t{batch_prob_sp}\t{labels}')
             all_pred_sp = tf.concat([all_pred_sp, batch_pred_sp], 0)
             all_prob_sp = tf.concat([all_prob_sp, batch_prob_sp], 0)
             all_labels = tf.concat([all_labels, labels], 0)
