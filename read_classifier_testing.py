@@ -97,7 +97,6 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
         if hvd.rank() == 0:
-            print(hvd.rank(), batch_pred_sp, batch_prob_sp, labels)
             tf.print(labels, output_stream=sys.stdout)
             tf.print(batch_pred_sp, output_stream=sys.stdout)
             tf.print(batch_prob_sp, output_stream=sys.stdout)
