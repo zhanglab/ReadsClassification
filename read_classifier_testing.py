@@ -94,23 +94,11 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
 
 @tf.function
 def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
-    all_pred_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-
-        if batch == 1:
-            all_labels = [labels]
-            all_pred_sp = [batch_pred_sp]
-            all_prob_sp = [batch_prob_sp]
-        else:
-            all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-            all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-            all_labels = tf.concat([all_labels, [labels]], 1)
-            
-    return all_pred_sp, all_prob_sp, all_labels
+        if hvd.rank() == 0:
+            print(hvd.rank(), batch_pred_sp, batch_prob_sp, labels)
+            print(tf.get_static_value(labels))
 
 def main():
     start = datetime.datetime.now()
@@ -208,8 +196,8 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
-        print(hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
+        input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
+
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
