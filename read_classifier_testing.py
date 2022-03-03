@@ -104,13 +104,6 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
     return all_pred_sp, all_prob_sp, all_labels
 
-@tf.function
-def summarize_results(all_pred_sp, all_prob_sp, all_labels):
-    all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
-    all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
-    all_labels = all_labels.numpy()[args.batch_size:]
-
-
 def main():
     start = datetime.datetime.now()
     print(f'start parsing command line arguments: {hvd.rank()}\t{datetime.datetime.now()}')
@@ -209,9 +202,10 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
         all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
-        tf.config.run_functions_eagerly(True)
-        summarize_results(all_pred_sp, all_prob_sp, all_labels)
-        tf.config.run_functions_eagerly(False)
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), all_pred_sp)
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), all_prob_sp)
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), all_labels)
+
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
