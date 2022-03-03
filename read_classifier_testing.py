@@ -203,13 +203,22 @@ def main():
         all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
 
-        pred_string = tf.strings.format("{}", (all_pred_sp))
-        prob_string = tf.strings.format("{}", (all_prob_sp))
-        labels_string = tf.strings.format("{}", (all_labels))
 
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
+
+        # pred_string = tf.strings.format("{}", (all_pred_sp))
+        # prob_string = tf.strings.format("{}", (all_prob_sp))
+        # labels_string = tf.strings.format("{}", (all_labels))
+
+        ckpt_pred= tf.train.Checkpoint(v=all_pred_sp)
+        ckpt_pred.write(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors')
+        # variable.assign([[0,0,0,0],[0,0,0,0]])
+        # variablecheckpoint.restore(save_path)
+
+
+
+        # tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
+        # tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
+        # tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
 
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
