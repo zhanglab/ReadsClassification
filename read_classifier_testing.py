@@ -221,7 +221,7 @@ def main():
         print(hvd.rank(), 'after', all_pred_sp.shape)
         print(hvd.rank(), 'after', all_prob_sp.shape)
         print(hvd.rank(), 'after', all_labels.shape)
-        print(f'{hvd.rank()}\t# reads: {num_reads}')
+        # print(f'{hvd.rank()}\t# reads: {num_reads}')
         break
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
