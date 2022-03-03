@@ -211,9 +211,9 @@ def main():
             # elif args.data_type == 'test':
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
             print(f'inside: {batch_pred_sp}\t{batch_prob_sp}\t{labels}')
-            all_pred_sp = tf.concat([all_pred_sp, batch_pred_sp], 0)
-            all_prob_sp = tf.concat([all_prob_sp, batch_prob_sp], 0)
-            all_labels = tf.concat([all_labels, labels], 0)
+            all_pred_sp = tf.concat([all_pred_sp, tf.cast(batch_pred_sp, tf.float32)], 0)
+            all_prob_sp = tf.concat([all_prob_sp, tf.cast(batch_prob_sp, tf.float32)], 0)
+            all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
             print(hvd.rank(), all_pred_sp.numpy().shape, all_pred_sp.numpy())
             print(hvd.rank(), all_labels.numpy().shape, all_labels.numpy())
         break
