@@ -209,11 +209,9 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
         all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
-        tf.compat.v1.enable_eager_execution()
-        print(tf.executing_eagerly())
+        tf.config.run_functions_eagerly(True)
         summarize_results(all_pred_sp, all_prob_sp, all_labels)
-        tf.compat.v1.disable_eager_execution()
-        print(tf.executing_eagerly())
+        tf.config.run_functions_eagerly(False)
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
