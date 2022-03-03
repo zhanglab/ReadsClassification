@@ -92,27 +92,32 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     return pred_labels, pred_probs
     # return probs
 
+
+def print_tensor(batch, batch_pred_sp, batch_prob_sp, labels):
+    print('inside', hvd.rank(), batch, batch_pred_sp, batch_prob_sp, labels)
+    print('inside', hvd.rank(), batch_pred_sp.numpy())
+    print('inside', hvd.rank(), batch_prob_sp.numpy())
+    print('inside', hvd.rank(), labels.numpy())
+
 @tf.function
 def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
 
-    all_pred_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-    print('before', hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
+    # all_pred_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
+    # all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
+    # all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
+
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        print('inside', hvd.rank(), batch, batch_pred_sp, batch_prob_sp, labels)
-        print('inside', hvd.rank(), batch_pred_sp.numpy())
-        print('inside', hvd.rank(), labels.numpy())
+        print_tensor(batch, batch_pred_sp, batch_prob_sp, labels)
 
-        if batch == 1:
-            all_labels = [labels]
-            all_pred_sp = [batch_pred_sp]
-            all_prob_sp = [batch_prob_sp]
-        else:
-            all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-            all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-            all_labels = tf.concat([all_labels, [labels]], 1)
+        # if batch == 1:
+        #     all_labels = [labels]
+        #     all_pred_sp = [batch_pred_sp]
+        #     all_prob_sp = [batch_prob_sp]
+        # else:
+        #     all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+        #     all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+        #     all_labels = tf.concat([all_labels, [labels]], 1)
 
 
 def main():
