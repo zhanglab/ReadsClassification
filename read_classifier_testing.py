@@ -136,9 +136,9 @@ def main():
 
         # define metrics
         # if args.data_type == 'test':
-        loss = tf.losses.SparseCategoricalCrossentropy()
-        test_loss = tf.keras.metrics.Mean(name='test_loss')
-        test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+        # loss = tf.losses.SparseCategoricalCrossentropy()
+        # test_loss = tf.keras.metrics.Mean(name='test_loss')
+        # test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
 
         init_lr = 0.0001
         opt = tf.keras.optimizers.Adam(init_lr)
@@ -153,9 +153,13 @@ def main():
         if args.ckpt is not None:
             model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
             checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-            checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}')).expect_partial()
+            checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch}'))
         elif args.model is not None:
             model = tf.keras.models.load_model(args.model, 'model')
+
+        loss = tf.losses.SparseCategoricalCrossentropy()
+        test_loss = tf.keras.metrics.Mean(name='test_loss')
+        test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
                 # restore the checkpointed values to the model
         #        checkpoint = tf.train.Checkpoint(model)
         #        checkpoint.restore(tf.train.latest_checkpoint(os.path.join(input_dir, f'run-{run_num}', 'ckpts')))
@@ -276,7 +280,6 @@ def main():
         print(hvd.rank(), tf.constant([1,2,3]).eval())
         print(hvd.rank(), test_loss.result())
         print(hvd.rank(), type(test_loss.result()))
-        print(hvd.rank(), test_loss.result())
         print(hvd.rank(), test_loss.result().eval())
     #     print(f'{type(test_loss)}\t{type(test_accuracy)}')
     #     print(f'{test_loss.eval()}\t{test_accuracy.eval()}')
