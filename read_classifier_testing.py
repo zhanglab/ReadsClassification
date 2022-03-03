@@ -19,7 +19,7 @@ from collections import defaultdict
 import argparse
 
 # disable eager execution
-tf.compat.v1.disable_eager_execution()
+# tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
@@ -98,20 +98,18 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
     all_pred_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
     all_prob_sp = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
     all_labels = [tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)]
-
-    tf.print(all_pred_sp, output_stream=sys.stdout)
-    tf.print(all_prob_sp, output_stream=sys.stdout)
-    tf.print(all_labels, output_stream=sys.stdout)
-
+    print('before', hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
     for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
         batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        tf.print(batch_pred_sp, output_stream=sys.stdout)
-        tf.print(batch_prob_sp, output_stream=sys.stdout)
-        tf.print(labels, output_stream=sys.stdout)
-
-        all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-        all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-        all_labels = tf.concat([all_labels, [labels]], 1)
+        print('inside', hvd.rank(), batch, batch_pred_sp, batch_prob_sp, labels)
+        if batch == 1:
+            all_labels = [labels]
+            all_pred_sp = [batch_pred_sp]
+            all_prob_sp = [batch_prob_sp]
+        else:
+            all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+            all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+            all_labels = tf.concat([all_labels, [labels]], 1)
 
 
 def main():
