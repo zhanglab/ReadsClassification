@@ -93,7 +93,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     # return probs
 
 @tf.function
-def input_test(test_steps, test_input, model, loss, test_loss, test_accuracy):
+def input_test(args, test_steps, test_input, model, loss, test_loss, test_accuracy):
     all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
     all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
     all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
@@ -207,7 +207,7 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        all_pred_sp, all_prob_sp, all_labels = input_test(test_steps, test_input, model, loss, test_loss, test_accuracy)
+        all_pred_sp, all_prob_sp, all_labels = input_test(args, test_steps, test_input, model, loss, test_loss, test_accuracy)
         print(hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
