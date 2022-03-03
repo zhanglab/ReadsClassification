@@ -101,14 +101,14 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         for reads, labels in test_input:
             batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
 
-        if batch == 1:
-            all_labels = [labels]
-            all_pred_sp = [batch_pred_sp]
-            all_prob_sp = [batch_prob_sp]
-        else:
-            all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-            all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-            all_labels = tf.concat([all_labels, [labels]], 1)
+            if batch == 1:
+                all_labels = [labels]
+                all_pred_sp = [batch_pred_sp]
+                all_prob_sp = [batch_prob_sp]
+            else:
+                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+                all_labels = tf.concat([all_labels, [labels]], 1)
     return all_pred_sp, all_prob_sp, all_labels
 
 def main():
