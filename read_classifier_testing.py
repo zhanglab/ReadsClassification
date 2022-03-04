@@ -15,6 +15,7 @@ import time
 import numpy as np
 import math
 import gzip
+import tempfile
 from collections import defaultdict
 import argparse
 
@@ -104,9 +105,9 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
     return all_pred_sp, all_prob_sp, all_labels
 
-# @tf.function
-def write_tensor_to_file(output_file, tensor):
-    tf.io.write_file(output_file, tensor)
+# @tf.function # only works in eager mode
+# def write_tensor_to_file(output_file, tensor):
+#     tf.io.write_file(output_file, tensor)
 
 def main():
     start = datetime.datetime.now()
@@ -206,13 +207,17 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
         all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
-        pred_string = tf.strings.format("{}", (all_pred_sp))
-        prob_string = tf.strings.format("{}", (all_prob_sp))
-        labels_string = tf.strings.format("{}", (all_labels))
+        ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'))
 
-        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
-        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
-        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
+
+        # pred_string = tf.strings.format("{}", (all_pred_sp))
+        # prob_string = tf.strings.format("{}", (all_prob_sp))
+        # labels_string = tf.strings.format("{}", (all_labels))
+        #
+        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
+        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
+        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
 
         # v_pred = tf.Variable(all_pred_sp)
         # ckpt = tf.train.Checkpoint(v=v_pred)
