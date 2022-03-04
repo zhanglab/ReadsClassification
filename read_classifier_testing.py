@@ -106,7 +106,7 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
 
     ds = tf.data.Dataset.from_tensors(all_pred_sp)
-    ds = ds.map(tf.io.serialize_tensor))
+    ds = ds.map(tf.io.serialize_tensor)
     writer = tf.data.experimental.TFRecordWriter(output_tfrec)
     writer.write(ds)
 
