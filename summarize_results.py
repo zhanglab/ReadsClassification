@@ -3,6 +3,7 @@ import glob
 import shutil
 import sys
 import os
+import pickle
 
 print(tf.executing_eagerly())
 
@@ -11,7 +12,9 @@ def main():
     list_ds_tensors_pred = sorted(glob.glob(os.path.join(input_dir, '*-pred-tensors')))
     for i in range(len(list_ds_tensors_pred)):
         print(i, list_ds_tensors_pred[i])
-        ds_tensors_pred = tf.data.experimental.load(list_ds_tensors_pred[i])
+        with open(os.path.join(input_dir, list_ds_tensors_pred[i], 'element_spec'), 'rb') as in_:
+            es = pickle.load(in_)
+        ds_tensors_pred = tf.data.experimental.load(list_ds_tensors_pred[i], es, compression='GZIP')
         for elem in ds_tensors_pred:
             print(elem)
             print(type(elem))
