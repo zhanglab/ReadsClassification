@@ -208,12 +208,16 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
         all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
-        ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
-        tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
+        # metadata can't be found
+        # ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        # tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
+        #
+        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
+        #     pickle.dump(ds_tensors_pred.element_spec, out_)
 
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
-            pickle.dump(ds_tensors_pred.element_spec, out_)
-
+        ds = (tf.data.Dataset.from_tensors(all_pred_sp).map(tf.io.serialize_tensor))
+        writer = tf.data.experimental.TFRecordWriter(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors.tfrecord'))
+        writer.write(ds)
 
         # pred_string = tf.strings.format("{}", (all_pred_sp))
         # prob_string = tf.strings.format("{}", (all_prob_sp))
