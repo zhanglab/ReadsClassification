@@ -5,6 +5,7 @@ import sys
 import os
 import pickle
 
+tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 
 def main():
