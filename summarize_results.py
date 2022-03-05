@@ -5,20 +5,20 @@ import sys
 import os
 import pickle
 
-tf.compat.v1.disable_eager_execution()
+# tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 
 @tf.function
 def get_tensor_values(ds):
-    sess = tf.compat.v1.Session()
-    with sess.as_default():
-        for elem in ds:
-            print(elem)
-            print(type(elem))
-            print_op = tf.print(elem, output_stream=sys.stdout)
-            # print(elem.numpy())
+    # sess = tf.compat.v1.Session()
+    # with sess.as_default():
+    for elem in ds:
+        print(elem)
+        print(type(elem))
+        # print_op = tf.print(elem, output_stream=sys.stdout)
+        print(elem.numpy())
         # break
-        sess.run(print_op)
+        # sess.run(print_op)
 
 def main():
     input_dir = sys.argv[1]
