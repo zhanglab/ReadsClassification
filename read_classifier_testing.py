@@ -109,9 +109,9 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
 
 @tf.function # only works in eager mode
 def write_tensor_to_file(output_file, tensor):
-    # tf.io.write_file(output_file, tensor)
-    with open(output_file, 'w') as f:
-        f.write(tensor)
+    tf.io.write_file(output_file, tensor)
+    # with open(output_file, 'w') as f:
+        # f.write(tensor)
 
 def main():
     start = datetime.datetime.now()
