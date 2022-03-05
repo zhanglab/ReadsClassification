@@ -10,7 +10,7 @@ print(tf.executing_eagerly())
 
 @tf.function
 def get_tensor_values(ds):
-    for elem in ds_tensors_pred:
+    for elem in ds:
         print(elem)
         print(type(elem))
         # print(elem.numpy())
