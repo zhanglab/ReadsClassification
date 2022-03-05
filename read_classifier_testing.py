@@ -21,7 +21,7 @@ from collections import defaultdict
 import argparse
 
 # disable eager execution
-# tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
@@ -94,22 +94,22 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     return pred_labels, pred_probs
     # return probs
 
-# @tf.function
-# def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
-    # all_pred_sp = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
-    # all_prob_sp = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
-    # all_labels = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
-    # for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-    #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-        # all_pred_sp = tf.concat([all_pred_sp, tf.cast(batch_pred_sp, tf.float32)], 0)
-        # all_prob_sp = tf.concat([all_prob_sp, tf.cast(batch_prob_sp, tf.float32)], 0)
-        # all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
+@tf.function
+def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
+    all_pred_sp = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
+    all_prob_sp = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
+    all_labels = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
+    for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+        batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+        all_pred_sp = tf.concat([all_pred_sp, tf.cast(batch_pred_sp, tf.float32)], 0)
+        all_prob_sp = tf.concat([all_prob_sp, tf.cast(batch_prob_sp, tf.float32)], 0)
+        all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
 
-    # return all_pred_sp, all_prob_sp, all_labels
+    return all_pred_sp, all_prob_sp, all_labels
 
 # @tf.function # only works in eager mode
 # def write_tensor_to_file(output_file, tensor):
-#     tf.io.write_file(output_file, tensor)
+    # tf.io.write_file(output_file, tensor)
 
 def main():
     start = datetime.datetime.now()
@@ -207,10 +207,10 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        # all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
+        all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
         # input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
-        # metadata can't be found
+        # metadata can't be found in eager mode
         # ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
         # tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
         #
@@ -228,13 +228,17 @@ def main():
         # sess.run(init)
         # sess.run(writer)
 
-        # pred_string = tf.strings.format("{}", (all_pred_sp))
-        # prob_string = tf.strings.format("{}", (all_prob_sp))
-        # labels_string = tf.strings.format("{}", (all_labels))
-        #
-        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
-        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
-        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
+        pred_string = tf.strings.format("{}", (all_pred_sp))
+        prob_string = tf.strings.format("{}", (all_prob_sp))
+        labels_string = tf.strings.format("{}", (all_labels))
+
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
+        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
+        op = tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
+
+        with tf.compat.v1.Session() as sess:
+            sess.run(op)
+
 
         # v_pred = tf.Variable(all_pred_sp)
         # ckpt = tf.train.Checkpoint(v=v_pred)
@@ -244,24 +248,18 @@ def main():
         # print(f'v_from_file: {v_from_file}')
 
 
-
-
-        # tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
-        # tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
-        # tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
-
         # create empty arrays to store the predicted and true values
         # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
         # all_prob_sp = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
         # all_labels = tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)
         # print(hvd.rank(), all_pred_sp, all_prob_sp, all_labels)
-        for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+        # for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
 
             # if args.data_type == 'meta':
             #     batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
             # elif args.data_type == 'test':
-            batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+            # batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
             # all_pred_sp = tf.concat([all_pred_sp, tf.cast(batch_pred_sp, tf.float32)], 0)
             # all_prob_sp = tf.concat([all_prob_sp, tf.cast(batch_prob_sp, tf.float32)], 0)
             # all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
