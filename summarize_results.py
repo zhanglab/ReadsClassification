@@ -5,8 +5,16 @@ import sys
 import os
 import pickle
 
-# tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
+
+@tf.function
+def get_tensor_values(ds):
+    for elem in ds_tensors_pred:
+        print(elem)
+        print(type(elem))
+        # print(elem.numpy())
+    # break
 
 def main():
     input_dir = sys.argv[1]
@@ -16,10 +24,7 @@ def main():
         with open(os.path.join(input_dir, list_ds_tensors_pred[i], 'element_spec'), 'rb') as in_:
             es = pickle.load(in_)
         ds_tensors_pred = tf.data.experimental.load(list_ds_tensors_pred[i], es, compression='GZIP')
-        for elem in ds_tensors_pred:
-            print(elem)
-            print(type(elem))
-            print(elem.numpy())
+        get_tensor_values(ds_tensors_pred)
         break
 
 
