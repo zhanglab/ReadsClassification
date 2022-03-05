@@ -221,7 +221,10 @@ def main():
         writer = tf.data.experimental.TFRecordWriter(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors.tfrecord'))
         writer.write(ds)
 
+        init = tf.compat.v1.global_variables_initializer()
+
         sess = tf.compat.v1.Session()
+        sess.run(init)
         sess.run(writer)
 
         # pred_string = tf.strings.format("{}", (all_pred_sp))
