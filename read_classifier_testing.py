@@ -95,7 +95,7 @@ def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=
     # return probs
 
 @tf.function
-def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy, output_tfrec):
+def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy):
     all_pred_sp = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
     all_prob_sp = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
     all_labels = tf.zeros([batch_size], dtype=tf.dtypes.float32, name=None)
@@ -104,11 +104,6 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
         all_pred_sp = tf.concat([all_pred_sp, tf.cast(batch_pred_sp, tf.float32)], 0)
         all_prob_sp = tf.concat([all_prob_sp, tf.cast(batch_prob_sp, tf.float32)], 0)
         all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
-
-    ds = tf.data.Dataset.from_tensors(all_pred_sp)
-    ds = ds.map(tf.io.serialize_tensor)
-    writer = tf.data.experimental.TFRecordWriter(output_tfrec)
-    writer.write(ds)
 
     return all_pred_sp, all_prob_sp, all_labels
 
@@ -212,8 +207,7 @@ def main():
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
 
         test_input = test_preprocessor.get_device_dataset()
-        output_tfrec = os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors.tfrecord')
-        all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy, output_tfrec)
+        all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
         # metadata can't be found
         # ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
@@ -222,10 +216,13 @@ def main():
         # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
         #     pickle.dump(ds_tensors_pred.element_spec, out_)
 
-        # ds = tf.data.Dataset.from_tensors(all_pred_sp)
-        # ds = ds.map(tf.io.serialize_tensor))
-        # writer = tf.data.experimental.TFRecordWriter(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors.tfrecord'))
-        # writer.write(ds)
+        ds = tf.data.Dataset.from_tensors(all_pred_sp)
+        ds = ds.map(tf.io.serialize_tensor))
+        writer = tf.data.experimental.TFRecordWriter(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors.tfrecord'))
+        writer.write(ds)
+
+        sess = tf.Session()
+        sess.run(writer)
 
         # pred_string = tf.strings.format("{}", (all_pred_sp))
         # prob_string = tf.strings.format("{}", (all_prob_sp))
