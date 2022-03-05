@@ -24,7 +24,7 @@ import argparse
 tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
-#tf.debugging.set_log_device_placement(True)
+tf.debugging.set_log_device_placement(True)
 
 # enable XLA = XLA (Accelerated Linear Algebra) is a domain-specific compiler for linear algebra that can accelerate
 # TensorFlow models with potentially no source code changes
@@ -107,9 +107,11 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
 
     return all_pred_sp, all_prob_sp, all_labels
 
-# @tf.function # only works in eager mode
-# def write_tensor_to_file(output_file, tensor):
+@tf.function # only works in eager mode
+def write_tensor_to_file(output_file, tensor):
     # tf.io.write_file(output_file, tensor)
+    with open(output_file, 'w') as f:
+        f.write(tensor)
 
 def main():
     start = datetime.datetime.now()
@@ -232,12 +234,12 @@ def main():
         prob_string = tf.strings.format("{}", (all_prob_sp))
         labels_string = tf.strings.format("{}", (all_labels))
 
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
-        tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
-        op = tf.io.write_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
-
-        with tf.compat.v1.Session() as sess:
-            sess.run(op)
+        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
+        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
+        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
+        #
+        # with tf.compat.v1.Session() as sess:
+        #     sess.run(op)
 
 
         # v_pred = tf.Variable(all_pred_sp)
