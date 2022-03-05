@@ -10,16 +10,20 @@ print(tf.executing_eagerly())
 
 @tf.function
 def get_tensor_values(ds):
-    for elem in ds:
-        print(elem)
-        print(type(elem))
-        tf.print(elem, output_stream=sys.stdout)
-        # print(elem.numpy())
-    # break
+    sess = tf.compat.v1.Session()
+    with sess.as_default():
+        for elem in ds:
+            print(elem)
+            print(type(elem))
+            print_op = tf.print(elem, output_stream=sys.stdout)
+            # print(elem.numpy())
+        # break
+        sess.run(print_op)
 
 def main():
     input_dir = sys.argv[1]
     list_ds_tensors_pred = sorted(glob.glob(os.path.join(input_dir, '*-pred-tensors')))
+
     for i in range(len(list_ds_tensors_pred)):
         print(i, list_ds_tensors_pred[i])
         with open(os.path.join(input_dir, list_ds_tensors_pred[i], 'element_spec'), 'rb') as in_:
