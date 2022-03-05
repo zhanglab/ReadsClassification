@@ -217,7 +217,7 @@ def main():
         #     pickle.dump(ds_tensors_pred.element_spec, out_)
 
         ds = tf.data.Dataset.from_tensors(all_pred_sp)
-        ds = ds.map(tf.io.serialize_tensor))
+        ds = ds.map(tf.io.serialize_tensor)
         writer = tf.data.experimental.TFRecordWriter(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors.tfrecord'))
         writer.write(ds)
 
