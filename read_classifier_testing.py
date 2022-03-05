@@ -107,9 +107,9 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
 
     return all_pred_sp, all_prob_sp, all_labels
 
-@tf.function # only works in eager mode
-def write_tensor_to_file(output_file, tensor):
-    tf.io.write_file(output_file, tensor)
+# @tf.function # only works in eager mode
+# def write_tensor_to_file(output_file, tensor):
+#     tf.io.write_file(output_file, tensor)
     # with open(output_file, 'w') as f:
         # f.write(tensor)
 
@@ -213,11 +213,11 @@ def main():
         # input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
         # metadata can't be found in eager mode
-        # ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
-        # tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
-        #
-        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
-        #     pickle.dump(ds_tensors_pred.element_spec, out_)
+        ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
+
+        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
+            pickle.dump(ds_tensors_pred.element_spec, out_)
 
         # ds = tf.data.Dataset.from_tensors(all_pred_sp)
         # ds = ds.map(tf.io.serialize_tensor)
@@ -230,13 +230,13 @@ def main():
         # sess.run(init)
         # sess.run(writer)
 
-        pred_string = tf.strings.format("{}", (all_pred_sp))
-        prob_string = tf.strings.format("{}", (all_prob_sp))
-        labels_string = tf.strings.format("{}", (all_labels))
-
-        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
-        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
-        write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
+        # pred_string = tf.strings.format("{}", (all_pred_sp))
+        # prob_string = tf.strings.format("{}", (all_prob_sp))
+        # labels_string = tf.strings.format("{}", (all_labels))
+        #
+        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), pred_string)
+        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-tensors'), prob_string)
+        # write_tensor_to_file(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-tensors'), labels_string)
         #
         # with tf.compat.v1.Session() as sess:
         #     sess.run(op)
