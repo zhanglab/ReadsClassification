@@ -13,6 +13,7 @@ def get_tensor_values(ds):
     for elem in ds:
         print(elem)
         print(type(elem))
+        tf.print(elem, output_stream=sys.stdout)
         # print(elem.numpy())
     # break
 
