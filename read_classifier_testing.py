@@ -21,7 +21,7 @@ from collections import defaultdict
 import argparse
 
 # disable eager execution
-tf.compat.v1.disable_eager_execution()
+# tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 tf.debugging.set_log_device_placement(True)
@@ -215,11 +215,11 @@ def main():
         # metadata can't be found in eager mode
         ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
         tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
-        print(ds_tensors_pred.element_spec)
+        # print(ds_tensors_pred.element_spec)
 
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
-            pickle.dump(ds_tensors_pred.element_spec, out_)
-        # break
+        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
+        #     pickle.dump(ds_tensors_pred.element_spec, out_)
+        break
 
         # ds = tf.data.Dataset.from_tensors(all_pred_sp)
         # ds = ds.map(tf.io.serialize_tensor)
