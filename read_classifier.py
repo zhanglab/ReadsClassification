@@ -13,6 +13,7 @@ import json
 import glob
 import time
 import numpy as np
+import pandas as pd
 import math
 import gzip
 from collections import defaultdict
@@ -98,13 +99,13 @@ def main():
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
     parser.add_argument('--data_type', type=str, help='path to dali indexes files', required=True, choices=['test', 'meta'])
-    # parser.add_argument('--fq_files', type=str, help='path to directory containing metagenomic data')
     parser.add_argument('--class_mapping', type=str, help='path to json file containing dictionary mapping taxa to labels', required=True)
     parser.add_argument('--output_dir', type=str, help='directory to store results', required=True)
     parser.add_argument('--epoch', type=int, help='epoch of checkpoint')
-    parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
-    parser.add_argument('--model', type=str, help='path to directory containing saved model')
+    parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=8192)
+    parser.add_argument('--model', type=str, help='path to directory containing model in SavedModel format')
     parser.add_argument('--ckpt', type=str, help='path to directory containing checkpoint file', required=('--epoch' in sys.argv))
+
     args = parser.parse_args()
 
     # define some training and model parameters
@@ -134,7 +135,7 @@ def main():
     if hvd.rank() == 0:
         # create output directories
         if not os.path.isdir(args.output_dir):
-            os.makedirs(args.output_dir)
+            os.makedirs(args.output_dir, 'tmp')
 
     # load model
     if args.ckpt is not None:
@@ -238,16 +239,17 @@ def main():
                 content = f.readlines()
                 dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
-            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+            with open(os.path.join(args.output_dir, 'tmp' f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
                 for j in range(num_reads):
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
-                    # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
         elif args.data_type == 'test':
-            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-                for j in range(num_reads):
-                    # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                    out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
+            df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
+            df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv', header=False, index=False)
+            # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+            #     for j in range(num_reads):
+            #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+            #         out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
@@ -273,12 +275,12 @@ def main():
     minutes, seconds = divmod(seconds, 60)
 
     with open(os.path.join(args.output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
-        outfile.write(f'batch size per gpu: {args.batch_size}\nnumber of gpus: {hvd.size()}\nGPU: {hvd.rank()}\nnumber of tfrecord files: {len(gpu_test_files)}\nnumber of reads classified: {num_reads_classified}\n')
+        outfile.write(f'batch size per gpu: {args.batch_size}\tnumber of gpus: {hvd.size()}\tGPU: {hvd.rank()}\tnumber of tfrecord files: {len(gpu_test_files)}\tnumber of reads classified: {num_reads_classified}\t')
         if args.ckpt:
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
         else:
             outfile.write(f'model saved at last epoch')
-        outfile.write(f'\nrun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}')
+        outfile.write(f'\trun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}\n')
 
 
 if __name__ == "__main__":

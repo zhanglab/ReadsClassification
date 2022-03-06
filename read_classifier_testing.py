@@ -213,12 +213,12 @@ def main():
         # input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
         # metadata can't be found in eager mode
-        ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
-        tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
-
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
-            pickle.dump(ds_tensors_pred.element_spec, out_)
-        break
+        # ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        # tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
+        #
+        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
+        #     pickle.dump(ds_tensors_pred.element_spec, out_)
+        # break
 
         # ds = tf.data.Dataset.from_tensors(all_pred_sp)
         # ds = ds.map(tf.io.serialize_tensor)
@@ -268,9 +268,9 @@ def main():
             # all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
         # print(hvd.rank(), 'before', all_pred_sp.numpy().shape)
         # print(hvd.rank(), 'before', all_labels.numpy().shape)
-        # all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
-        # all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
-        # all_labels = all_labels.numpy()[args.batch_size:]
+        all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
+        all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
+        all_labels = all_labels.numpy()[args.batch_size:]
         # print(hvd.rank(), 'after', all_pred_sp.shape)
         # print(hvd.rank(), 'after', all_prob_sp.shape)
         # print(hvd.rank(), 'after', all_labels.shape)
@@ -285,13 +285,13 @@ def main():
         # all_labels = all_labels[0].numpy()
 
         # # adjust the list of predicted species and read ids if necessary
-        # if len(all_pred_sp) > num_reads:
-        #     num_extra_reads = (test_steps*args.batch_size) - num_reads
-        #     # pred_species = pred_species[:-num_extra_reads]
-        #     # pred_probabilities = pred_probabilities[:-num_extra_reads]
-            # all_pred_sp = all_pred_sp[:-num_extra_reads]
-            # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            # all_labels = all_labels[:-num_extra_reads]
+        if len(all_pred_sp) > num_reads:
+            num_extra_reads = (test_steps*args.batch_size) - num_reads
+            # pred_species = pred_species[:-num_extra_reads]
+            # pred_probabilities = pred_probabilities[:-num_extra_reads]
+            all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_prob_sp = all_prob_sp[:-num_extra_reads]
+            all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
