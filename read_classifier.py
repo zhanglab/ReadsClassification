@@ -245,7 +245,7 @@ def main():
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         elif args.data_type == 'test':
             df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
-            df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv', header=False, index=False)
+            df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv', header=False, index=False))
             # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             #     for j in range(num_reads):
             #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
