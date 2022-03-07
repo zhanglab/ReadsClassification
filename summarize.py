@@ -59,9 +59,9 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
     tpr = {}
     thresholds = {}
     roc_auc = {}
-    J_stats = [None] * len(species_in_test_set)
-    opt_thresholds = [None] * len(species_in_test_set)
-    jstat_opt_thresholds = [None] * len(species_in_test_set)
+    J_stats = [None] * len(labels_in_test_set)
+    opt_thresholds = [None] * len(labels_in_test_set)
+    jstat_opt_thresholds = [None] * len(labels_in_test_set)
 
     f = open(os.path.join(args.input_dir, f'decision_thresholds.tsv'), 'w')
     for i in range(len(rank_mapping_dict)):
