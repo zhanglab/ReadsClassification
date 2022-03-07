@@ -11,7 +11,7 @@ from sklearn.metrics import roc_curve, auc
 # import matplotlib.pyplot as plt
 # plt.ioff()
 
-def get_cm(true_taxa, predicted_taxa, rank_mapping_dict):
+def get_cm(true_taxa, predicted_taxa, rank_mapping_dict, rank):
     # create empty confusion matrix with rows = true classes and columns = predicted classes
     cm = np.zeros((len(rank_mapping_dict), len(rank_mapping_dict)))
     num_correct_pred = 0
