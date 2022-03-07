@@ -67,7 +67,7 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
     for i in range(len(rank_mapping_dict)):
         if i in labels_in_test_set:
             # fpr[i], tpr[i], thresholds[i] = roc_curve(true_arr[:, i], pred_arr[:, i])
-            fpr[i], tpr[i] = roc_curve(np.array(true_taxa), np.array(probs), pos_label=i)
+            fpr[i], tpr[i], thresholds[i] = roc_curve(np.array(true_taxa), np.array(probs), pos_label=i)
             roc_auc[i] = auc(fpr[i], tpr[i])
             # Compute Youden's J statistics for each species:
             # get optimal cut off corresponding to a high TPR and low FPR
