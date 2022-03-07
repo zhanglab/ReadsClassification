@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 import json
+import time
 from summarize import get_cm, ROCcurve, get_metrics
 
 
@@ -33,9 +34,12 @@ def main():
 
     if args.data_type == 'test':
         # get predictions and ground truth at species level
+        start_time = time.time()
         pred_species, true_species, probs = get_results(list_tsv_files)
+        end_time = time.time()
+        print(end_time - start_time)
         # get confusion matrix
-        cm, accuracy = get_cm(true_species, pred_species, species_mapping_dict)
+        cm, accuracy = get_cm(true_species, pred_species, species_mapping_dict, 'species')
         # get decision thresholds
         ROCcurve(args, true_species, probs, species_mapping_dict, set(true_species), 'species')
         # get precision and recall
@@ -52,7 +56,7 @@ def main():
             with open(os.path.join(args.rank_mapping_dir, f'{r}_labels.json')) as f_json:
                 rank_mapping_dict = json.load(f_json)
             # get confusion matrix
-            cm, accuracy = get_cm(rank_true_taxa, rank_pred_taxa, rank_mapping_dict)
+            cm, accuracy = get_cm(rank_true_taxa, rank_pred_taxa, rank_mapping_dict, r)
             # get decision thresholds
             ROCcurve(args, rank_true_taxa, probs, rank_mapping_dict, set(rank_true_taxa), r)
             # get precision and recall
