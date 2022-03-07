@@ -21,16 +21,15 @@ def get_results(list_tsv_files):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_dir', type=str, help='path to tsv files obtained from running read_classifier.py', required=True)
-    parser.add_argument('--data_type', type=str, help='path to dali indexes files', required=True, choices=['test', 'meta'])
+    parser.add_argument('--input_dir', type=str, help='path to temporary directory containing tsv files obtained from running read_classifier.py', required=True)
+    parser.add_argument('--data_type', type=str, help='input data type', required=True, choices=['test', 'meta'])
     parser.add_argument('--rank_mapping_dir', type=str, help='path to json files containing dictionaries mapping taxa to labels', required=True)
-    parser.add_argument('--output_dir', type=str, help='directory to store results', default=)
     args = parser.parse_args()
 
     with open(os.path.join(args.rank_mapping_dir, 'species_labels.json'), 'r') as f:
         species_mapping_dict = json.load(f)
 
-    list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
+    list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*.tsv')))
 
     if args.data_type == 'test':
         # get predictions and ground truth at species level
@@ -57,7 +56,7 @@ def main():
             # get decision thresholds
             ROCcurve(args, rank_true_taxa, probs, rank_mapping_dict, set(rank_true_taxa), r)
             # get precision and recall
-            get_metrics(cm, rank_mapping_dict, args.results_dir, r, list(set(rank_true_classes)))
+            get_metrics(args, cm, rank_mapping_dict, set(rank_true_taxa), r)
 
 
 
