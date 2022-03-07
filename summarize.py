@@ -1,6 +1,4 @@
 import os
-import json
-import glob
 from random import randint
 from collections import defaultdict
 import itertools
@@ -8,13 +6,10 @@ import pandas as pd
 import numpy as np
 from sklearn import metrics
 from sklearn.metrics import roc_curve, auc
-# from sklearn.metrics import jaccard_score
-# from sklearn.metrics import precision_recall_curve
-# from sklearn.metrics import average_precision_score
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-plt.ioff()
+# import matplotlib
+# matplotlib.use('Agg')
+# import matplotlib.pyplot as plt
+# plt.ioff()
 
 def get_cm(true_taxa, predicted_taxa, rank_mapping_dict):
     # create empty confusion matrix with rows = true classes and columns = predicted classes
@@ -38,7 +33,7 @@ def get_metrics(args, cm, rank_mapping_dict, labels_in_test_set, rank):
     """ recall = True Positives / (True Positives + False Negatives) """
     """ accuracy = number of correct predictions / (number of reads in testing set) """
 
-    f = open(os.path.join(args.output_dir, f'{rank}-metrics-classification-report.tsv'), 'w')
+    f = open(os.path.join(args.input_dir, f'{rank}-metrics-classification-report.tsv'), 'w')
     f.write(f'{rank}\tprecision\trecall\tnumber\n')
     correct_predictions = 0
     total_num_reads = 0
@@ -68,7 +63,7 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
     opt_thresholds = [None] * len(species_in_test_set)
     jstat_opt_thresholds = [None] * len(species_in_test_set)
 
-    f = open(os.path.join(args.output_dir, f'decision_thresholds.tsv'), 'w')
+    f = open(os.path.join(args.input_dir, f'decision_thresholds.tsv'), 'w')
     for i in range(len(rank_mapping_dict)):
         if i in labels_in_test_set:
             # fpr[i], tpr[i], thresholds[i] = roc_curve(true_arr[:, i], pred_arr[:, i])
