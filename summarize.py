@@ -81,7 +81,7 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
             # jstat_optimal_index = np.argmax(J_stats[i][1:])
             # opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
             # # jstat_opt_thresholds[i] = round(J_stats[i][jstat_optimal_index], 2)
-            print(i, len(dict_probs[i]), len(in_arr), len(J_stats[i]), len(tpr[i]), len(fpr[i]), len(thresholds[i]), len(J_stats[i]), len(thresholds[i]))
+            print(i, len(dict_probs[i]), len(in_arr), len(tpr[i]), len(fpr[i]), len(thresholds[i]))
             # print(i, thresholds[i][1:])
             j = np.arange(len(tpr[i])) # index for df
             roc = pd.DataFrame({'fpr' : pd.Series(fpr[i], index=j),'tpr' : pd.Series(tpr[i], index = j), '1-fpr' : pd.Series(1-fpr[i], index = j), 'tf' : pd.Series(tpr[i] - (1-fpr[i]), index = j), 'thresholds' : pd.Series(thresholds[i], index = j)})
