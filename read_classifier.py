@@ -88,12 +88,11 @@ def testing_step(args, reads, labels, model, loss=None, test_loss=None, test_acc
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    # elif args.data_type == 'meta':
-        # probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
+    elif args.data_type == 'meta':
+        probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
     # pred_labels = tf.math.argmax(probs, axis=1)
     # return pred_labels, probs
-    tf.io.write_file()
-    # return probs
+    return probs
 
 def main():
     parser = argparse.ArgumentParser()
@@ -215,7 +214,7 @@ def main():
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        all_predictions = all_predictions.numpy()
+        # all_predictions = all_predictions.numpy()
         # pred_species = [np.argmax(j) for j in all_predictions]
         # pred_probabilities = [np.amax(j) for j in all_predictions]
         # all_pred_sp = all_pred_sp[0].numpy()
@@ -247,13 +246,18 @@ def main():
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         elif args.data_type == 'test':
+            prob_string = tf.strings.format("{}", (all_predictions))
+            labels_string = tf.strings.format("{}", (all_labels))
+            tf.io.write_file(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-probabilities'), prob_string)
+            tf.io.write_file(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-true-labels'), labels_string)
+
             # get decision threshold
-            labels_in_test_set = list(set(all_labels))
-            for j in labels_in_test_set:
-                fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-                roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
-                roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-                print(hvd.rank(), gpu_test_files[i], j, roc_t)
+            # labels_in_test_set = list(set(all_labels))
+            # for j in labels_in_test_set:
+            #     fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
+            #     roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
+            #     roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
+            #     print(hvd.rank(), gpu_test_files[i], j, roc_t)
 
 
 
