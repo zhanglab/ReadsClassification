@@ -17,7 +17,7 @@ import pandas as pd
 import math
 import gzip
 from collections import defaultdict
-from sklearn.metrics import roc_curve, auc
+# from sklearn.metrics import roc_curve, auc
 import argparse
 
 # disable eager execution
