@@ -59,15 +59,22 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
     tpr = {}
     thresholds = {}
     roc_auc = {}
-    J_stats = [None] * len(labels_in_test_set)
-    opt_thresholds = [None] * len(labels_in_test_set)
-    jstat_opt_thresholds = [None] * len(labels_in_test_set)
+    J_stats = [None] * len(rank_mapping_dict)
+    opt_thresholds = [None] * len(rank_mapping_dict)
+    jstat_opt_thresholds = [None] * len(rank_mapping_dict)
 
-    f = open(os.path.join(args.input_dir, f'decision_thresholds.tsv'), 'w')
+    print(f'{rank}\t{len(true_taxa)}\t{len(probs)}')
+    dict_probs = defualtdict(list)
+    for i in range(len(true_taxa)):
+        dict_probs[true_taxa[i]].append(probs[i])
+
+    f = open(os.path.join(args.input_dir, f'decision_thresholds_{rank}.tsv'), 'w')
     for i in range(len(rank_mapping_dict)):
         if i in labels_in_test_set:
+            in_arr = np.array([i]*len(dict_probs[i]))
+            print(i, len(dict_probs[i]), len(in_arr))
             # fpr[i], tpr[i], thresholds[i] = roc_curve(true_arr[:, i], pred_arr[:, i])
-            fpr[i], tpr[i], thresholds[i] = roc_curve(np.array(true_taxa), np.array(probs), pos_label=i)
+            fpr[i], tpr[i], thresholds[i] = roc_curve(in_arr, np.array(dict_probs[i]), pos_label=i)
             roc_auc[i] = auc(fpr[i], tpr[i])
             # Compute Youden's J statistics for each species:
             # get optimal cut off corresponding to a high TPR and low FPR
