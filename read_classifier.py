@@ -17,6 +17,7 @@ import pandas as pd
 import math
 import gzip
 from collections import defaultdict
+from sklearn.metrics import roc_curve, auc
 import argparse
 
 # disable eager execution
@@ -81,20 +82,20 @@ class DALIPreprocessor(object):
         return self.dalidataset
 
 @tf.function
-def testing_step(reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
+def testing_step(args, reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
-    if test_loss != None and test_accuracy != None and loss != None:
+    if args.data_type == 'test':
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    pred_labels = tf.math.argmax(probs, axis=1)
-    pred_probs = tf.reduce_max(probs, axis=1)
-    return pred_labels, pred_probs
+    # elif args.data_type == 'meta':
+        # probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
+    # pred_labels = tf.math.argmax(probs, axis=1)
+    # return pred_labels, probs
+    tf.io.write_file()
     # return probs
 
 def main():
-    start = datetime.datetime.now()
-    print(f'start parsing command line arguments: {hvd.rank()}\t{datetime.datetime.now()}')
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
@@ -188,48 +189,50 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
 
         # create empty arrays to store the predicted and true values
-        # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+        # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
 
             if args.data_type == 'meta':
-                batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model)
-                # batch_predictions = testing_step(reads, labels, model)
+                # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model)
+                batch_predictions = testing_step(args, reads, labels, model)
             elif args.data_type == 'test':
-                batch_pred_sp, batch_prob_sp = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
-                # batch_predictions = testing_step(reads, labels, model, loss, test_loss, test_accuracy)
+                # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model, loss, test_loss, test_accuracy)
+                batch_predictions = testing_step(args, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
-                all_pred_sp = [batch_pred_sp]
-                all_prob_sp = [batch_prob_sp]
-                # all_predictions = batch_predictions
+                # all_pred_sp = [batch_pred_sp]
+                # all_prob_sp = [batch_prob_sp]
+                all_predictions = batch_predictions
             else:
-                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        # all_predictions = all_predictions.numpy()
+        all_predictions = all_predictions.numpy()
         # pred_species = [np.argmax(j) for j in all_predictions]
         # pred_probabilities = [np.amax(j) for j in all_predictions]
-        all_pred_sp = all_pred_sp[0].numpy()
-        all_prob_sp = all_prob_sp[0].numpy()
-        all_labels = all_labels[0].numpy()
+        # all_pred_sp = all_pred_sp[0].numpy()
+        # all_prob_sp = all_prob_sp[0].numpy()
+        # all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        if len(all_pred_sp) > num_reads:
+        if len(pred_species) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             # pred_species = pred_species[:-num_extra_reads]
             # pred_probabilities = pred_probabilities[:-num_extra_reads]
-            all_pred_sp = all_pred_sp[:-num_extra_reads]
-            all_prob_sp = all_prob_sp[:-num_extra_reads]
+            all_predictions = all_predictions[:-num_extra_reads]
+            # all_pred_sp = all_pred_sp[:-num_extra_reads]
+            # all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
 
+        print(f'{len(all_predictions)}\t{len(all_labels)}')
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
@@ -244,8 +247,19 @@ def main():
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         elif args.data_type == 'test':
-            df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
-            df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False)
+            # get decision threshold
+            labels_in_test_set = list(set(all_labels))
+            for j in labels_in_test_set:
+                fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
+                roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
+                roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
+                print(hvd.rank(), gpu_test_files[i], j, roc_t)
+
+
+
+
+            # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
+            # df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False)
             # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             #     for j in range(num_reads):
             #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
@@ -275,12 +289,14 @@ def main():
     minutes, seconds = divmod(seconds, 60)
 
     with open(os.path.join(args.output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
-        outfile.write(f'batch size per gpu: {args.batch_size}\tnumber of gpus: {hvd.size()}\tGPU: {hvd.rank()}\tnumber of tfrecord files: {len(gpu_test_files)}\tnumber of reads classified: {num_reads_classified}\t')
+        outfile.write(f'{args.batch_size}\t{hvd.size()}\t{hvd.rank()}\t{len(gpu_test_files)}\t{num_reads_classified}\t')
+        if args.data_type == 'test':
+            outfile.write(f'{test_accuracy.result().numpy()}\t{test_loss.result().numpy()}\t')
         if args.ckpt:
-            outfile.write(f'checkpoint saved at epoch: {args.epoch}')
+            outfile.write(f'{args.epoch}')
         else:
             outfile.write(f'model saved at last epoch')
-        outfile.write(f'\trun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}\n')
+        outfile.write(f'\t{hours}:{minutes}:{seconds}:{total_time.microseconds}\n')
 
 
 if __name__ == "__main__":
