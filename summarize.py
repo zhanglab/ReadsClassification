@@ -77,15 +77,22 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
             roc_auc[i] = auc(fpr[i], tpr[i])
             # Compute Youden's J statistics for each species:
             # get optimal cut off corresponding to a high TPR and low FPR
-            J_stats[i] = tpr[i] - fpr[i]
-            jstat_optimal_index = np.argmax(J_stats[i][1:])
-            opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
-            # jstat_opt_thresholds[i] = round(J_stats[i][jstat_optimal_index], 2)
-            print(i, len(dict_probs[i]), len(in_arr), len(J_stats[i]), len(tpr[i]), len(fpr[i]), len(thresholds[i]), len(J_stats[i][1:]), len(thresholds[i][1:]))
-            print(i, thresholds[i][1:])
-            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{opt_thresholds[i]}\n')
-        else:
-            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t0.5\n')
+            # J_stats[i] = tpr[i] - fpr[i]
+            # jstat_optimal_index = np.argmax(J_stats[i][1:])
+            # opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
+            # # jstat_opt_thresholds[i] = round(J_stats[i][jstat_optimal_index], 2)
+            print(i, len(dict_probs[i]), len(in_arr), len(J_stats[i]), len(tpr[i]), len(fpr[i]), len(thresholds[i]), len(J_stats[i]), len(thresholds[i]))
+            # print(i, thresholds[i][1:])
+            j = np.arange(len(tpr[i])) # index for df
+            roc = pd.DataFrame({'fpr' : pd.Series(fpr[i], index=j),'tpr' : pd.Series(tpr[i], index = j), '1-fpr' : pd.Series(1-fpr[i], index = j), 'tf' : pd.Series(tpr[i] - (1-fpr[i]), index = j), 'thresholds' : pd.Series(thresholds[i], index = j)})
+            roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
+            print(i, roc_t)
+            roc.to_csv(os.path.join(args.input_dir, f'{i}-{rank}-df.csv'))
+            break
+            # f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{opt_thresholds[i]}\n')
+
+        # else:
+            # f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t0.5\n')
 
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
