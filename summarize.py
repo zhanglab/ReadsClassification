@@ -82,7 +82,7 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
             jstat_optimal_index = np.argmax(J_stats[i])
             opt_thresholds[i] = thresholds[i][jstat_optimal_index]
             jstat_opt_thresholds[i] = round(J_stats[i][jstat_optimal_index], 2)
-            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_opt_thresholds[i]}\t{opt_thresholds[i]}\n')
+            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{jstat_opt_thresholds[i]}\t{opt_thresholds[i]}\n')
         else:
             f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t0.5\n')
 
