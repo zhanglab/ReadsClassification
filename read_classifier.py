@@ -220,9 +220,9 @@ def main():
         # all_pred_sp = all_pred_sp[0].numpy()
         # all_prob_sp = all_prob_sp[0].numpy()
         # all_labels = all_labels[0].numpy()
-
+        print(f'{len(all_predictions)}\t{len(all_labels)}')
         # adjust the list of predicted species and read ids if necessary
-        if len(pred_species) > num_reads:
+        if len(all_predictions) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             # pred_species = pred_species[:-num_extra_reads]
             # pred_probabilities = pred_probabilities[:-num_extra_reads]
