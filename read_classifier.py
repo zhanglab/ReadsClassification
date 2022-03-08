@@ -82,13 +82,13 @@ class DALIPreprocessor(object):
         return self.dalidataset
 
 @tf.function
-def testing_step(args, reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
+def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
-    if args.data_type == 'test':
+    if data_type == 'test':
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    elif args.data_type == 'meta':
+    elif data_type == 'meta':
         probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
     # pred_labels = tf.math.argmax(probs, axis=1)
     # return pred_labels, probs
@@ -197,10 +197,10 @@ def main():
 
             if args.data_type == 'meta':
                 # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model)
-                batch_predictions = testing_step(args, reads, labels, model)
+                batch_predictions = testing_step(args.data_type, reads, labels, model)
             elif args.data_type == 'test':
                 # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model, loss, test_loss, test_accuracy)
-                batch_predictions = testing_step(args, reads, labels, model, loss, test_loss, test_accuracy)
+                batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
