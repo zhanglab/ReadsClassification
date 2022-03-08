@@ -64,7 +64,7 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
     jstat_opt_thresholds = [None] * len(rank_mapping_dict)
 
     print(f'{rank}\t{len(true_taxa)}\t{len(probs)}')
-    dict_probs = defualtdict(list)
+    dict_probs = defaultdict(list)
     for i in range(len(true_taxa)):
         dict_probs[true_taxa[i]].append(probs[i])
 
