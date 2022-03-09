@@ -226,10 +226,10 @@ def main():
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             # pred_species = pred_species[:-num_extra_reads]
             # pred_probabilities = pred_probabilities[:-num_extra_reads]
-            all_predictions = all_predictions[:-num_extra_reads]
+            all_predictions = all_predictions.numpy()[:-num_extra_reads]
             # all_pred_sp = all_pred_sp[:-num_extra_reads]
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            all_labels = all_labels[0][:-num_extra_reads]
+            all_labels = all_labels[0].numpy()[:-num_extra_reads]
 
         print(f'{len(all_predictions)}\t{len(all_labels)}')
         print(f'{all_predictions}\t{all_labels}')
