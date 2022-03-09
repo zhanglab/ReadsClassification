@@ -171,8 +171,8 @@ def main():
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
-    print(f'start testing: {hvd.rank()}\t{datetime.datetime.now()}')
     elapsed_time = []
+    decision_thresholds = defaultdict(list)
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
         start_time = time.time()
@@ -247,26 +247,23 @@ def main():
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
 
         elif args.data_type == 'test':
-            if hvd.rank() == 0:
-                # get decision threshold
-                labels_in_test_set = list(set(all_labels))
-                for j in labels_in_test_set:
-                    fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-                    J_stats = tpr - fpr
-                    jstat_optimal_index = np.argmax(J_stats)
-                    opt_thresholds = thresholds[jstat_optimal_index]
-                    print(j, opt_thresholds, jstat_optimal_index, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
-                    k = np.arange(len(tpr))
-                    df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                    l = np.arange(len(all_labels))
+            # get decision threshold
+            labels_in_test_set = list(set(all_labels))
+            for j in labels_in_test_set:
+                fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
+                J_stats = tpr - fpr
+                jstat_optimal_index = np.argmax(J_stats)
+                opt_threshold = thresholds[jstat_optimal_index]
+                decision_thresholds[j].append(opt_threshold)
+                if hvd.rank() == 0 and j == 2083:
+                # print(j, opt_thresholds, jstat_optimal_index, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
+                # k = np.arange(len(tpr))
+                # df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
+                # l = np.arange(len(all_labels))
                     df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=l), 'prob' : pd.Series(all_predictions[:, j], index=l)})
-                    df_1.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df1-out.tsv'))
+                # df_1.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df1-out.tsv'))
                     df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
-                    break
-                    # k = np.arange(len(tpr))
-                    # roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                    # roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-                    # print(hvd.rank(), j, list(roc_t['thresholds']), list(roc_t['fpr']), list(roc_t['1-fpr']), list(roc_t['tpr']), list(roc_t['tf']))
+
 
 
 
@@ -278,9 +275,8 @@ def main():
             #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
             #         out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
         end_time = time.time()
-        break
-        # elapsed_time = np.append(elapsed_time, end_time - start_time)
-    # print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+        elapsed_time = np.append(elapsed_time, end_time - start_time)
+    print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
         # get reads
         # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
         #     content = f.readlines()
@@ -296,6 +292,13 @@ def main():
                 #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
                 #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
                 #         out_fq.write(''.join(list_reads_in_bin))
+    with open(os.path.join(args.output_dir, 'tmp', f'decision-thresholds-{hvd.rank()}-out.tsv'), 'w') as out_f:
+        for key, value in decision_thresholds.items():
+            out_f.write(f'{key}\t')
+            for i in range(len(value)-1):
+                out_f.write(f'{value[i]}\t')
+            out_f.write(f'{value[len(value)-1]}\n')
+
 
     end = datetime.datetime.now()
     total_time = end - start
