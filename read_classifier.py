@@ -249,12 +249,11 @@ def main():
             # get decision threshold
             labels_in_test_set = list(set(all_labels))
             for j in labels_in_test_set:
-                print(f'label: {j}')
                 fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
                 k = np.arange(len(tpr))
                 roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
                 roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-                print(hvd.rank(), j, list(roc_t['thresholds']))
+                print(hvd.rank(), j, list(roc_t['thresholds']), list(roc_t['fpr']), list(roc_t['1-fpr']), list(roc_t['tpr']), list(roc_t['tf']))
 
 
 
