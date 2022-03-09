@@ -248,8 +248,8 @@ def main():
 
         elif args.data_type == 'test':
             # save predictions and labels to file
-            all_predictions.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.np'))
-            all_labels.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.np'))
+            np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
+            np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
             # get decision threshold
             # labels_in_test_set = list(set(all_labels))
             # for j in labels_in_test_set:
