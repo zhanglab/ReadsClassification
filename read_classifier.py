@@ -17,7 +17,7 @@ import pandas as pd
 import math
 import gzip
 from collections import defaultdict
-# from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_curve, auc
 import argparse
 
 # disable eager execution
@@ -246,18 +246,14 @@ def main():
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         elif args.data_type == 'test':
-            prob_string = tf.strings.format("{}", (all_predictions))
-            labels_string = tf.strings.format("{}", (all_labels))
-            tf.io.write_file(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-probabilities'), prob_string)
-            tf.io.write_file(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-true-labels'), labels_string)
 
             # get decision threshold
-            # labels_in_test_set = list(set(all_labels))
-            # for j in labels_in_test_set:
-            #     fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-            #     roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
-            #     roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-            #     print(hvd.rank(), gpu_test_files[i], j, roc_t)
+            labels_in_test_set = list(set(all_labels))
+            for j in labels_in_test_set:
+                fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
+                roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
+                roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
+                print(hvd.rank(), gpu_test_files[i], j, roc_t)
 
 
 
