@@ -220,7 +220,7 @@ def main():
         # all_pred_sp = all_pred_sp[0].numpy()
         # all_prob_sp = all_prob_sp[0].numpy()
         # all_labels = all_labels[0].numpy()
-        print(f'{len(all_predictions)}\t{len(all_labels)}')
+
         # adjust the list of predicted species and read ids if necessary
         if len(all_predictions) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
@@ -229,9 +229,10 @@ def main():
             all_predictions = all_predictions[:-num_extra_reads]
             # all_pred_sp = all_pred_sp[:-num_extra_reads]
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            all_labels = all_labels[:-num_extra_reads]
+            all_labels = all_labels[0][:-num_extra_reads]
 
         print(f'{len(all_predictions)}\t{len(all_labels)}')
+        print(f'{all_predictions}\t{all_labels}')
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
@@ -245,11 +246,12 @@ def main():
                 for j in range(num_reads):
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
-        elif args.data_type == 'test':
 
+        elif args.data_type == 'test':
             # get decision threshold
             labels_in_test_set = list(set(all_labels))
             for j in labels_in_test_set:
+                print(f'label: {j}')
                 fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
                 roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
                 roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
