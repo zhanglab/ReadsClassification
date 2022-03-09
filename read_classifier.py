@@ -253,9 +253,9 @@ def main():
                 for j in labels_in_test_set:
                     fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
                     J_stats = tpr - fpr
-                    jstat_optimal_index = np.argmax(J_stats[i])
-                    opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
-                    print(j, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
+                    jstat_optimal_index = np.argmax(J_stats)
+                    opt_thresholds = thresholds[jstat_optimal_index]
+                    print(j, opt_thresholds, jstat_optimal_index, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
                     k = np.arange(len(tpr))
                     df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
                     df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=k), 'prob' : pd.Series(all_predictions[:, j], index=k)})
