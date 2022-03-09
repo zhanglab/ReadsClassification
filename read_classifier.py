@@ -256,8 +256,10 @@ def main():
                     opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
                     print(j, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
                     k = np.arange(len(tpr))
-                    df = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                    df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df-out.tsv'))
+                    df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
+                    df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=k), 'prob' : pd.Series(all_predictions[:, j], index=k)})
+                    df_1.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df1-out.tsv'))
+                    df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
                     break
                     # k = np.arange(len(tpr))
                     # roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
