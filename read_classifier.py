@@ -259,7 +259,7 @@ def main():
                 # print(j, opt_thresholds, jstat_optimal_index, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
                 # k = np.arange(len(tpr))
                 # df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                # l = np.arange(len(all_labels))
+                    l = np.arange(len(all_labels))
                     df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=l), 'prob' : pd.Series(all_predictions[:, j], index=l)})
                 # df_1.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df1-out.tsv'))
                     df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
