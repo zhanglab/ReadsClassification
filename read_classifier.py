@@ -246,14 +246,23 @@ def main():
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
 
         elif args.data_type == 'test':
-            # get decision threshold
-            labels_in_test_set = list(set(all_labels))
-            for j in labels_in_test_set:
-                fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-                k = np.arange(len(tpr))
-                roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-                print(hvd.rank(), j, list(roc_t['thresholds']), list(roc_t['fpr']), list(roc_t['1-fpr']), list(roc_t['tpr']), list(roc_t['tf']))
+            if hvd.rank() == 0:
+                # get decision threshold
+                labels_in_test_set = list(set(all_labels))
+                for j in labels_in_test_set:
+                    fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
+                    J_stats = tpr - fpr
+                    jstat_optimal_index = np.argmax(J_stats[i])
+                    opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
+                    print(j, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
+                    k = np.arange(len(tpr))
+                    df = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
+                    df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df-out.tsv'))
+                    break
+                    # k = np.arange(len(tpr))
+                    # roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
+                    # roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
+                    # print(hvd.rank(), j, list(roc_t['thresholds']), list(roc_t['fpr']), list(roc_t['1-fpr']), list(roc_t['tpr']), list(roc_t['tf']))
 
 
 
@@ -265,8 +274,9 @@ def main():
             #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
             #         out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
         end_time = time.time()
-        elapsed_time = np.append(elapsed_time, end_time - start_time)
-    print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+        break
+        # elapsed_time = np.append(elapsed_time, end_time - start_time)
+    # print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
         # get reads
         # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
         #     content = f.readlines()
