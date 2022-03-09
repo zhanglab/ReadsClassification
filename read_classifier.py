@@ -254,7 +254,7 @@ def main():
                 k = np.arange(len(tpr))
                 roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
                 roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-                print(hvd.rank(), j, list(roc_t['threshold']))
+                print(hvd.rank(), j, list(roc_t['thresholds']))
 
 
 
