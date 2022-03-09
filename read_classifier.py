@@ -231,8 +231,6 @@ def main():
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[0].numpy()[:-num_extra_reads]
 
-        print(f'{len(all_predictions)}\t{len(all_labels)}')
-        print(f'{all_predictions}\t{all_labels}')
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
@@ -253,7 +251,8 @@ def main():
             for j in labels_in_test_set:
                 print(f'label: {j}')
                 fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-                roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), '1-fpr' : pd.Series(1-fpr, index = j), 'tf' : pd.Series(tpr - (1-fpr), index = j), 'thresholds' : pd.Series(thresholds, index = j)})
+                k = np.arange(len(tpr))
+                roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), '1-fpr' : pd.Series(1-fpr, index=k), 'tf' : pd.Series(tpr - (1-fpr), index=k), 'thresholds' : pd.Series(thresholds, index=k)})
                 roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
                 print(hvd.rank(), gpu_test_files[i], j, roc_t)
 
