@@ -95,6 +95,7 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
     return probs
 
 def main():
+    start = datetime.datetime.now()
     parser = argparse.ArgumentParser()
     parser.add_argument('--tfrecords', type=str, help='path to tfrecords', required=True)
     parser.add_argument('--dali_idx', type=str, help='path to dali indexes files', required=True)
