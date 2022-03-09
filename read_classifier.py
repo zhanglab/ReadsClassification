@@ -172,7 +172,7 @@ def main():
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
     elapsed_time = []
-    decision_thresholds = defaultdict(list)
+    # decision_thresholds = defaultdict(list)
     num_reads_classified = 0
     for i in range(len(gpu_test_files)):
         start_time = time.time()
@@ -247,22 +247,25 @@ def main():
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
 
         elif args.data_type == 'test':
+            # save predictions and labels to file
+            all_predictions.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.np'))
+            all_labels.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.np'))
             # get decision threshold
-            labels_in_test_set = list(set(all_labels))
-            for j in labels_in_test_set:
-                fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-                J_stats = tpr - fpr
-                jstat_optimal_index = np.argmax(J_stats)
-                opt_threshold = thresholds[jstat_optimal_index]
-                decision_thresholds[j].append(opt_threshold)
-                if hvd.rank() == 0 and j == 2083:
+            # labels_in_test_set = list(set(all_labels))
+            # for j in labels_in_test_set:
+                # fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
+                # J_stats = tpr - fpr
+                # jstat_optimal_index = np.argmax(J_stats)
+                # opt_threshold = thresholds[jstat_optimal_index]
+                # decision_thresholds[j].append(opt_threshold)
+                # if j == 2083:
                 # print(j, opt_thresholds, jstat_optimal_index, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
                 # k = np.arange(len(tpr))
                 # df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                    l = np.arange(len(all_labels))
-                    df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=l), 'prob' : pd.Series(all_predictions[:, j], index=l)})
+                    # l = np.arange(len(all_labels))
+                    # df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=l), 'prob' : pd.Series(all_predictions[:, j], index=l)})
                 # df_1.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df1-out.tsv'))
-                    df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
+                    # df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
 
 
 
@@ -292,12 +295,12 @@ def main():
                 #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
                 #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
                 #         out_fq.write(''.join(list_reads_in_bin))
-    with open(os.path.join(args.output_dir, 'tmp', f'decision-thresholds-{hvd.rank()}-out.tsv'), 'w') as out_f:
-        for key, value in decision_thresholds.items():
-            out_f.write(f'{key}\t')
-            for i in range(len(value)-1):
-                out_f.write(f'{value[i]}\t')
-            out_f.write(f'{value[len(value)-1]}\n')
+    # with open(os.path.join(args.output_dir, 'tmp', f'decision-thresholds-{hvd.rank()}-out.tsv'), 'w') as out_f:
+    #     for key, value in decision_thresholds.items():
+    #         out_f.write(f'{key}\t')
+    #         for i in range(len(value)-1):
+    #             out_f.write(f'{value[i]}\t')
+    #         out_f.write(f'{value[len(value)-1]}\n')
 
 
     end = datetime.datetime.now()
