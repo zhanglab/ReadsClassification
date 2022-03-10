@@ -204,7 +204,7 @@ def main():
                 # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model)
                 batch_pred_sp, batch_predictions = testing_step(args.data_type, reads, labels, model)
             elif args.data_type == 'test':
-                batch_pred_sp, batch_predictions = testing_step(args.data_type reads, labels, model, loss, test_loss, test_accuracy)
+                batch_pred_sp, batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
                 # batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
@@ -248,7 +248,7 @@ def main():
             with open(os.path.join(args.output_dir, 'tmp' f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
                 for j in range(num_reads):
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(pred_species[j])]}\t{pred_probabilities[j]}\n')
+                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(pred_species[j])]}\n')
 
         # elif args.data_type == 'test':
             # save predictions and labels to file
