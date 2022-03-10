@@ -3,30 +3,36 @@ import pandas as pd
 import sys
 import os
 import argparse
+import numpy as np
 import json
 import time
 from summarize import get_cm, ROCcurve, get_metrics
 
 
-def get_results(list_tsv_files):
-    pred_species = []
-    true_species = []
-    probs = []
-    for in_file in list_tsv_files:
-        df = pd.read_csv(in_file, header=None)
-        true_species += df.iloc[:,0].tolist()
-        pred_species += df.iloc[:,1].tolist()
-        probs += df.iloc[:,2].tolist()
+# def get_results(list_tsv_files):
+#     pred_species = []
+#     true_species = []
+#     probs = []
+#     for in_file in list_tsv_files:
+#         df = pd.read_csv(in_file, header=None)
+#         true_species += df.iloc[:,0].tolist()
+#         pred_species += df.iloc[:,1].tolist()
+#         probs += df.iloc[:,2].tolist()
+#
+#     return pred_species, true_species, probs
 
-    return pred_species, true_species, probs
-
-def load_prob_files(list_prob_files):
-    probs = []
-    for in_file in list_prob_files:
+def get_results(list_files, d_type):
+    data = []
+    for in_file in list_files:
         arr = np.load(in_file)
-        probs += arr.tolist()
-    print(f'# files: {len(list_prob_files)}\t# reads: {len(probs)}')
-    return probs
+        data += arr.tolist()
+    print(f'{d_type}\t# files: {len(list_files)}\t# reads: {len(data)}')
+    if d_type == 'probs':
+        pred_species = [np.argmax(j) for j in data]
+        pred_probs = [np.amax(j) for j in data]
+        return data, pred_species, pred_probs
+    elif d_type == 'labels':
+        return data
 
 
 def main():
@@ -39,22 +45,24 @@ def main():
     with open(os.path.join(args.rank_mapping_dir, 'species_labels.json'), 'r') as f:
         species_mapping_dict = json.load(f)
 
-    list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*.tsv')))
-    list_prob_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*.npy')))
+    # list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*.tsv')))
+    list_prob_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*-prob-out.npy')))
+    list_labels_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*-labels-out.npy')))
 
     if args.data_type == 'test':
         # get predictions and ground truth at species level
         start_time = time.time()
-        pred_species, true_species, probs = get_results(list_tsv_files)
-        all_probs = load_prob_files(list_prob_files)
+        # pred_species, true_species, probs = get_results(list_tsv_files)
+        all_probs, pred_probs, pred_species = get_results(list_prob_files, 'probs')
+        true_species = get_results(list_labels_files, 'labels')
         end_time = time.time()
         print(end_time - start_time)
         # get confusion matrix
-        cm, accuracy = get_cm(true_species, pred_species, species_mapping_dict, 'species')
+        # cm, accuracy = get_cm(true_species, pred_species, species_mapping_dict, 'species')
         # get decision thresholds
-        ROCcurve(args, true_species, all_probs, species_mapping_dict, set(true_species), 'species')
+        # ROCcurve(args, true_species, all_probs, species_mapping_dict, set(true_species), 'species')
         # get precision and recall
-        get_metrics(args, cm, species_mapping_dict, set(true_species), 'species')
+        # get_metrics(args, cm, species_mapping_dict, set(true_species), 'species')
         # analyze results at higher taxonomic levels
         # for r in ['genus', 'family', 'order', 'class']:
         #     # load dictionary mapping species labels to other ranks labels
