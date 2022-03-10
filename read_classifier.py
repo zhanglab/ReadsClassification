@@ -110,7 +110,7 @@ def main():
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=8192)
     parser.add_argument('--model', type=str, help='path to directory containing model in SavedModel format')
     parser.add_argument('--ckpt', type=str, help='path to directory containing checkpoint file', required=('--epoch' in sys.argv))
-    parser.add_argument('--save_probs', type=str, help='save probability distributions', action='store_true')
+    parser.add_argument('--save_probs', help='save probability distributions', action='store_true')
 
     args = parser.parse_args()
 
