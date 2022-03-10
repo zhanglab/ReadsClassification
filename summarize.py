@@ -22,7 +22,6 @@ def get_cm(true_taxa, predicted_taxa, rank_mapping_dict, rank):
             num_correct_pred += 1
         else:
             num_incorrect_pred += 1
-
     accuracy = round(float(num_correct_pred)/len(true_taxa), 5)
     print(f'{rank}\taccuracy 1: {accuracy}')
     return cm, accuracy
@@ -53,28 +52,24 @@ def get_metrics(args, cm, rank_mapping_dict, labels_in_test_set, rank):
     print(f'{rank}\taccuracy 2: {accuracy}')
     f.close()
 
-def ROCcurve(args, true_taxa, all_probs, rank_mapping_dict, labels_in_test_set, rank):
+def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank):
 
-    print(f'{rank}\t{len(true_taxa)}\t{len(all_probs)}')
+    print(f'{rank}\t{len(true_taxa)}\t{len(probs)}')
 
     f = open(os.path.join(args.input_dir, f'decision_thresholds_{rank}.tsv'), 'w')
     for i in range(len(rank_mapping_dict)):
         if i in labels_in_test_set:
-            fpr, tpr, thresholds = roc_curve(true_taxa, all_probs[:, i], pos_label=i)
+            fpr, tpr, thresholds = roc_curve(true_taxa, probs, pos_label=i)
             # Compute Youden's J statistics for each species:
             # get optimal cut off corresponding to a high TPR and low FPR
             J_stats = tpr - fpr
             jstat_optimal_index = np.argmax(J_stats)
             opt_threshold = thresholds[jstat_optimal_index]
-            # # jstat_opt_thresholds[i] = round(J_stats[i][jstat_optimal_index], 2)
-            # print(i, len(dict_probs[i]), len(in_arr), len(tpr[i]), len(fpr[i]), len(thresholds[i]))
-            # print(i, thresholds[i][1:])
             # j = np.arange(len(tpr[i])) # index for df
             # roc = pd.DataFrame({'fpr' : pd.Series(fpr[i], index=j),'tpr' : pd.Series(tpr[i], index = j), '1-fpr' : pd.Series(1-fpr[i], index = j), 'tf' : pd.Series(tpr[i] - (1-fpr[i]), index = j), 'thresholds' : pd.Series(thresholds[i], index = j)})
             # roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-            # print(i, roc_t)
             # roc.to_csv(os.path.join(args.input_dir, f'{i}-{rank}-df.csv'))
-            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{opt_threshold}\n')
+            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{opt_threshold}\t{len(thresholds)}\n')
         else:
             f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t0.5\n')
 
