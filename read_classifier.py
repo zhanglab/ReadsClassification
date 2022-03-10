@@ -250,6 +250,12 @@ def main():
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\n')
 
+        ds_prob = tf.data.Dataset.from_tensors(all_predictions)
+        ds_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        ds_labels = tf.data.Dataset.from_tensors(all_labels)
+        tf.data.experimental.save(ds_prob, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-ds'), compression='GZIP')
+        tf.data.experimental.save(ds_pred, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-ds'), compression='GZIP')
+        tf.data.experimental.save(ds_labels, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-ds'), compression='GZIP')
         # elif args.data_type == 'test':
             # save predictions and labels to file
         # np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
