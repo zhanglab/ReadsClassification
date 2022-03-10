@@ -213,17 +213,17 @@ def main():
         # input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
         # metadata can't be found in eager mode
-        ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
-        tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
-        # print(ds_tensors_pred.element_spec)
-        print(ds_tensors_pred.snapshot)
-
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
-            pickle.dump(ds_tensors_pred.element_spec, out_)
-
-
-        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'snapshot'), 'wb') as out_:  # also save the element_spec to disk for future loading
-            pickle.dump(ds_tensors_pred.snapshot, out_)
+        # ds_tensors_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        # tf.data.experimental.save(ds_tensors_pred, os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors'), compression='GZIP')
+        # # print(ds_tensors_pred.element_spec)
+        # print(ds_tensors_pred.snapshot)
+        #
+        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'element_spec'), 'wb') as out_:  # also save the element_spec to disk for future loading
+        #     pickle.dump(ds_tensors_pred.element_spec, out_)
+        #
+        #
+        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-tensors', 'snapshot'), 'wb') as out_:  # also save the element_spec to disk for future loading
+        #     pickle.dump(ds_tensors_pred.snapshot, out_)
         # break
 
         # ds = tf.data.Dataset.from_tensors(all_pred_sp)
