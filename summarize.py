@@ -4,7 +4,9 @@ from collections import defaultdict
 import itertools
 import pandas as pd
 import numpy as np
+import sklearn
 from sklearn.metrics import roc_curve, auc
+print(sklearn.__version__)
 # import matplotlib
 # matplotlib.use('Agg')
 # import matplotlib.pyplot as plt
