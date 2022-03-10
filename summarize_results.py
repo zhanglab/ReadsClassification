@@ -6,10 +6,11 @@ import argparse
 import numpy as np
 import json
 import time
+import random
 from summarize import get_cm, ROCcurve, get_metrics
 
 
-def get_results(list_tsv_files):
+def get_results(args, list_tsv_files):
     pred_species = []
     true_species = []
     probs = []
@@ -20,13 +21,19 @@ def get_results(list_tsv_files):
         pred_species += df.iloc[:,1].tolist()
         probs += df.iloc[:,2].tolist()
 
-    return pred_species, true_species, probs
+    # select sample of data
+    sample = list(zip(true_species, probs))
+    random.shuffle(sample)
+    s_true_species, s_probs = zip(*sample)
+
+    return pred_species, true_species, list(s_probs)[:args.sample_size], list(s_true_species)[:args.sample_size]
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_dir', type=str, help='path to temporary directory containing tsv files obtained from running read_classifier.py', required=True)
     parser.add_argument('--data_type', type=str, help='input data type', required=True, choices=['test', 'meta'])
+    parser.add_argument('--sample_size', type=int, help='size of sample for ROC curve analysis', default=10000000)
     parser.add_argument('--rank_mapping_dir', type=str, help='path to json files containing dictionaries mapping taxa to labels', required=True)
     args = parser.parse_args()
 
@@ -38,14 +45,14 @@ def main():
     if args.data_type == 'test':
         # get predictions and ground truth at species level
         start_time = time.time()
-        pred_species, true_species, probs = get_results(list_tsv_files)
+        pred_species, true_species, s_probs, s_true_species = get_results(list_tsv_files)
         print(f'# unique predicted probabilities: {len(set(probs))}')
         end_time = time.time()
         print(end_time - start_time)
         # get confusion matrix
         cm, accuracy = get_cm(true_species, pred_species, species_mapping_dict, 'species')
         # get decision thresholds
-        ROCcurve(args, true_species, probs, species_mapping_dict, set(true_species), 'species')
+        ROCcurve(args, s_true_species, s_probs, species_mapping_dict, set(true_species), 'species')
         # get precision and recall
         get_metrics(args, cm, species_mapping_dict, set(true_species), 'species')
         # analyze results at higher taxonomic levels
