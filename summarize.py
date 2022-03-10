@@ -4,7 +4,6 @@ from collections import defaultdict
 import itertools
 import pandas as pd
 import numpy as np
-from sklearn import metrics
 from sklearn.metrics import roc_curve, auc
 # import matplotlib
 # matplotlib.use('Agg')
@@ -54,45 +53,30 @@ def get_metrics(args, cm, rank_mapping_dict, labels_in_test_set, rank):
     print(f'{rank}\taccuracy 2: {accuracy}')
     f.close()
 
-def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank):
-    fpr = {}
-    tpr = {}
-    thresholds = {}
-    roc_auc = {}
-    J_stats = [None] * len(rank_mapping_dict)
-    opt_thresholds = [None] * len(rank_mapping_dict)
-    jstat_opt_thresholds = [None] * len(rank_mapping_dict)
+def ROCcurve(args, true_taxa, all_probs, rank_mapping_dict, labels_in_test_set, rank):
 
-    print(f'{rank}\t{len(true_taxa)}\t{len(probs)}')
-    dict_probs = defaultdict(list)
-    for i in range(len(true_taxa)):
-        dict_probs[true_taxa[i]].append(probs[i])
+    print(f'{rank}\t{len(true_taxa)}\t{len(all_probs)}')
 
     f = open(os.path.join(args.input_dir, f'decision_thresholds_{rank}.tsv'), 'w')
     for i in range(len(rank_mapping_dict)):
         if i in labels_in_test_set:
-            in_arr = np.array([i]*len(dict_probs[i]))
-            # fpr[i], tpr[i], thresholds[i] = roc_curve(true_arr[:, i], pred_arr[:, i])
-            fpr[i], tpr[i], thresholds[i] = roc_curve(in_arr, np.array(dict_probs[i]), pos_label=i)
-            roc_auc[i] = auc(fpr[i], tpr[i])
+            fpr, tpr, thresholds = roc_curve(true_taxa, all_probs[:, i], pos_label=i)
             # Compute Youden's J statistics for each species:
             # get optimal cut off corresponding to a high TPR and low FPR
-            # J_stats[i] = tpr[i] - fpr[i]
-            # jstat_optimal_index = np.argmax(J_stats[i][1:])
-            # opt_thresholds[i] = thresholds[i][1:][jstat_optimal_index]
+            J_stats = tpr - fpr
+            jstat_optimal_index = np.argmax(J_stats)
+            opt_threshold = thresholds[jstat_optimal_index]
             # # jstat_opt_thresholds[i] = round(J_stats[i][jstat_optimal_index], 2)
-            print(i, len(dict_probs[i]), len(in_arr), len(tpr[i]), len(fpr[i]), len(thresholds[i]))
+            # print(i, len(dict_probs[i]), len(in_arr), len(tpr[i]), len(fpr[i]), len(thresholds[i]))
             # print(i, thresholds[i][1:])
-            j = np.arange(len(tpr[i])) # index for df
-            roc = pd.DataFrame({'fpr' : pd.Series(fpr[i], index=j),'tpr' : pd.Series(tpr[i], index = j), '1-fpr' : pd.Series(1-fpr[i], index = j), 'tf' : pd.Series(tpr[i] - (1-fpr[i]), index = j), 'thresholds' : pd.Series(thresholds[i], index = j)})
-            roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
-            print(i, roc_t)
-            roc.to_csv(os.path.join(args.input_dir, f'{i}-{rank}-df.csv'))
-            break
-            # f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{opt_thresholds[i]}\n')
-
-        # else:
-            # f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t0.5\n')
+            # j = np.arange(len(tpr[i])) # index for df
+            # roc = pd.DataFrame({'fpr' : pd.Series(fpr[i], index=j),'tpr' : pd.Series(tpr[i], index = j), '1-fpr' : pd.Series(1-fpr[i], index = j), 'tf' : pd.Series(tpr[i] - (1-fpr[i]), index = j), 'thresholds' : pd.Series(thresholds[i], index = j)})
+            # roc_t = roc.iloc[(roc.tf-0).abs().argsort()[:1]]
+            # print(i, roc_t)
+            # roc.to_csv(os.path.join(args.input_dir, f'{i}-{rank}-df.csv'))
+            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{jstat_optimal_index}\t{opt_threshold}\n')
+        else:
+            f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t0.5\n')
 
         # Compute micro-average ROC curve and ROC area
         # fpr["micro"], tpr["micro"], _ = roc_curve(true_arr.ravel(), pred_arr.ravel())
