@@ -86,7 +86,7 @@ class DALIPreprocessor(object):
         return self.dalidataset
 
 @tf.function
-def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, test_accuracy=None):
+def testing_step(data_type, reads, filename, labels, model, loss=None, test_loss=None, test_accuracy=None):
     probs = model(reads, training=False)
     if data_type == 'test':
         test_accuracy.update_state(labels, probs)
@@ -95,7 +95,13 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
     # elif data_type == 'meta':
         # probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
     pred_labels = tf.math.argmax(probs, axis=1)
-    return pred_labels, probs
+    ds_prob = tf.data.Dataset.from_tensors(probs)
+    ds_pred = tf.data.Dataset.from_tensors(pred_labels)
+    ds_labels = tf.data.Dataset.from_tensors(labels)
+    tf.data.experimental.save(ds_prob, '-'.join([filename, '-prob-ds']), compression='GZIP')
+    tf.data.experimental.save(ds_pred, '-'.join([filename, '-pred-ds']), compression='GZIP')
+    tf.data.experimental.save(ds_labels, '-'.join([filename, '-labels-ds']), compression='GZIP')
+    # return pred_labels, probs
     # return probs
 
 def main():
@@ -199,63 +205,63 @@ def main():
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-
             if args.data_type == 'meta':
                 # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model)
-                batch_pred_sp, batch_predictions = testing_step(args.data_type, reads, labels, model)
+                # batch_pred_sp, batch_predictions = testing_step(args.data_type, batch, reads, labels, model)
+                testing_step(args.data_type, reads, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-ds'), labels, model)
             elif args.data_type == 'test':
-                batch_pred_sp, batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-                # batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                # batch_pred_sp, batch_predictions = testing_step(args.data_type, batch, reads, labels, model, loss, test_loss, test_accuracy)
+                testing_step(args.data_type, reads, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-ds'), labels, model, loss, test_loss, test_accuracy)
 
-            if batch == 1:
-                all_labels = [labels]
-                all_pred_sp = [batch_pred_sp]
-                # all_prob_sp = [batch_prob_sp]
-                all_predictions = batch_predictions
-            else:
-                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-                # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-                all_labels = tf.concat([all_labels, [labels]], 1)
+        #     if batch == 1:
+        #         all_labels = [labels]
+        #         all_pred_sp = [batch_pred_sp]
+        #         # all_prob_sp = [batch_prob_sp]
+        #         all_predictions = batch_predictions
+        #     else:
+        #         all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+        #         all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+        #         # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+        #         all_labels = tf.concat([all_labels, [labels]], 1)
+        #
+        # # get list of true species, predicted species and predicted probabilities
+        # all_predictions = all_predictions.numpy()
+        # # pred_species = [np.argmax(j) for j in all_predictions]
+        # # pred_probabilities = [np.amax(j) for j in all_predictions]
+        # all_pred_sp = all_pred_sp[0].numpy()
+        # # all_prob_sp = all_prob_sp[0].numpy()
+        # all_labels = all_labels[0].numpy()
+        #
+        # # adjust the list of predicted species and read ids if necessary
+        # if len(all_predictions) > num_reads:
+        #     num_extra_reads = (test_steps*args.batch_size) - num_reads
+        #     # pred_species = pred_species[:-num_extra_reads]
+        #     # pred_probabilities = pred_probabilities[:-num_extra_reads]
+        #     all_predictions = all_predictions[:-num_extra_reads]
+        #     all_pred_sp = all_pred_sp[:-num_extra_reads]
+        #     # all_prob_sp = all_prob_sp[:-num_extra_reads]
+        #     all_labels = all_labels[:-num_extra_reads]
+        #
+        # # fill out dictionary of bins and create summary file of predicted probabilities
+        # # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
+        #
+        # if args.data_type == 'meta':
+        #     # get dictionary mapping read ids to labels
+        #     with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+        #         content = f.readlines()
+        #         dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
+        #
+        #     with open(os.path.join(args.output_dir, 'tmp' f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+        #         for j in range(num_reads):
+        #             # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+        #             out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\n')
 
-        # get list of true species, predicted species and predicted probabilities
-        all_predictions = all_predictions.numpy()
-        # pred_species = [np.argmax(j) for j in all_predictions]
-        # pred_probabilities = [np.amax(j) for j in all_predictions]
-        all_pred_sp = all_pred_sp[0].numpy()
-        # all_prob_sp = all_prob_sp[0].numpy()
-        all_labels = all_labels[0].numpy()
-
-        # adjust the list of predicted species and read ids if necessary
-        if len(all_predictions) > num_reads:
-            num_extra_reads = (test_steps*args.batch_size) - num_reads
-            # pred_species = pred_species[:-num_extra_reads]
-            # pred_probabilities = pred_probabilities[:-num_extra_reads]
-            all_predictions = all_predictions[:-num_extra_reads]
-            all_pred_sp = all_pred_sp[:-num_extra_reads]
-            # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            all_labels = all_labels[:-num_extra_reads]
-
-        # fill out dictionary of bins and create summary file of predicted probabilities
-        # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
-
-        if args.data_type == 'meta':
-            # get dictionary mapping read ids to labels
-            with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-                content = f.readlines()
-                dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
-
-            with open(os.path.join(args.output_dir, 'tmp' f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-                for j in range(num_reads):
-                    # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\n')
-
-        ds_prob = tf.data.Dataset.from_tensors(all_predictions)
-        ds_pred = tf.data.Dataset.from_tensors(all_pred_sp)
-        ds_labels = tf.data.Dataset.from_tensors(all_labels)
-        tf.data.experimental.save(ds_prob, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-ds'), compression='GZIP')
-        tf.data.experimental.save(ds_pred, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-ds'), compression='GZIP')
-        tf.data.experimental.save(ds_labels, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-ds'), compression='GZIP')
+        # ds_prob = tf.data.Dataset.from_tensors(all_predictions)
+        # ds_pred = tf.data.Dataset.from_tensors(all_pred_sp)
+        # ds_labels = tf.data.Dataset.from_tensors(all_labels)
+        # tf.data.experimental.save(ds_prob, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-ds'), compression='GZIP')
+        # tf.data.experimental.save(ds_pred, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-pred-ds'), compression='GZIP')
+        # tf.data.experimental.save(ds_labels, os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-ds'), compression='GZIP')
         # elif args.data_type == 'test':
             # save predictions and labels to file
         # np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
