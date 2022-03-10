@@ -45,7 +45,7 @@ def main():
     if args.data_type == 'test':
         # get predictions and ground truth at species level
         start_time = time.time()
-        pred_species, true_species, s_probs, s_true_species = get_results(list_tsv_files)
+        pred_species, true_species, s_probs, s_true_species = get_results(args, list_tsv_files)
         print(f'# unique predicted probabilities: {len(set(probs))}')
         end_time = time.time()
         print(end_time - start_time)
