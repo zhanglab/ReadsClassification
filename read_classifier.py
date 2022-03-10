@@ -17,8 +17,12 @@ import pandas as pd
 import math
 import gzip
 from collections import defaultdict
+import sklearn
 from sklearn.metrics import roc_curve, auc
 import argparse
+
+print(tf.__version__)
+print(sklearn.__version__)
 
 # disable eager execution
 # tf.compat.v1.disable_eager_execution()
@@ -88,11 +92,11 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
         test_accuracy.update_state(labels, probs)
         loss_value = loss(labels, probs)
         test_loss.update_state(loss_value)
-    elif data_type == 'meta':
-        probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
-    # pred_labels = tf.math.argmax(probs, axis=1)
-    # return pred_labels, probs
-    return probs
+    # elif data_type == 'meta':
+        # probs = tf.reduce_max(probs, axis=1) # get maximum probabilities
+    pred_labels = tf.math.argmax(probs, axis=1)
+    return pred_labels, probs
+    # return probs
 
 def main():
     start = datetime.datetime.now()
@@ -190,7 +194,7 @@ def main():
 
         # create empty arrays to store the predicted and true values
         all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
@@ -198,39 +202,39 @@ def main():
 
             if args.data_type == 'meta':
                 # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model)
-                batch_predictions = testing_step(args.data_type, reads, labels, model)
+                batch_pred_sp, batch_predictions = testing_step(args.data_type, reads, labels, model)
             elif args.data_type == 'test':
-                # batch_pred_sp, batch_prob_sp = testing_step(args, reads, labels, model, loss, test_loss, test_accuracy)
-                batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                batch_pred_sp, batch_predictions = testing_step(args.data_type reads, labels, model, loss, test_loss, test_accuracy)
+                # batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
-                # all_pred_sp = [batch_pred_sp]
+                all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        # all_predictions = all_predictions.numpy()
-        pred_species = [np.argmax(j) for j in all_predictions]
-        pred_probabilities = [np.amax(j) for j in all_predictions]
-        # all_pred_sp = all_pred_sp[0].numpy()
+        all_predictions = all_predictions.numpy()
+        # pred_species = [np.argmax(j) for j in all_predictions]
+        # pred_probabilities = [np.amax(j) for j in all_predictions]
+        all_pred_sp = all_pred_sp[0].numpy()
         # all_prob_sp = all_prob_sp[0].numpy()
-        # all_labels = all_labels[0].numpy()
+        all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
         if len(all_predictions) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             pred_species = pred_species[:-num_extra_reads]
-            pred_probabilities = pred_probabilities[:-num_extra_reads]
-            all_predictions = all_predictions.numpy()[:-num_extra_reads]
+            # pred_probabilities = pred_probabilities[:-num_extra_reads]
+            all_predictions = all_predictions[:-num_extra_reads]
             # all_pred_sp = all_pred_sp[:-num_extra_reads]
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            all_labels = all_labels[0].numpy()[:-num_extra_reads]
+            all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
@@ -246,10 +250,10 @@ def main():
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(pred_species[j])]}\t{pred_probabilities[j]}\n')
 
-        elif args.data_type == 'test':
+        # elif args.data_type == 'test':
             # save predictions and labels to file
-            # np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
-            # np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
+        np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
+        np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
             # get decision threshold
             # labels_in_test_set = list(set(all_labels))
             # for j in labels_in_test_set:
@@ -268,10 +272,10 @@ def main():
                     # df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
             # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
             # df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False)
-            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-                for j in range(num_reads):
+            # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+                # for j in range(num_reads):
             #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                    out_f.write(f'{class_mapping[str(pred_species[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
+                    # out_f.write(f'{class_mapping[str(pred_species[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
 
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
