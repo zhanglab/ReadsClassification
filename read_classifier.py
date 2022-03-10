@@ -229,10 +229,10 @@ def main():
         # adjust the list of predicted species and read ids if necessary
         if len(all_predictions) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
-            pred_species = pred_species[:-num_extra_reads]
+            # pred_species = pred_species[:-num_extra_reads]
             # pred_probabilities = pred_probabilities[:-num_extra_reads]
             all_predictions = all_predictions[:-num_extra_reads]
-            # all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_pred_sp = all_pred_sp[:-num_extra_reads]
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
 
@@ -248,12 +248,13 @@ def main():
             with open(os.path.join(args.output_dir, 'tmp' f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
                 for j in range(num_reads):
                     # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(pred_species[j])]}\n')
+                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\n')
 
         # elif args.data_type == 'test':
             # save predictions and labels to file
         np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
         np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
+        # use save.experimental... instead of np.save
             # get decision threshold
             # labels_in_test_set = list(set(all_labels))
             # for j in labels_in_test_set:
