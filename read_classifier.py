@@ -23,7 +23,7 @@ print(tf.__version__)
 
 
 # disable eager execution
-tf.compat.v1.disable_eager_execution()
+# tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 #tf.debugging.set_log_device_placement(True)
