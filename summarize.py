@@ -58,11 +58,9 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
     # get number of occurrences of each label
     counter = Counter(true_taxa)
     print(f'{rank}\t{len(true_taxa)}\t{len(probs)}')
-    target_sp = [2083, 100, 113, 2182, 2270]
     f = open(os.path.join(args.input_dir, f'decision_thresholds_{rank}.tsv'), 'w')
     for i in range(len(rank_mapping_dict)):
-        # if i in labels_in_test_set:
-        if i in target_sp:
+        if i in labels_in_test_set:
             fpr, tpr, thresholds = roc_curve(true_taxa, probs, pos_label=i)
             # Compute Youden's J statistics for each species:
             # get optimal cut off corresponding to a high TPR and low FPR
