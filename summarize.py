@@ -74,6 +74,7 @@ def ROCcurve(args, true_taxa, probs, rank_mapping_dict, labels_in_test_set, rank
             roc.to_csv(os.path.join(args.input_dir, f'{i}-{rank}-df.csv'))
             f.write(f'{i}\t{rank_mapping_dict[str(i)]}\t{opt_threshold}\t{fpr[jstat_optimal_index]}\t{tpr[jstat_optimal_index]}\t{counter[i]}\t{len(true_taxa)-counter[i]}\t{jstat_optimal_index}\t{len(thresholds)}\n')
             # create roc curve
+            plt.clf()
             plt.plot(fpr, tpr)
             plt.ylabel('True Positive Rate')
             plt.xlabel('False Positive Rate')
