@@ -46,7 +46,7 @@ def main():
         # get predictions and ground truth at species level
         start_time = time.time()
         pred_species, true_species, s_probs, s_true_species = get_results(args, list_tsv_files)
-        print(f'# unique predicted probabilities: {len(set(probs))}')
+        print(f'# unique predicted probabilities: {len(set(s_probs))}')
         end_time = time.time()
         print(end_time - start_time)
         # get confusion matrix
