@@ -20,7 +20,7 @@ from collections import defaultdict
 import argparse
 
 print(tf.__version__)
-print(sklearn.__version__)
+
 
 # disable eager execution
 tf.compat.v1.disable_eager_execution()
