@@ -17,8 +17,6 @@ import pandas as pd
 import math
 import gzip
 from collections import defaultdict
-import sklearn
-from sklearn.metrics import roc_curve, auc
 import argparse
 
 print(tf.__version__)
