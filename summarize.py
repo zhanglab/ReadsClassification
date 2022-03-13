@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 plt.ioff()
 print(sklearn.__version__)
 
-def get_taxa_occurrences(args, rank, pred_taxa, probs):
+def get_taxa_occurrences(args, rank, pred_taxa, probs, outfile):
     threshold = 0.5 if args.decision_thresholds == None else None
     tax_occ = defaultdict(int)
     for i in range(len(pred_taxa)):
@@ -20,7 +20,7 @@ def get_taxa_occurrences(args, rank, pred_taxa, probs):
             tax_occ[pred_taxa[i]] += 1
     with open(os.path.join(args.input_dir, f'{rank}-taxa-num.tsv'), 'w') as f:
         for k, v in tax_occ.items():
-            f.write(f'{k}\t{v}\n')
+            f.write(f'{k}\t{round(v/len(pred_taxa),5)}\n')
 
 
 def get_cm(true_taxa, predicted_taxa, rank_mapping_dict, rank):
