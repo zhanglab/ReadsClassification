@@ -12,6 +12,17 @@ import matplotlib.pyplot as plt
 plt.ioff()
 print(sklearn.__version__)
 
+def get_taxa_occurrences(args, rank, pred_taxa, probs):
+    threshold = 0.5 if args.decision_thresholds == None else None
+    tax_occ = defaultdict(int)
+    for i in range(len(pred_taxa)):
+        if probs[i] >= threshold:
+            tax_occ[pred_taxa[i]] += 1
+    with open(os.path.join(args.input_dir, f'{rank}-taxa-num.tsv'), 'w') as f:
+        for k, v in tax_occ.items():
+            f.write(f'{k}\t{v}\n')
+
+
 def get_cm(true_taxa, predicted_taxa, rank_mapping_dict, rank):
     # create empty confusion matrix with rows = true classes and columns = predicted classes
     cm = np.zeros((len(rank_mapping_dict), len(rank_mapping_dict)))
