@@ -79,26 +79,27 @@ def main():
     elif args.data_type == 'meta':
         list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
         for tsv_f in list_tsv_files:
+            print(tsv_f)
             pred_species, probs = get_results(args, [tsv_f])
             outfile = os.path.join(args.input_dir, tsv_f.split('.')[0])
             get_taxa_occurrences(args, 'species', pred_species, probs, outfile)
             # load species mapping labels dictionary
-            with open(os.path.join(args.rank_mapping_dir, 'species_labels.json'), 'r') as f:
-                species_mapping_dict = json.load(f)
-            inv_species_mapping_dict = {v:k for k, v in species_mapping_dict.items()}
-            pred_labels_sp = [inv_species_mapping_dict[i] for i in pred_species]
-            for r in ['genus', 'family', 'order', 'class']:
-                # load dictionary mapping species labels to other ranks labels
-                with open(os.path.join(args.rank_mapping_dir, f'{r}_species_labels.json')) as f_json:
-                    rank_species_mapping = json.load(f_json)
-                # load dictionary mapping labels to taxa at given rank
-                with open(os.path.join(args.rank_mapping_dir, f'{r}_labels.json')) as f_json:
-                    rank_mapping_dict = json.load(f_json)
-                # get predicted taxa labels at given rank
-                rank_pred_taxa = [rank_species_mapping[str(i)] for i in pred_labels_sp]
-                # get predicted taxa names at given rank
-                rank_pred_taxa = [rank_mapping_dict[str(i)] for i in rank_pred_taxa]
-                get_taxa_occurrences(args, r, rank_pred_taxa, probs, outfile)
+            # with open(os.path.join(args.rank_mapping_dir, 'species_labels.json'), 'r') as f:
+            #     species_mapping_dict = json.load(f)
+            # inv_species_mapping_dict = {v:k for k, v in species_mapping_dict.items()}
+            # pred_labels_sp = [inv_species_mapping_dict[i] for i in pred_species]
+            # for r in ['genus', 'family', 'order', 'class']:
+            #     # load dictionary mapping species labels to other ranks labels
+            #     with open(os.path.join(args.rank_mapping_dir, f'{r}_species_labels.json')) as f_json:
+            #         rank_species_mapping = json.load(f_json)
+            #     # load dictionary mapping labels to taxa at given rank
+            #     with open(os.path.join(args.rank_mapping_dir, f'{r}_labels.json')) as f_json:
+            #         rank_mapping_dict = json.load(f_json)
+            #     # get predicted taxa labels at given rank
+            #     rank_pred_taxa = [rank_species_mapping[str(i)] for i in pred_labels_sp]
+            #     # get predicted taxa names at given rank
+            #     rank_pred_taxa = [rank_mapping_dict[str(i)] for i in rank_pred_taxa]
+            #     get_taxa_occurrences(args, r, rank_pred_taxa, probs, outfile)
 
 
 
