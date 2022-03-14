@@ -21,7 +21,8 @@ def get_results(args, list_tsv_files):
         probs += df.iloc[:,2].tolist()
 
     if args.data_type == 'test':
-        args.sample_size = len(labels) if args.sample_size == None
+        if args.sample_size == None:
+            args.sample_size = len(labels)
         # select sample of data
         sample = list(zip(labels, probs))
         random.shuffle(sample)
