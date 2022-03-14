@@ -18,7 +18,7 @@ def get_taxa_occurrences(args, rank, pred_taxa, probs, outfile):
     for i in range(len(pred_taxa)):
         if probs[i] >= threshold:
             tax_occ[pred_taxa[i]] += 1
-    with open(os.path.join(args.input_dir, f'{rank}-taxa-num.tsv'), 'w') as f:
+    with open(f'{outfile}-{rank}-taxa-num.tsv', 'w') as f:
         for k, v in tax_occ.items():
             f.write(f'{k}\t{round(v/len(pred_taxa),5)}\n')
 
