@@ -20,7 +20,8 @@ def get_taxa_occurrences(args, rank, pred_taxa, probs, outfile):
             tax_occ[pred_taxa[i]] += 1
     with open(f'{outfile}-{rank}-taxa-num.tsv', 'w') as f:
         for k, v in tax_occ.items():
-            f.write(f'{k}\t{round(v/len(pred_taxa),5)}\n')
+            f.write(f'{k}\t{v}\t{len(pred_taxa)}\t{round(v/len(pred_taxa),5)}\n')
+    return sum(list(tax_occ.values()))
 
 
 def get_cm(true_taxa, predicted_taxa, rank_mapping_dict, rank):
