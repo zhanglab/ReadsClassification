@@ -3,6 +3,7 @@ import sys
 import glob
 import datetime
 import numpy as np
+import random
 import argparse
 import math
 import io
@@ -74,6 +75,7 @@ def parse_linclust(args, set_1, set_2, outputfile):
 
     # save new testing set to fastq files for testing (one unique fastq file)
     print(f'size of new testing set: {len(reads_id_for_new_testing_set)}')
+    random.shuffle(reads_id_for_new_testing_set)
     for count, i in enumerate(range(0, len(reads_id_for_new_testing_set), args.num_reads)):
         end = i + args.num_reads if count < len(reads_id_for_new_testing_set) // args.num_reads else len(reads_id_for_new_testing_set)
         print(i, end, count)
