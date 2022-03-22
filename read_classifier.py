@@ -127,7 +127,7 @@ def main():
     tf.keras.mixed_precision.set_global_policy(policy)
 
     # define metrics
-    if args.data_type == 'test':
+    if args.data_type == 'sim':
         loss = tf.losses.SparseCategoricalCrossentropy()
         test_loss = tf.keras.metrics.Mean(name='test_loss')
         test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
