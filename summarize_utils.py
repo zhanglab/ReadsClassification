@@ -32,8 +32,8 @@ def get_results_from_npy(sample_size, list_prob_files, list_labels_files):
     probs = []
     labels = []
     for i in range(len(list_prob_files)):
-        f_probs = np.load(list_prob_files[i]).tolist()
-        f_labels = np.load(list_labels_files[i]).tolist()
+        probs += np.load(list_prob_files[i]).tolist()
+        labels += np.load(list_labels_files[i]).tolist()
         if len(probs) >= sample_size:
             break
 
