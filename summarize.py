@@ -28,7 +28,9 @@ def main():
             # load files of probabilities and ground truth
             list_prob_files = sorted(glob.glob(os.path.join(args.input_dir, '*-prob-out.npy')))
             list_labels_files = sorted(glob.glob(os.path.join(args.input_dir, '*-labels-out.npy')))
+            print(len(list_prob_files), len(list_labels_files))
             probs, labels = get_results_from_npy(args.sample_size, list_prob_files, list_labels_files)
+            print(probs, labels)
             for r in args.ranks:
                 get_decision_thds(args, r, probs, labels)
         else:
