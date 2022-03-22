@@ -87,7 +87,7 @@ def get_decision_thds(args, rank, probs, labels):
     manager = mp.Manager()
     decision_thresholds = manager.dict()
     pool = mp.Pool(args.NUM_CPUS)
-    pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(args.rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
+    pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
     pool.close()
     pool.join()
 
