@@ -1,111 +1,64 @@
-import glob
-import pandas as pd
 import sys
 import os
 import argparse
-import numpy as np
-import json
-import time
-import random
-from summarize import *
-
-
-def get_results(args, list_tsv_files):
-    pred_species = []
-    labels = []
-    probs = []
-    for in_file in list_tsv_files:
-        df = pd.read_csv(in_file, header=None, sep='\t')
-        labels += df.iloc[:,0].tolist()
-        pred_species += df.iloc[:,1].tolist()
-        probs += df.iloc[:,2].tolist()
-
-    if args.data_type == 'test':
-        if args.sample_size == None:
-            args.sample_size = len(labels)
-        # select sample of data
-        sample = list(zip(labels, probs))
-        random.shuffle(sample)
-        s_labels, s_probs = zip(*sample)
-
-        return pred_species, labels, list(s_probs)[:args.sample_size], list(s_labels)[:args.sample_size]
-
-    elif args.data_type == 'meta':
-        return pred_species, probs
+import itertools
+import glob
+import multiprocessing as mp
+from summarize_utils import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_dir', type=str, help='path to temporary directory containing tsv files obtained from running read_classifier.py', required=True)
-    parser.add_argument('--data_type', type=str, help='input data type', required=True, choices=['test', 'meta'])
-    parser.add_argument('--sample_size', type=int, help='size of sample for ROC curve analysis')
+    parser.add_argument('--input_dir', type=str, help='path to temporary directory containing results files obtained from running read_classifier.py', required=True)
+    parser.add_argument('--data_type', type=str, help='input data type', required=True, choices=['sim', 'meta'])
+    parser.add_argument('--sample_size', type=int, help='size of sample for ROC curve analysis', required=('--roc' in sys.argv))
+    parser.add_argument('--tpr', type=float, help='desired true positive rate (number between 0 and 1)', required=('--roc' in sys.argv))
     parser.add_argument('--rank_mapping_dir', type=str, help='path to json files containing dictionaries mapping taxa to labels', required=True)
-    parser.add_argument('--decision_thresholds', type=str, help='path to file containing decision thresholds', required=('--meta' in sys.argv))
+    parser.add_argument('--thresholds_dir', type=str, help='path to directory containing decision thresholds at every taxonomic level', required=('--meta' in sys.argv))
+    parser.add_argument('--roc', type=str, help='option to generate decision thresholds with ROC curves', required=('--sim' in sys.argv))
     args = parser.parse_args()
 
-    if args.data_type == 'test':
-        list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, 'tmp', '*.tsv')))
-        # get predictions and ground truth at species level
-        start_time = time.time()
-        pred_species, true_species, s_probs, s_true_species = get_results(args, list_tsv_files)
-        print(f'# unique predicted probabilities: {len(set(s_probs))}')
-        end_time = time.time()
-        print(end_time - start_time)
-        # load species mapping labels dictionary
-        with open(os.path.join(args.rank_mapping_dir, 'species_labels.json'), 'r') as f:
-            species_mapping_dict = json.load(f)
-        # get confusion matrix
-        cm, accuracy = get_cm(true_species, pred_species, species_mapping_dict, 'species')
-        # get decision thresholds
-        ROCcurve(args, s_true_species, s_probs, species_mapping_dict, set(true_species), 'species')
-        # get precision and recall
-        get_metrics(args, cm, species_mapping_dict, set(true_species), 'species')
-        # analyze results at higher taxonomic levels
-        for r in ['genus', 'family', 'order', 'class']:
-            # load dictionary mapping species labels to other ranks labels
-            with open(os.path.join(args.rank_mapping_dir, f'{r}_species_labels.json')) as f_json:
-                rank_species_mapping = json.load(f_json)
-            # get vectors of predicted and true labels at given rank
-            rank_pred_taxa = [rank_species_mapping[str(i)] for i in pred_species]
-            rank_true_taxa = [rank_species_mapping[str(i)] for i in true_species]
-            # load dictionary mapping labels to taxa at given rank
-            with open(os.path.join(args.rank_mapping_dir, f'{r}_labels.json')) as f_json:
-                rank_mapping_dict = json.load(f_json)
-            # get confusion matrix
-            cm, accuracy = get_cm(rank_true_taxa, rank_pred_taxa, rank_mapping_dict, r)
-            # get decision thresholds
-            ROCcurve(args, rank_true_taxa, s_probs, rank_mapping_dict, set(rank_true_taxa), r)
-            # get precision and recall
-            get_metrics(args, cm, rank_mapping_dict, set(rank_true_taxa), r)
-    elif args.data_type == 'meta':
-        list_tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
-        out_f = open(os.path.join(args.input_dir, 'summary-output'), 'w')
-        for tsv_f in list_tsv_files:
-            print(tsv_f)
-            pred_species, probs = get_results(args, [tsv_f])
-            sample = tsv_f.split("/")[-1].split("-")[0].split("_")[-1]
-            outfile = os.path.join(args.input_dir, tsv_f.split("/")[-1].split('.')[0])
-            num_reads = get_taxa_occurrences(args, 'species', pred_species, probs, outfile)
-            out_f.write(f'{sample}\tspecies\t{num_reads}\t{len(pred_species)}\t{round(num_reads/len(pred_species), 5)}\n')
-            # load species mapping labels dictionary
-            with open(os.path.join(args.rank_mapping_dir, 'species_labels.json'), 'r') as f:
-                species_mapping_dict = json.load(f)
-            inv_species_mapping_dict = {v:k for k, v in species_mapping_dict.items()}
-            pred_labels_sp = [inv_species_mapping_dict[i] for i in pred_species]
-            for r in ['genus', 'family', 'order', 'class']:
-                # load dictionary mapping species labels to other ranks labels
-                with open(os.path.join(args.rank_mapping_dir, f'{r}_species_labels.json')) as f_json:
-                    rank_species_mapping = json.load(f_json)
-                # load dictionary mapping labels to taxa at given rank
-                with open(os.path.join(args.rank_mapping_dir, f'{r}_labels.json')) as f_json:
-                    rank_mapping_dict = json.load(f_json)
-                # get predicted taxa labels at given rank
-                rank_pred_taxa = [rank_species_mapping[str(i)] for i in pred_labels_sp]
-                # get predicted taxa names at given rank
-                rank_pred_taxa = [rank_mapping_dict[str(i)] for i in rank_pred_taxa]
-                num_reads = get_taxa_occurrences(args, r, rank_pred_taxa, probs, outfile)
-                out_f.write(f'{sample}\t{r}\t{num_reads}\t{len(pred_labels_sp)}\t{round(num_reads/len(pred_labels_sp), 5)}\n')
+    args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
+    print(f'# cpus: {args.NUM_CPUS}')
 
+    args.ranks = ['species', 'genus', 'family', 'order', 'class']
 
+    if args.data_type == 'sim':
+        if args.roc:
+            # compute decision thresholds
+            # load files of probabilities and ground truth
+            list_prob_files = sorted(glob.glob(os.path.join(args.input_dir, '*-prob-out.npy')))
+            list_labels_files = sorted(glob.glob(os.path.join(args.input_dir, '*-labels-out.npy')))
+            probs, labels = get_results_from_npy(args.sample_size, list_prob_files, list_labels_files)
+            for r in args.ranks:
+                get_decision_thds(args, r, probs, labels)
+        else:
+            # compute accuracy, precision, recall
+            # get predictions and ground truth at species level
+            tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
+            pred_species, true_species, probs = get_results_from_tsv(args, tsv_files)
+            pool = mp.pool.ThreadPool(args.NUM_CPUS)
+            results = pool.starmap(get_metrics, zip(itertools.repeat(args, len(args.ranks)), itertools.repeat(true_species, len(args.ranks)),
+            itertools.repeat(pred_species, len(args.ranks)), args.ranks))
+            pool.close()
+            pool.join()
+
+    else:
+        tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
+        load_decision_thds(args)
+        load_mapping_dict(args)
+        summary_dict = {}
+        pool = mp.pool.ThreadPool(args.NUM_CPUS)
+        results = pool.starmap(get_taxa_rel_abundance, zip(itertools.repeat(args, len(tsv_files)), tsv_files, itertools.repeat(summary_dict, len(tsv_files))))
+        pool.close()
+        pool.join()
+
+        with open(os.path.join(args.input_dir, 'summary'), 'w') as out_f:
+            out_f.write('sample\tspecies\tgenus\tfamily\torder\tclass\ttotal\n')
+            for k, v in summary_dict.items():
+                out_f.write(f'{k}\t')
+                for r in args.ranks:
+                    out_f.write(f'{v[r]}\t')
+                out_f.write(f'{v["total"]}\n')
 
 
 if __name__ == "__main__":
