@@ -79,9 +79,15 @@ def get_decision_thds(args, rank, probs, labels):
     with open(os.path.join(args.input_dir, f'counter_{rank}.json'), 'w') as out_f:
         json.dump(counter, out_f)
     # compute decision threshold for each label in the test set
-    decision_thresholds = {}
-    pool = mp.pool.ThreadPool(args.NUM_CPUS)
-    results = pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), itertools.repeat(labels_mapping_dict, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
+    # decision_thresholds = {}
+    # pool = mp.pool.ThreadPool(args.NUM_CPUS)
+    # results = pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), itertools.repeat(labels_mapping_dict, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
+    # pool.close()
+    # pool.join()
+    manager = mp.Manager()
+    decision_thresholds = manager.dict()
+    pool = mp.Pool(NUM_CPUS)
+    pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), itertools.repeat(dict_labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(args.rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
     pool.close()
     pool.join()
 
@@ -163,8 +169,6 @@ def get_metrics(args, true_taxa, predicted_taxa, rank):
 
 def ROCcurve(args, probs, labels, dict_labels, label, counter, rank, decision_thresholds):
     print(f'{rank}\t{label}\t{len(labels)}\t{len(probs)}')
-    print(np.asarray(labels))
-    print(np.asarray(probs)[:,label])
     # compute false positive ratea and true positive rate
     fpr, tpr, thresholds = roc_curve(np.asarray(labels), np.asarray(probs)[:,label], pos_label=label)
     # Compute Youden's J statistics for each species: get optimal cut off corresponding to a high TPR and low FPR
