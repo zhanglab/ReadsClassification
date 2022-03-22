@@ -31,8 +31,8 @@ def main():
             print(len(list_prob_files), len(list_labels_files))
             probs, labels = get_results_from_npy(args.sample_size, list_prob_files, list_labels_files)
             print(len(probs), len(labels))
-            # for r in args.ranks:
-                # get_decision_thds(args, r, probs, labels)
+            for r in args.ranks:
+                get_decision_thds(args, r, probs, labels)
         else:
             # compute accuracy, precision, recall
             # get predictions and ground truth at species level
