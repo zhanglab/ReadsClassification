@@ -192,7 +192,7 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
 
         # create empty arrays to store the predicted and true values
-        # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
@@ -209,7 +209,7 @@ def main():
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
                 all_prob_sp = [batch_prob_sp]
-                # all_predictions = batch_predictions
+                all_predictions = batch_predictions
             else:
                 # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
@@ -217,7 +217,7 @@ def main():
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        # all_predictions = all_predictions.numpy()
+        all_predictions = all_predictions.numpy()
         # # pred_species = [np.argmax(j) for j in all_predictions]
         # # pred_probabilities = [np.amax(j) for j in all_predictions]
         all_pred_sp = all_pred_sp[0].numpy()
@@ -229,7 +229,7 @@ def main():
             num_extra_reads = (test_steps*args.batch_size) - num_reads
         #     # pred_species = pred_species[:-num_extra_reads]
         #     # pred_probabilities = pred_probabilities[:-num_extra_reads]
-            # all_predictions = all_predictions[:-num_extra_reads]
+            all_predictions = all_predictions[:-num_extra_reads]
             all_pred_sp = all_pred_sp[:-num_extra_reads]
             all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
