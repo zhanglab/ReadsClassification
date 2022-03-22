@@ -211,7 +211,7 @@ def main():
                 all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
             else:
-                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
