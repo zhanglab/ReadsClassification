@@ -87,7 +87,7 @@ def get_decision_thds(args, rank, probs, labels):
     manager = mp.Manager()
     decision_thresholds = manager.dict()
     pool = mp.Pool(args.NUM_CPUS)
-    pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), itertools.repeat(dict_labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(args.rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
+    pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(args.rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
     pool.close()
     pool.join()
 
@@ -167,7 +167,7 @@ def get_metrics(args, true_taxa, predicted_taxa, rank):
     f.write(f'{accuracy}')
     f.close()
 
-def ROCcurve(args, probs, labels, dict_labels, label, counter, rank, decision_thresholds):
+def ROCcurve(args, probs, labels, label, counter, rank, decision_thresholds):
     print(f'{rank}\t{label}\t{len(labels)}\t{len(probs)}')
     # compute false positive ratea and true positive rate
     fpr, tpr, thresholds = roc_curve(np.asarray(labels), np.asarray(probs)[:,label], pos_label=label)
