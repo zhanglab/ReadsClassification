@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--tpr', type=float, help='desired true positive rate (number between 0 and 1)', required=('--roc' in sys.argv))
     parser.add_argument('--rank_mapping_dir', type=str, help='path to json files containing dictionaries mapping taxa to labels', required=True)
     parser.add_argument('--thresholds_dir', type=str, help='path to directory containing decision thresholds at every taxonomic level', required=('--meta' in sys.argv))
-    parser.add_argument('--roc', type=str, help='option to generate decision thresholds with ROC curves', required=('--sim' in sys.argv))
+    parser.add_argument('--roc', help='option to generate decision thresholds with ROC curves', action='store_true', required=('--sim' in sys.argv))
     args = parser.parse_args()
 
     args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
