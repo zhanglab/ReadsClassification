@@ -66,19 +66,26 @@ def load_mapping_dict(args):
     args.rank_species_mapping['class'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'class_species_labels.json'))
 
 
-def combine_probs(probs, rank_species_mapping):
-    sp_labels = list(rank_species_mapping.keys())
-    r_labels = [int(rank_species_mapping[i]) for i in sp_labels]
-    unique_r_labels = list(set(r_labels))
-    print(f'# unique labels: {len(unique_r_labels)}')
-    new_probs = np.zeros((len(probs), len(unique_r_labels)))
-    for i in unique_r_labels:
+# def combine_probs(probs, rank_species_mapping):
+def combine_probs(probs, new_probs, label, sp_labels, r_labels):
+    # sp_labels = list(rank_species_mapping.keys())
+    # r_labels = [int(rank_species_mapping[i]) for i in sp_labels]
+    # unique_r_labels = list(set(r_labels))
+    # print(f'# unique labels: {len(unique_r_labels)}')
+    # new_probs = np.zeros((len(probs), len(unique_r_labels)))
+    # for i in unique_r_labels:
         # create list with all labels at species level
-        sp_indices = [int(sp_labels[j]) for j in range(len(sp_labels)) if r_labels[j] == i]
-        r_label_new_probs = np.asarray([j[sp_indices].sum() for j in probs])
+        # sp_indices = [int(sp_labels[j]) for j in range(len(sp_labels)) if r_labels[j] == i]
+        # r_label_new_probs = np.asarray([j[sp_indices].sum() for j in probs])
         # insert new combined probs into new array
-        new_probs[:,i] = r_label_new_probs
-        print(f'{i}\tsp_indices: {len(sp_indices)}\tlabel_new_probs: {len(r_label_new_probs)}')
+        # new_probs[:,i] = r_label_new_probs
+        # print(f'{i}\tsp_indices: {len(sp_indices)}\tlabel_new_probs: {len(r_label_new_probs)}')
+    # create list with all labels at species level
+    sp_indices = [int(sp_labels[j]) for j in range(len(sp_labels)) if r_labels[j] == label]
+    r_label_new_probs = np.asarray([j[sp_indices].sum() for j in probs])
+    # insert new combined probs into new array
+    new_probs[:,label] = r_label_new_probs
+    print(f'{label}\tsp_indices: {len(sp_indices)}\tlabel_new_probs: {len(r_label_new_probs)}')
 
     return new_probs
 
@@ -90,8 +97,20 @@ def get_decision_thds(args, rank, probs, labels):
         rank_species_mapping = load_json_dict(args, os.path.join(args.rank_mapping_dir, f'{rank}_species_labels.json'))
         # convert labes at species level to its corresponding label at given rank
         labels = [rank_species_mapping[str(i)] for i in labels]
+        sp_labels = list(rank_species_mapping.keys())
+        r_labels = [int(rank_species_mapping[i]) for i in sp_labels]
+        unique_r_labels = list(set(r_labels))
+        print(f'# unique labels: {len(unique_r_labels)}')
+        new_probs = np.zeros((len(probs), len(unique_r_labels)))
+        pool = mp.pool.ThreadPool(args.NUM_CPUS)
+        results = pool.starmap(combine_probs, zip(itertools.repeat(probs, len(unique_r_labels)), itertools.repeat(new_probs, len(unique_r_labels)),  unique_r_labels, itertools.repeat(sp_labels, len(unique_r_labels)), itertools.repeat(r_labels, len(unique_r_labels))))
+        pool.close()
+        pool.join()
+        probs = new_probs
         # combine probabilities of identical labels
-        probs = combine_probs(probs, rank_species_mapping)
+        # probs = combine_probs(probs, rank_species_mapping)
+
+
 
     labels_in_test_set = list(set(labels))
     print(len(labels_in_test_set))
