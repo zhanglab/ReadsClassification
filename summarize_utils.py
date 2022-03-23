@@ -65,13 +65,32 @@ def load_mapping_dict(args):
     args.rank_species_mapping['order'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'order_species_labels.json'))
     args.rank_species_mapping['class'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'class_species_labels.json'))
 
+
+def combine_probs(probs, rank_species_mapping):
+    sp_labels = list(rank_species_mapping.keys())
+    r_labels = [rank_species_mapping[i] for i in sp_labels]
+    r_labels = list(set(r_labels))
+    new_probs = np.zeros((len(probs), len(r_labels)))
+    for i in r_labels:
+        # create list with all labels at species level
+        sp_indices = [sp_labels[j] for j in range(len(sp_labels)) if r_labels[j] == i]
+        r_label_new_probs = np.asarray([j[sp_indices].sum() for j in probs])
+        # insert new combined probs into new array
+        new_probs[:,i] = r_label_new_probs
+        print(f'{i}\tsp_indices: {len(sp_indices)}\tlabel_new_probs: {len(label_new_probs)}')
+
+    return new_probs
+
 def get_decision_thds(args, rank, probs, labels):
     # load species mapping labels dictionary
     labels_mapping_dict = load_json_dict(args, os.path.join(args.rank_mapping_dir, f'{rank}_labels.json'))
     if rank != 'species':
-        # load dictionary mapping species to given rank labels`
+        # load dictionary mapping species to given rank labels
         rank_species_mapping = load_json_dict(args, os.path.join(args.rank_mapping_dir, f'{rank}_species_labels.json'))
+        # convert labes at species level to its corresponding label at given rank
         labels = [rank_species_mapping[str(i)] for i in labels]
+        # combine probabilities of identical labels
+        probs = combine_probs(probs, rank_species_mapping)
 
     labels_in_test_set = list(set(labels))
     print(len(labels_in_test_set))
@@ -87,6 +106,9 @@ def get_decision_thds(args, rank, probs, labels):
     results = pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
     pool.close()
     pool.join()
+
+
+
     # manager = mp.Manager()
     # decision_thresholds = manager.dict()
     # pool = mp.Pool(args.NUM_CPUS)
