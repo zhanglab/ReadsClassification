@@ -185,7 +185,7 @@ def ROCcurve(args, probs, labels, label, counter, rank, decision_thresholds):
     j = np.arange(len(tpr)) # index for df
     roc = pd.DataFrame({'fpr' : pd.Series(fpr, index=j),'tpr' : pd.Series(tpr, index = j), 'J-stats' : pd.Series(J_stats, index = j), 'thresholds' : pd.Series(thresholds, index = j)})
     roc.to_csv(os.path.join(args.input_dir, f'{label}-{rank}-df.csv'))
-    decision_thresholds[label] = [target_threshold, target_fpr, target_tpr]
+    decision_thresholds[label] = [str(target_threshold), str(target_fpr), str(target_tpr)]
     # with open(os.path.join(args.input_dir, f'decision_threshold_{label}_{rank}.tsv'), 'w') as f:
     #     f.write(f'{label}\t{dict_labels[str(label)]}\t{opt_threshold}\t{fpr[jstat_optimal_index]}\t{tpr[jstat_optimal_index]}\t{jstat_optimal_index}\t{target_threshold}\t{target_fpr}\t{target_tpr}\t{target_index}\t{counter[label]}\t{len(labels)-counter[label]}\t{len(thresholds)}\n')
     # create roc curve
