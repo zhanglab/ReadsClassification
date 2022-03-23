@@ -78,7 +78,7 @@ def combine_probs(probs, rank_species_mapping):
         r_label_new_probs = np.asarray([j[sp_indices].sum() for j in probs])
         # insert new combined probs into new array
         new_probs[:,i] = r_label_new_probs
-        print(f'{i}\tsp_indices: {len(sp_indices)}\tlabel_new_probs: {len(label_new_probs)}')
+        print(f'{i}\tsp_indices: {len(sp_indices)}\tlabel_new_probs: {len(r_label_new_probs)}')
 
     return new_probs
 
