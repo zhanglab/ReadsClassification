@@ -68,13 +68,13 @@ def load_mapping_dict(args):
 
 def combine_probs(probs, rank_species_mapping):
     sp_labels = list(rank_species_mapping.keys())
-    r_labels = [rank_species_mapping[i] for i in sp_labels]
+    r_labels = [int(rank_species_mapping[i]) for i in sp_labels]
     unique_r_labels = list(set(r_labels))
     print(f'# unique labels: {len(unique_r_labels)}')
     new_probs = np.zeros((len(probs), len(unique_r_labels)))
     for i in unique_r_labels:
         # create list with all labels at species level
-        sp_indices = [sp_labels[j] for j in range(len(sp_labels)) if r_labels[j] == i]
+        sp_indices = [int(sp_labels[j]) for j in range(len(sp_labels)) if r_labels[j] == i]
         r_label_new_probs = np.asarray([j[sp_indices].sum() for j in probs])
         # insert new combined probs into new array
         new_probs[:,i] = r_label_new_probs
