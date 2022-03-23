@@ -17,8 +17,8 @@ def main():
     parser.add_argument('--roc', help='option to generate decision thresholds with ROC curves', action='store_true', required=('sim' in sys.argv))
     args = parser.parse_args()
 
-    args.NUM_CPUS = mp.cpu_count()
-    # args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
+    # args.NUM_CPUS = mp.cpu_count()
+    args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
     print(f'# cpus: {args.NUM_CPUS}')
 
     args.ranks = ['species', 'genus', 'family', 'order', 'class']
@@ -33,7 +33,10 @@ def main():
             probs, labels = get_results_from_npy(args.sample_size, list_prob_files, list_labels_files)
             print(len(probs), len(labels))
             for r in args.ranks:
-                get_decision_thds(args, r, probs, labels)
+                labels_done = [i.split('/')[-1].split('-')[0] for i in sorted(glob.glob(os.path.join(args.input_dir, f'*{r}-df.csv')))]
+                print(labels_done)
+                print(len(labels_done))
+                get_decision_thds(args, r, probs, labels, set(labels_done))
         else:
             # compute accuracy, precision, recall
             # get predictions and ground truth at species level
