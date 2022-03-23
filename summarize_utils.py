@@ -32,11 +32,11 @@ def get_results_from_npy(sample_size, list_prob_files, list_labels_files):
     probs = []
     labels = []
     for i in range(len(list_prob_files)):
-        probs += np.load(list_prob_files[i]).tolist()
+        probs.append(np.load(list_prob_files[i]))
         labels += np.load(list_labels_files[i]).tolist()
-        if len(probs) >= sample_size:
+        if len(labels) >= sample_size:
             break
-
+    probs = np.concatenate(probs)
     return probs, labels
 
 def load_json_dict(args, filename):
@@ -65,36 +65,34 @@ def load_mapping_dict(args):
     args.rank_species_mapping['order'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'order_species_labels.json'))
     args.rank_species_mapping['class'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'class_species_labels.json'))
 
-def get_decision_thds(args, rank, probs, labels, labels_done):
+def get_decision_thds(args, rank, probs, labels):
     # load species mapping labels dictionary
     labels_mapping_dict = load_json_dict(args, os.path.join(args.rank_mapping_dir, f'{rank}_labels.json'))
     if rank != 'species':
         # load dictionary mapping species to given rank labels`
         rank_species_mapping = load_json_dict(args, os.path.join(args.rank_mapping_dir, f'{rank}_species_labels.json'))
         labels = [rank_species_mapping[str(i)] for i in labels]
-    # get unique labels in test set
-    if labels_done is not None:
-        labels_in_test_set = list(set(labels).difference(labels_done))
-    else:
-        labels_in_test_set = list(set(labels))
+
+    labels_in_test_set = list(set(labels))
     print(len(labels_in_test_set))
 
     # get number of occurrences of each label
     counter = Counter(labels)
     with open(os.path.join(args.input_dir, f'counter_{rank}.json'), 'w') as out_f:
         json.dump(counter, out_f)
+
     # compute decision threshold for each label in the test set
-    # decision_thresholds = {}
-    # pool = mp.pool.ThreadPool(args.NUM_CPUS)
-    # results = pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
-    # pool.close()
-    # pool.join()
-    manager = mp.Manager()
-    decision_thresholds = manager.dict()
-    pool = mp.Pool(args.NUM_CPUS)
-    pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
+    decision_thresholds = {}
+    pool = mp.pool.ThreadPool(args.NUM_CPUS)
+    results = pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
     pool.close()
     pool.join()
+    # manager = mp.Manager()
+    # decision_thresholds = manager.dict()
+    # pool = mp.Pool(args.NUM_CPUS)
+    # pool.starmap(ROCcurve, zip(itertools.repeat(args, len(labels_in_test_set)), itertools.repeat(probs, len(labels_in_test_set)), itertools.repeat(labels, len(labels_in_test_set)), labels_in_test_set, itertools.repeat(counter, len(labels_in_test_set)), itertools.repeat(rank, len(labels_in_test_set)), itertools.repeat(decision_thresholds, len(labels_in_test_set))))
+    # pool.close()
+    # pool.join()
 
     with open(os.path.join(args.input_dir, f'{rank}-decision-thresholds.json'), 'w') as f:
         json.dump(decision_thresholds, f)
@@ -175,7 +173,7 @@ def get_metrics(args, true_taxa, predicted_taxa, rank):
 def ROCcurve(args, probs, labels, label, counter, rank, decision_thresholds):
     print(f'{rank}\t{label}\t{len(labels)}\t{len(probs)}')
     # compute false positive ratea and true positive rate
-    fpr, tpr, thresholds = roc_curve(np.asarray(labels), np.asarray(probs)[:,label], pos_label=label)
+    fpr, tpr, thresholds = roc_curve(np.asarray(labels), probs[:,label], pos_label=label)
     # Compute Youden's J statistics for each species: get optimal cut off corresponding to a high TPR and low FPR
     J_stats = tpr - fpr
     jstat_optimal_index = np.argmax(J_stats)
