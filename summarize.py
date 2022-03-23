@@ -17,7 +17,8 @@ def main():
     parser.add_argument('--roc', help='option to generate decision thresholds with ROC curves', action='store_true', required=('sim' in sys.argv))
     args = parser.parse_args()
 
-    args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
+    args.NUM_CPUS = mp.cpu_count()
+    # args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
     print(f'# cpus: {args.NUM_CPUS}')
 
     args.ranks = ['species', 'genus', 'family', 'order', 'class']
