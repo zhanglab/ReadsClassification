@@ -122,22 +122,27 @@ def get_decision_thds(args, rank, probs, labels):
 
 def get_taxa_rel_abundance(args, tsv_file, summary_dict):
     pred_taxa, _, probs = get_results_from_tsv(args, [tsv_file])
+    inv_sp_labels_mapping_dict = {v: k for k, v in args.labels_mapping_dict['species'].items()}
+    pred_sp_labels = [inv_sp_labels_mapping_dict[i] for i in pred_taxa]
     sample = tsv_file.split("/")[-1].split("-")[0].split("_")[-1]
     summary_dict[sample] = {}
     summary_dict[sample]['total'] = len(pred_taxa)
     outfile = os.path.join(args.input_dir, tsv_file.split("/")[-1].split('.')[0])
+    print(f'{sample}\t{len(pred_taxa)}\t{len(probs)}\t{len(pred_sp_labels)}')
     for r in args.ranks:
+        inv_labels_mapping_dict = {v: k for k, v in args.labels_mapping_dict[r].items()}
         if r != 'species':
-            pred_taxa = [args.rank_species_mapping[r][str(i)] for i in labels]
-
+            pred_labels = [args.rank_species_mapping[r][str(i)] for i in pred_sp_labels]
+        else:
+            pred_labels = pred_sp_labels
         rel_abundance = defaultdict(int)
-        for i in range(len(pred_taxa)):
-            if probs[i] >= float(args.decision_thresholds_dict[r][pred_taxa[i]][0]):
-                rel_abundance[pred_taxa[i]] += 1
+        for i in range(len(pred_labels)):
+            if probs[i] >= float(args.decision_thresholds_dict[r][pred_labels[i]][0]):
+                rel_abundance[pred_labels[i]] += 1
 
         with open(f'{outfile}-{r}-rel-abundance', 'w') as f:
             for k, v in rel_abundance.items():
-                f.write(f'{args.labels_mapping_dict[r][str(k)]}\t{v}\t{len(pred_taxa)}\t{round(v/len(pred_taxa),5)}\n')
+                f.write(f'{args.labels_mapping_dict[r][str(k)]}\t{v}\t{len(pred_labels)}\t{round(v/len(pred_labels),5)}\n')
         summary_dict[sample][r] = sum(list(rel_abundance.values()))
 
 
