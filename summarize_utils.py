@@ -132,7 +132,7 @@ def get_taxa_rel_abundance(args, tsv_file, summary_dict):
 
         rel_abundance = defaultdict(int)
         for i in range(len(pred_taxa)):
-            if probs[i] >= args.decision_thresholds_dict[r][pred_taxa[i]]:
+            if probs[i] >= float(args.decision_thresholds_dict[r][pred_taxa[i]][0]):
                 rel_abundance[pred_taxa[i]] += 1
 
         with open(f'{outfile}-{r}-rel-abundance', 'w') as f:
