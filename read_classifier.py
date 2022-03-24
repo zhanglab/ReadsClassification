@@ -208,6 +208,8 @@ def main():
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
+            elif batch == 62:
+                break
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
@@ -221,7 +223,7 @@ def main():
         # all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        if len(all_pred_sp) > num_reads:
+        if len(all_predictions) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
             all_predictions = all_predictions[:-num_extra_reads]
             # all_pred_sp = all_pred_sp[:-num_extra_reads]
