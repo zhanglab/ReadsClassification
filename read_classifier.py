@@ -251,7 +251,12 @@ def main():
 
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
-    print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+        print(type(elapsed_time))
+    if len(elapsed_time) > 1:
+        print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
+    else:
+        print(elapsed_time)
+        print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time[0]))
 
     end = datetime.datetime.now()
     total_time = end - start
