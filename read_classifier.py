@@ -137,7 +137,7 @@ def main():
     if hvd.rank() == 0:
         # create output directories
         if not os.path.isdir(args.output_dir):
-            os.makedirs(os.path.join(args.output_dir, 'tmp'))
+            os.makedirs(os.path.join(args.output_dir))
 
     # load model
     if args.ckpt is not None:
