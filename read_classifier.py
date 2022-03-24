@@ -7,7 +7,6 @@ import nvidia.dali.types as types
 import nvidia.dali.tfrecord as tfrec
 import nvidia.dali.plugin.tf as dali_tf
 from models import AlexNet
-from sklearn.metrics import roc_curve
 import os
 import sys
 import json
