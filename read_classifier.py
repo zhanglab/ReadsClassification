@@ -7,6 +7,7 @@ import nvidia.dali.types as types
 import nvidia.dali.tfrecord as tfrec
 import nvidia.dali.plugin.tf as dali_tf
 from models import AlexNet
+from sklearn.metrics import roc_curve
 import os
 import sys
 import json
@@ -17,6 +18,7 @@ import pandas as pd
 import math
 import gzip
 from collections import defaultdict
+from summarize_utils import get_decision_thds
 import argparse
 
 print(tf.__version__)
@@ -199,11 +201,9 @@ def main():
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
-                # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
-                batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
+                batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
             elif args.data_type == 'sim':
                 batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-                # batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
@@ -218,8 +218,6 @@ def main():
 
         # get list of true species, predicted species and predicted probabilities
         all_predictions = all_predictions.numpy()
-        # # pred_species = [np.argmax(j) for j in all_predictions]
-        # # pred_probabilities = [np.amax(j) for j in all_predictions]
         all_pred_sp = all_pred_sp[0].numpy()
         all_prob_sp = all_prob_sp[0].numpy()
         all_labels = all_labels[0].numpy()
@@ -227,15 +225,10 @@ def main():
         # adjust the list of predicted species and read ids if necessary
         if len(all_pred_sp) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
-        #     # pred_species = pred_species[:-num_extra_reads]
-        #     # pred_probabilities = pred_probabilities[:-num_extra_reads]
             all_predictions = all_predictions[:-num_extra_reads]
             all_pred_sp = all_pred_sp[:-num_extra_reads]
             all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
-
-        # # fill out dictionary of bins and create summary file of predicted probabilities
-        # # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
         if args.data_type == 'meta':
             # get dictionary mapping read ids to labels
@@ -245,66 +238,20 @@ def main():
 
             with open(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
                 for j in range(num_reads):
-                    # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
 
         elif args.data_type == 'sim':
             df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
             df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
 
-            if args.save_probs:
+        if args.save_probs:
             # save predictions and labels to file
-                np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
-                np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
-        # use save.experimental... instead of np.save
-            # get decision threshold
-            # labels_in_test_set = list(set(all_labels))
-            # for j in labels_in_test_set:
-                # fpr, tpr, thresholds = roc_curve(all_labels, all_predictions[:, j], pos_label=j)
-                # J_stats = tpr - fpr
-                # jstat_optimal_index = np.argmax(J_stats)
-                # opt_threshold = thresholds[jstat_optimal_index]
-                # decision_thresholds[j].append(opt_threshold)
-                # if j == 2083:
-                # print(j, opt_thresholds, jstat_optimal_index, len(J_stats.tolist()), len(thresholds.tolist()), len(fpr.tolist()), len(tpr.tolist()))
-                # k = np.arange(len(tpr))
-                # df_1 = pd.DataFrame({'fpr' : pd.Series(fpr, index=k),'tpr' : pd.Series(tpr, index=k), 'J_stats' : pd.Series(J_stats, index=k), 'thresholds' : pd.Series(thresholds, index=k)})
-                    # l = np.arange(len(all_labels))
-                    # df_2 = pd.DataFrame({'true' : pd.Series(all_labels, index=l), 'prob' : pd.Series(all_predictions[:, j], index=l)})
-                # df_1.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df1-out.tsv'))
-                    # df_2.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{j}-df2-out.tsv'))
-            # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
-            # df.to_csv(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False)
-            # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-                # for j in range(num_reads):
-            #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-                    # out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_pred_sp[j]}\t{pred_probabilities[j]}\n')
+            np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
+            np.save(os.path.join(args.output_dir, 'tmp', f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
 
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / elapsed_time.sum()))
-        # get reads
-        # with gzip.open(os.path.join(args.fq_files, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}.fastq.gz'), 'rt') as f:
-        #     content = f.readlines()
-        #     records = [''.join(content[j:j+4]) for j in range(0, len(content), 4)]
-        #     reads = {records[j].split('\n')[0]: records[j] for j in range(len(records))}
-
-        # report species abundance and create bins
-        # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-results.tsv'), 'w') as out_f:
-            # for key, value in gpu_bins.items():
-                # out_f.write(f'{key}\t{len(value)}\n')
-                # if len(value) > 0:
-                #     # create fastq files from bins
-                #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-bin-{key}.fq'), 'w') as out_fq:
-                #         list_reads_in_bin = [reads[dict_read_ids[str(j)]] for j in value]
-                #         out_fq.write(''.join(list_reads_in_bin))
-    # with open(os.path.join(args.output_dir, 'tmp', f'decision-thresholds-{hvd.rank()}-out.tsv'), 'w') as out_f:
-    #     for key, value in decision_thresholds.items():
-    #         out_f.write(f'{key}\t')
-    #         for i in range(len(value)-1):
-    #             out_f.write(f'{value[i]}\t')
-    #         out_f.write(f'{value[len(value)-1]}\n')
-
 
     end = datetime.datetime.now()
     total_time = end - start
