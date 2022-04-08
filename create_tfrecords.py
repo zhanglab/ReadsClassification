@@ -50,19 +50,24 @@ def create_tfrecords(args):
                 read = str(rec.seq)
                 read_id = rec.id
                 label = int(read_id.split('|')[1])
-                kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
-                data = \
-                    {
-                        'read': wrap_read(kmer_array),
-                        'label': wrap_label(label),
-                    }
-                feature = tf.train.Features(feature=data)
-                example = tf.train.Example(features=feature)
-                serialized = example.SerializeToString()
-                writer.write(serialized)
+                original_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
+                flipped_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, True)
+                print(read, original_kmer_array)
+                print(read[::-1], flipped_kmer_array)
+                for kmer_array in [original_kmer_array, flipped_kmer_array]:
+                    data = \
+                        {
+                            'read': wrap_read(kmer_array),
+                            'label': wrap_label(label),
+                        }
+                    feature = tf.train.Features(feature=data)
+                    example = tf.train.Example(features=feature)
+                    serialized = example.SerializeToString()
+                    writer.write(serialized)
+                break
 
         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-            f.write(f'{count}')
+            f.write(f'{count*2}')
 
 def main():
 
