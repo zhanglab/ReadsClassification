@@ -7,7 +7,9 @@ def get_reverse_seq(read):
                         "W": "N", "B": "N", "V": "N", "H": "N", "D": "N",
                         "X": "N"}
     list_bases = list(read)
+    # get negative strand, example: 'AGTAGATGATAGGGA' becomes 'TCATCTACTATCCCT'
     list_bases = [translation_dict[base] for base in list_bases]
+    # return reverse complement: 'TCCCTATCATCTACT'
     return ''.join(list_bases)[::-1]
 
 
@@ -32,8 +34,10 @@ def get_kmer_index(kmer, dict_kmers):
 
     return idx
 
-def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length, read_length):
+def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length, read_length, flip=False):
     """ Converts a DNA sequence split into a list of k-mers """
+    if flip:
+        read = read[::-1]
     if len(read) > read_length:
         read = read[:read_length]
     list_kmers = []
