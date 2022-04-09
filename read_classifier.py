@@ -232,7 +232,7 @@ def main():
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
 
-        if args.data_type == 'meta':
+        # if args.data_type == 'meta':
             # get dictionary mapping read ids to labels
         #     with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
         #         content = f.readlines()
