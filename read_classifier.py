@@ -184,6 +184,7 @@ def main():
         num_reads_classified += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
+        max_batch = 62 if test_steps > 62 else test_steps
 
         num_preprocessing_threads = 4
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
@@ -194,7 +195,7 @@ def main():
         all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
         # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
@@ -205,29 +206,37 @@ def main():
                 batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
-                # all_labels = [labels]
+                all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
-            # elif batch == 62:
-                # break
+            elif batch == max_batch:
+                all_predictions = all_predictions.numpy()
+                all_labels = all_labels[0].numpy()
+                if batch == test_steps:
+                    num_extra_reads = (test_steps*args.batch_size) - num_reads
+                    all_predictions = all_predictions[:-num_extra_reads]
+                    all_labels = all_labels[:-num_extra_reads]
+                    print(batch, num_extra_reads, len(all_predictions), len(all_labels))
+                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions)
+                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels)
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-                # all_labels = tf.concat([all_labels, [labels]], 1)
+                all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        all_predictions = all_predictions.numpy()
+        # all_predictions = all_predictions.numpy()
         # all_pred_sp = all_pred_sp[0].numpy()
         # all_prob_sp = all_prob_sp[0].numpy()
         # all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        if len(all_predictions) > num_reads:
+        # if len(all_predictions) > num_reads:
         # if len(all_pred_sp) > num_reads:
-            num_extra_reads = (test_steps*args.batch_size) - num_reads
-            all_predictions = all_predictions[:-num_extra_reads]
+            # num_extra_reads = (test_steps*args.batch_size) - num_reads
+            # all_predictions = all_predictions[:-num_extra_reads]
             # all_pred_sp = all_pred_sp[:-num_extra_reads]
             # all_prob_sp = all_prob_sp[:-num_extra_reads]
             # all_labels = all_labels[:-num_extra_reads]
@@ -246,9 +255,9 @@ def main():
             # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
             # df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
 
-        if args.save_probs:
+        # if args.save_probs:
             # save predictions and labels to file
-            np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
+            # np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
             # np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
 
         end_time = time.time()
