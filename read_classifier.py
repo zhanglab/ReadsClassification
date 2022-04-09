@@ -92,8 +92,8 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
     pred_labels = tf.math.argmax(probs, axis=1)
     pred_probs = tf.reduce_max(probs, axis=1)
 
-    return probs, pred_labels, pred_probs
-    # return probs
+    # return probs, pred_labels, pred_probs
+    return probs
 
 def main():
     start = datetime.datetime.now()
@@ -191,45 +191,45 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
 
         # create empty arrays to store the predicted and true values
-        # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+        # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
-                batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
-                # batch_predictions = testing_step(args.data_type, reads, labels, model)
+                # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
+                batch_predictions = testing_step(args.data_type, reads, labels, model)
             elif args.data_type == 'sim':
-                batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-                # batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1:
                 all_labels = [labels]
-                all_pred_sp = [batch_pred_sp]
-                all_prob_sp = [batch_prob_sp]
-                # all_predictions = batch_predictions
+                # all_pred_sp = [batch_pred_sp]
+                # all_prob_sp = [batch_prob_sp]
+                all_predictions = batch_predictions
             # elif batch == 62:
                 # break
             else:
-                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
-        # all_predictions = all_predictions.numpy()
-        all_pred_sp = all_pred_sp[0].numpy()
-        all_prob_sp = all_prob_sp[0].numpy()
+        all_predictions = all_predictions.numpy()
+        # all_pred_sp = all_pred_sp[0].numpy()
+        # all_prob_sp = all_prob_sp[0].numpy()
         all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        # if len(all_predictions) > num_reads:
-        if len(all_pred_sp) > num_reads:
+        if len(all_predictions) > num_reads:
+        # if len(all_pred_sp) > num_reads:
             num_extra_reads = (test_steps*args.batch_size) - num_reads
-            # all_predictions = all_predictions[:-num_extra_reads]
-            all_pred_sp = all_pred_sp[:-num_extra_reads]
-            all_prob_sp = all_prob_sp[:-num_extra_reads]
+            all_predictions = all_predictions[:-num_extra_reads]
+            # all_pred_sp = all_pred_sp[:-num_extra_reads]
+            # all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
 
         if args.data_type == 'meta':
@@ -243,13 +243,13 @@ def main():
         #             out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         #
         # elif args.data_type == 'sim':
-            df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
-            df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
+            # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
+            # df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
 
-        # if args.save_probs:
+        if args.save_probs:
             # save predictions and labels to file
-            # np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
-            # np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
+            np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-prob-out.npy'), all_predictions)
+            np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-labels-out.npy'), all_labels)
 
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
@@ -267,7 +267,7 @@ def main():
 
     with open(os.path.join(args.output_dir, f'testing-summary-{hvd.rank()}.tsv'), 'w') as outfile:
         outfile.write(f'{args.batch_size}\t{hvd.size()}\t{hvd.rank()}\t{len(gpu_test_files)}\t{num_reads_classified}\t')
-        if args.data_type == 'test':
+        if args.data_type == 'sim':
             outfile.write(f'{test_accuracy.result().numpy()}\t{test_loss.result().numpy()}\t')
         if args.ckpt:
             outfile.write(f'{args.epoch}')
