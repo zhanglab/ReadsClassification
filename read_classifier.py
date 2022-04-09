@@ -205,21 +205,23 @@ def main():
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
                 batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
-            if batch == 1:
+            if batch == 1 or (batch+1) % max_batch == 0:
                 all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
-            elif batch == max_batch:
-                all_predictions = all_predictions.numpy()
-                all_labels = all_labels[0].numpy()
+            elif batch % max_batch == 0:
+                all_predictions_arr = all_predictions.numpy()
+                all_labels_arr = all_labels[0].numpy()
                 if batch == test_steps:
                     num_extra_reads = (test_steps*args.batch_size) - num_reads
-                    all_predictions = all_predictions[:-num_extra_reads]
-                    all_labels = all_labels[:-num_extra_reads]
-                    print(batch, num_extra_reads, len(all_predictions), len(all_labels))
-                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions)
-                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels)
+                    all_predictions_arr = all_predictions_arr[:-num_extra_reads]
+                    all_labels_arr = all_labels_arr[:-num_extra_reads]
+                    print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
+                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
+                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
+                # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+                # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
