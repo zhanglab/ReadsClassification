@@ -128,7 +128,7 @@ def main():
     parser.add_argument('--output_dir', type=str, help='path to store model')
     parser.add_argument('--resume', action='store_true', default=False)
     parser.add_argument('--epoch_to_resume', type=int, required=('-resume' in sys.argv))
-    parser.add_argument('--model', type=str, help='path to entire tensorflow model saved in a single folder', required=('-resume' in sys.argv))
+    parser.add_argument('--ckpt', type=str, help='path to checkpoint file', required=('-resume' in sys.argv))
     parser.add_argument('--epochs', type=int, help='number of epochs', default=30)
     parser.add_argument('--dropout_rate', type=float, help='dropout rate to apply to layers', default=0.7)
     parser.add_argument('--batch_size', type=int, help='batch size per gpu', default=512)
@@ -172,11 +172,18 @@ def main():
     train_input = train_preprocessor.get_device_dataset()
     val_input = val_preprocessor.get_device_dataset()
 
+    init_lr = 0.0001
+    opt = tf.keras.optimizers.Adam(init_lr)
+    opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
+
     # define model, output directory and epoch number
     if args.resume:
-        model = tf.keras.models.load_model(args.model)
-        args.output_dir = os.path.join(args.output_dir, f'resume-from-epoch-{args.epoch_to_resume}')
-        epoch = args.epoch_to_resume
+        # model = tf.keras.models.load_model(args.model)
+        # args.output_dir = os.path.join(args.output_dir, f'resume-from-epoch-{args.epoch_to_resume}')
+        # epoch = args.epoch_to_resume
+        model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
+        checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
+        checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch_to_resume}')).expect_partial()
     else:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.output_dir)
         epoch = 1
