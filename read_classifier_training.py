@@ -182,7 +182,7 @@ def main():
     if args.resume:
         # model = tf.keras.models.load_model(args.model)
         # args.output_dir = os.path.join(args.output_dir, f'resume-from-epoch-{args.epoch_to_resume}')
-        # epoch = args.epoch_to_resume
+        epoch = args.epoch_to_resume
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch_to_resume}')).expect_partial()
