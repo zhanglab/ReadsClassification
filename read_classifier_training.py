@@ -138,9 +138,11 @@ def main():
     parser.add_argument('--lr_decay', type=int, help='number of epochs before dividing learning rate in half', default=20)
     args = parser.parse_args()
 
+    # define some training and model parameters
     VECTOR_SIZE = 250 - 12 + 1
     VOCAB_SIZE = 8390657
     EMBEDDING_SIZE = 60
+    DROPOUT_RATE = 0.7
 
     # load class_mapping file mapping label IDs to species
     f = open(args.class_mapping)
