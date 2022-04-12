@@ -185,7 +185,8 @@ def main():
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
         max_batch = 62 if test_steps > 62 else test_steps
-        print(f'test steps: {test_steps}\tmax batch: {max_batch}')
+        if hvd.rank() == 0:
+            print(f'bs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
 
         num_preprocessing_threads = 4
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
@@ -228,7 +229,7 @@ def main():
                 # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
                 if hvd.rank() == 0:
                     print(f'END: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
-                    print(f'END: size of all_labels: {len(all_labels.numpy())}\t{batch}')
+                    print(f'END: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
                 break
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
@@ -237,7 +238,7 @@ def main():
                 all_labels = tf.concat([all_labels, [labels]], 1)
                 if hvd.rank() == 0:
                     print(f'DURING: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
-                    print(f'DURING: size of all_labels: {len(all_labels.numpy())}\t{batch}')
+                    print(f'DURING: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
