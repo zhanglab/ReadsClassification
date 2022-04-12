@@ -185,6 +185,7 @@ def main():
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
         max_batch = 62 if test_steps > 62 else test_steps
+        print(f'test steps: {test_steps}\tmax batch: {max_batch}')
 
         num_preprocessing_threads = 4
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
@@ -210,6 +211,9 @@ def main():
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
+                if hvd.rank() == 0:
+                    print(f'START: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
+                    print(f'START: size of all_labels: {len(all_labels.numpy())}\t{batch}')
             elif batch % max_batch == 0:
                 all_predictions_arr = all_predictions.numpy()
                 all_labels_arr = all_labels[0].numpy()
@@ -222,11 +226,18 @@ def main():
                 np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
                 # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
                 # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+                if hvd.rank() == 0:
+                    print(f'END: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
+                    print(f'END: size of all_labels: {len(all_labels.numpy())}\t{batch}')
+                break
             else:
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
+                if hvd.rank() == 0:
+                    print(f'DURING: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
+                    print(f'DURING: size of all_labels: {len(all_labels.numpy())}\t{batch}')
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
