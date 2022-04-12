@@ -207,7 +207,7 @@ def main():
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
                 batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
-            if batch == 1 or (batch+1) % max_batch == 0:
+            if batch == 1 or batch == max_batch + 1:
                 all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
