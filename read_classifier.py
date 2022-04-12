@@ -213,7 +213,7 @@ def main():
                 all_predictions = batch_predictions
                 if hvd.rank() == 0:
                     print(f'START: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
-                    print(f'START: size of all_labels: {len(all_labels.numpy())}\t{batch}')
+                    print(f'START: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
             elif batch % max_batch == 0:
                 all_predictions_arr = all_predictions.numpy()
                 all_labels_arr = all_labels[0].numpy()
