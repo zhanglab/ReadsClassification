@@ -218,7 +218,7 @@ def main():
             elif batch % max_batch == 0 or batch == test_steps:
             # if batch % max_batch == 0:
                 # if hvd.rank() == 0:
-                print(f'{batch}')
+                print(f'# predictions vectors: {len(all_predictions.numpy())}\t{batch}')
                 all_predictions_arr = all_predictions.numpy()
                 all_labels_arr = all_labels[0].numpy()
                 if batch == test_steps:
