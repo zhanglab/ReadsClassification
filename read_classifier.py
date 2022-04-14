@@ -206,17 +206,17 @@ def main():
             # elif args.data_type == 'sim':
             #     # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
             #     batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-            #
+
             # if batch == 1 or batch == max_batch + 1:
             #     all_labels = [labels]
-            #     # all_pred_sp = [batch_pred_sp]
-            #     # all_prob_sp = [batch_prob_sp]
-            #     all_predictions = batch_predictions
+                # all_pred_sp = [batch_pred_sp]
+                # all_prob_sp = [batch_prob_sp]
+                # all_predictions = batch_predictions
                 # if hvd.rank() == 0:
-                    # print(f'START: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
-                    # print(f'START: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
+                #     print(f'START: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
+                #     print(f'START: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
             # elif batch % max_batch == 0 or batch == test_steps:
-            if batch % max_batch == 0 or batch == test_steps:
+            if batch % max_batch == 0:
                 # if hvd.rank() == 0:
                 print(f'{batch}')
                 # all_predictions_arr = all_predictions.numpy()
