@@ -185,8 +185,8 @@ def main():
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
         max_batch = 62 if test_steps > 62 else test_steps
-        if hvd.rank() == 0:
-            print(f'bs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
+        # if hvd.rank() == 0:
+        print(f'bs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
 
         num_preprocessing_threads = 4
         test_preprocessor = DALIPreprocessor(gpu_test_files[i], gpu_test_idx_files[i], args.batch_size, num_preprocessing_threads, dali_cpu=True, deterministic=False, training=False)
@@ -217,8 +217,8 @@ def main():
                     # print(f'START: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
             # elif batch % max_batch == 0 or batch == test_steps:
             if batch % max_batch == 0 or batch == test_steps:
-                if hvd.rank() == 0:
-                    print(f'{batch}')
+                # if hvd.rank() == 0:
+                print(f'{batch}')
                 # all_predictions_arr = all_predictions.numpy()
                 # all_labels_arr = all_labels[0].numpy()
                 # if batch == test_steps:
