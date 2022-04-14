@@ -208,6 +208,7 @@ def main():
                 batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1 or batch == max_batch + 1:
+                print(f'initialize with batch 1: {batch}')
                 all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
@@ -235,6 +236,7 @@ def main():
                     # print(f'END: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
                 # break
             else:
+                print(f'concatenate batches: {batch}')
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
