@@ -200,45 +200,45 @@ def main():
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-            # if args.data_type == 'meta':
-            #     # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
-            #     batch_predictions = testing_step(args.data_type, reads, labels, model)
-            # elif args.data_type == 'sim':
-            #     # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-            #     batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+            if args.data_type == 'meta':
+                # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
+                batch_predictions = testing_step(args.data_type, reads, labels, model)
+            elif args.data_type == 'sim':
+                # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
-            # if batch == 1 or batch == max_batch + 1:
-            #     all_labels = [labels]
+            if batch == 1 or batch == max_batch + 1:
+                all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
-                # all_predictions = batch_predictions
+                all_predictions = batch_predictions
                 # if hvd.rank() == 0:
                 #     print(f'START: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
                 #     print(f'START: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
-            # elif batch % max_batch == 0 or batch == test_steps:
-            if batch % max_batch == 0:
+            elif batch % max_batch == 0 or batch == test_steps:
+            # if batch % max_batch == 0:
                 # if hvd.rank() == 0:
                 print(f'{batch}')
-                # all_predictions_arr = all_predictions.numpy()
-                # all_labels_arr = all_labels[0].numpy()
-                # if batch == test_steps:
-                #     num_extra_reads = (test_steps*args.batch_size) - num_reads
-                #     all_predictions_arr = all_predictions_arr[:-num_extra_reads]
-                #     all_labels_arr = all_labels_arr[:-num_extra_reads]
-                #     print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
-                # np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
-                # np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
+                all_predictions_arr = all_predictions.numpy()
+                all_labels_arr = all_labels[0].numpy()
+                if batch == test_steps:
+                    num_extra_reads = (test_steps*args.batch_size) - num_reads
+                    all_predictions_arr = all_predictions_arr[:-num_extra_reads]
+                    all_labels_arr = all_labels_arr[:-num_extra_reads]
+                    # print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
+                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
+                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
                 # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
                 # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
                 # if hvd.rank() == 0:
                     # print(f'END: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
                     # print(f'END: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
                 # break
-            # else:
-                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+            else:
+                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
-                # all_labels = tf.concat([all_labels, [labels]], 1)
+                all_labels = tf.concat([all_labels, [labels]], 1)
                 # if hvd.rank() == 0:
                     # print(f'DURING: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
                     # print(f'DURING: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
