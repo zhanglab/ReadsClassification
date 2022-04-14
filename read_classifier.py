@@ -228,8 +228,8 @@ def main():
                     # print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
                 np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
                 np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
-                # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-                # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+                all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+                all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
                 # if hvd.rank() == 0:
                     # print(f'END: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
                     # print(f'END: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
