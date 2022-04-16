@@ -185,6 +185,7 @@ def main():
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
         max_batch = 62 if test_steps > 62 else test_steps
+        initialize = False
         # if hvd.rank() == 0:
         print(f'bs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
 
@@ -207,12 +208,13 @@ def main():
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
                 batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
-            if batch == 1 or batch % (max_batch + 1) == 0:
+            if batch == 1 or initialize == True:
                 print(f'initialize with batch 1: {batch}')
                 all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
                 # all_prob_sp = [batch_prob_sp]
                 all_predictions = batch_predictions
+                initialize = False
                 # if hvd.rank() == 0:
                 #     print(f'START: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
                 #     print(f'START: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
@@ -229,8 +231,9 @@ def main():
                     # print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
                 np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
                 np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
-                all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-                all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+                initialize = True
+                # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+                # all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
                 # if hvd.rank() == 0:
                     # print(f'END: size of all_predictions: {len(all_predictions.numpy())}\t{batch}')
                     # print(f'END: size of all_labels: {len(all_labels[0].numpy())}\t{batch}')
