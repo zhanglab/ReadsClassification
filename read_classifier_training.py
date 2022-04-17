@@ -247,7 +247,7 @@ def main():
                 tf.summary.scalar("train_accuracy", train_accuracy.result().numpy(), step=batch)
                 writer.flush()
             td_writer.write(f'{epoch}\t{batch}\t{opt.learning_rate}\t{loss_value}\t{train_accuracy.result().numpy()}\n')
-
+            break
         # evaluate model at the end of every epoch
         if batch % nstep_per_epoch == 0:
             for _, (reads, labels) in enumerate(val_input.take(val_steps)):
