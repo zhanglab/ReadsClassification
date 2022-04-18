@@ -236,8 +236,7 @@ def main():
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch*args.epochs), 1):
         # get training loss
         loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
-        if hvd.rank() == 0:
-            print(batch, labels)
+        
         if batch % 100 == 0 and hvd.rank() == 0:
             print(f'Epoch: {epoch} - Step: {batch} - learning rate: {opt.learning_rate} - Training loss: {loss_value} - Training accuracy: {train_accuracy.result().numpy()*100}')
             # write metrics
@@ -247,7 +246,7 @@ def main():
                 tf.summary.scalar("train_accuracy", train_accuracy.result().numpy(), step=batch)
                 writer.flush()
             td_writer.write(f'{epoch}\t{batch}\t{opt.learning_rate}\t{loss_value}\t{train_accuracy.result().numpy()}\n')
-            break
+
         # evaluate model at the end of every epoch
         if batch % nstep_per_epoch == 0:
             for _, (reads, labels) in enumerate(val_input.take(val_steps)):
