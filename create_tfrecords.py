@@ -54,7 +54,7 @@ def create_tfrecords(args):
             read = str(rec.seq)
             read_id = rec.id
             label = int(read_id.split('|')[1])
-            print(label)
+            # print(label)
             original_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
             flipped_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, True)
             # print(read, original_kmer_array)
