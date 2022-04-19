@@ -246,7 +246,7 @@ def main():
         # adjust the list of predicted species and read ids if necessary
         # if len(all_predictions) > num_reads:
         if len(all_pred_sp) > num_reads:
-            # num_extra_reads = (test_steps*args.batch_size) - num_reads
+            num_extra_reads = (test_steps*args.batch_size) - num_reads
             # all_predictions = all_predictions[:-num_extra_reads]
             all_pred_sp = all_pred_sp[:-num_extra_reads]
             all_prob_sp = all_prob_sp[:-num_extra_reads]
@@ -261,7 +261,7 @@ def main():
             with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
                 for j in range(num_reads):
                     out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
-        
+
         # elif args.data_type == 'sim':
             # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
             # df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
