@@ -21,7 +21,7 @@ from collections import defaultdict
 import argparse
 
 # disable eager execution
-# tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 print(tf.executing_eagerly())
 # print which unit (CPU/GPU) is used for an operation
 tf.debugging.set_log_device_placement(True)
@@ -352,7 +352,10 @@ def main():
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
         else:
             outfile.write(f'model saved at last epoch')
+        outfile.write(f'{test_accuracy.result().numpy()}\t{test_loss.result().numpy()}\n')
         outfile.write(f'\nrun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}')
+
+
 
 
 if __name__ == "__main__":
