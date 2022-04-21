@@ -107,10 +107,11 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
 
     return all_pred_sp, all_prob_sp, all_labels
 
-def get_metrics(x):
-    print(type(x))
-    print(x.result().numpy())
-    return x.result().numpy()
+# @tf.function
+# def get_metrics(x):
+#     print(type(x))
+#     print(x.result().numpy())
+#     return x.result().numpy()
 
 # @tf.function # only works in eager mode
 # def write_tensor_to_file(output_file, tensor):
@@ -216,12 +217,12 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
         all_pred_sp, all_prob_sp, all_labels = input_test(args.batch_size, test_steps, test_input, model, loss, test_loss, test_accuracy)
 
-        x = tf.compat.v1.placeholder(tf.float32)
-
-        y = tf.py_function(func=get_metrics, inp=[x], Tout=tf.float32)
-
-        with tf.compat.v1.Session() as sess:
-            y = sess.run([y], feed_dict={x: test_accuracy})
+        # x = tf.compat.v1.placeholder(tf.float32)
+        #
+        # y = tf.py_function(func=get_metrics, inp=[x], Tout=tf.float32)
+        #
+        # with tf.compat.v1.Session() as sess:
+        #     y = sess.run([y], feed_dict={x: test_accuracy})
           # The session executes `log_huber` eagerly. Given the feed values below,
           # it will take the first branch, so `y` evaluates to 1.0 and
           # `dy_dx` evaluates to 2.0.
@@ -369,7 +370,7 @@ def main():
             outfile.write(f'checkpoint saved at epoch: {args.epoch}')
         else:
             outfile.write(f'model saved at last epoch')
-        outfile.write(f'{test_accuracy.result().numpy()}\t{test_loss.result().numpy()}\n')
+        # outfile.write(f'{test_accuracy.result().numpy()}\t{test_loss.result().numpy()}\n')
         outfile.write(f'\nrun time: {hours}:{minutes}:{seconds}:{total_time.microseconds}')
 
 
