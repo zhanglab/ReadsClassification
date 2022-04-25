@@ -6,12 +6,14 @@ import itertools
 import json
 import pandas as pd
 import numpy as np
+from cami2_new import create_heatmap, norm_confusion_matrix
 import multiprocessing as mp
 import sklearn
 from sklearn.metrics import roc_curve, auc
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from utils import load_json_dict
 plt.ioff()
 
 def get_results_from_tsv(args, tsv_files):
@@ -26,6 +28,23 @@ def get_results_from_tsv(args, tsv_files):
 
     return pred_species, true_species, probs
 
+def create_confusion_matrices(args, mapping_dict):
+    args.confusion_matrices = {}
+    args.confusion_matrices['species'] = np.zeros((len(mapping_dict['species']), len(mapping_dict['species'])))
+    args.confusion_matrices['genus'] = np.zeros((len(mapping_dict['genus']), len(mapping_dict['genus'])))
+    args.confusion_matrices['family'] = np.zeros((len(mapping_dict['family']), len(mapping_dict['family'])))
+    args.confusion_matrices['order'] = np.zeros((len(mapping_dict['order']), len(mapping_dict['order'])))
+    args.confusion_matrices['class'] = np.zeros((len(mapping_dict['class']), len(mapping_dict['class'])))
+    args.confusion_matrices['phylum'] = np.zeros((len(mapping_dict['phylum']), len(mapping_dict['phylum'])))
+
+
+def get_ncbi_predicted_label(args, rank, predicted_taxon):
+    predicted_labels = []
+    for k, v in args.ncbi_labels_mapping_dict[rank].items():
+        for i in range(len(v)):
+            if v[i] == predicted_taxon:
+                predicted_labels.append(k)
+    return predicted_labels
 
 def get_results_from_npy(sample_size, list_prob_files, list_labels_files):
     # load arrays of probabilities and labels
@@ -39,11 +58,6 @@ def get_results_from_npy(sample_size, list_prob_files, list_labels_files):
     probs = np.concatenate(probs)
     return probs, labels
 
-def load_json_dict(args, filename):
-    with open(os.path.join(filename), 'r') as f:
-        dict = json.load(f)
-    return dict
-
 def load_decision_thds(args):
     args.decision_thresholds_dict = {}
     args.decision_thresholds_dict['species'] = load_json_dict(args, os.path.join(args.thresholds_dir, 'species-decision-thresholds.json'))
@@ -51,19 +65,6 @@ def load_decision_thds(args):
     args.decision_thresholds_dict['family'] = load_json_dict(args, os.path.join(args.thresholds_dir, 'family-decision-thresholds.json'))
     args.decision_thresholds_dict['order'] = load_json_dict(args, os.path.join(args.thresholds_dir, 'order-decision-thresholds.json'))
     args.decision_thresholds_dict['class'] = load_json_dict(args, os.path.join(args.thresholds_dir, 'class-decision-thresholds.json'))
-
-def load_mapping_dict(args):
-    args.labels_mapping_dict = {}
-    args.labels_mapping_dict['species'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'species_labels.json'))
-    args.labels_mapping_dict['genus'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'genus_labels.json'))
-    args.labels_mapping_dict['family'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'family_labels.json'))
-    args.labels_mapping_dict['order'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'order_labels.json'))
-    args.labels_mapping_dict['class'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'class_labels.json'))
-    args.rank_species_mapping = {}
-    args.rank_species_mapping['genus'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'genus_species_labels.json'))
-    args.rank_species_mapping['family'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'family_species_labels.json'))
-    args.rank_species_mapping['order'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'order_species_labels.json'))
-    args.rank_species_mapping['class'] = load_json_dict(args, os.path.join(args.rank_mapping_dir, 'class_species_labels.json'))
 
 def combine_probs(probs, new_probs, label, sp_labels, r_labels):
     # create list with all labels at species level
@@ -166,10 +167,11 @@ def get_cm(true_taxa, predicted_taxa, rank_mapping_dict, rank):
     # accuracy = round(float(num_correct_pred)/len(true_taxa), 5)
     return cm
 
-def get_metrics(args, true_taxa, predicted_taxa, rank):
+def get_metrics(args, true_taxa, predicted_taxa, confusion_matrices, rank):
     """ precision = True Positives / (True Positives + False Positives) """
     """ recall = True Positives / (True Positives + False Negatives) """
     """ accuracy = number of correct predictions / (number of reads in testing set) """
+    """ f1-score = 2 * (precision * recall) / (precision + recall)  """
 
     labels_mapping_dict = load_json_dict(args, os.path.join(args.rank_mapping_dir, f'{rank}_labels.json'))
 
@@ -181,6 +183,11 @@ def get_metrics(args, true_taxa, predicted_taxa, rank):
         true_taxa = [rank_species_mapping[str(i)] for i in true_taxa]
 
     cm = get_cm(true_taxa, predicted_taxa, labels_mapping_dict, rank)
+    create_heatmap(cm, os.path.join(args.input_dir, f'{rank}-cm-raw.png'), 'raw', rank)
+    confusion_matrices[rank] = cm
+    print(f'{rank}\t{cm.sum()}')
+    cm_norm = norm_confusion_matrix(cm)
+    create_heatmap(cm_norm, os.path.join(args.input_dir, f'{rank}-cm-norm.png'), 'norm', rank)
 
     f = open(os.path.join(args.input_dir, f'{rank}-metrics-classification-report.tsv'), 'w')
     f.write(f'{rank}\tprecision\trecall\tnumber\n')
