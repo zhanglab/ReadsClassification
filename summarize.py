@@ -5,6 +5,7 @@ import itertools
 import glob
 import multiprocessing as mp
 from summarize_utils import *
+from gtdb_tax_utils import load_mapping_dict
 
 def main():
     parser = argparse.ArgumentParser()
@@ -23,6 +24,8 @@ def main():
 
     args.ranks = ['species', 'genus', 'family', 'order', 'class']
 
+    # load ncbi dl-toda ground truth
+
     if args.data_type == 'sim':
         if args.roc:
             # compute decision thresholds
@@ -34,15 +37,22 @@ def main():
             for r in args.ranks:
                 get_decision_thds(args, r, probs, labels)
         else:
-            # compute accuracy, precision, recall
-            # get predictions and ground truth at species level
+            # create confusion matrix and compute accuracy, precision and recall
             tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
             pred_species, true_species, probs = get_results_from_tsv(args, tsv_files)
-            pool = mp.pool.ThreadPool(args.NUM_CPUS)
-            results = pool.starmap(get_metrics, zip(itertools.repeat(args, len(args.ranks)), itertools.repeat(true_species, len(args.ranks)),
-            itertools.repeat(pred_species, len(args.ranks)), args.ranks))
-            pool.close()
-            pool.join()
+            # get predictions and ground truth at species level
+            with mp.Manager() as manager:
+                confusion_matrices = manager.dict()
+                pool = mp.pool.ThreadPool(args.NUM_CPUS)
+                results = pool.starmap(get_metrics, zip(itertools.repeat(args, len(args.ranks)), itertools.repeat(true_species, len(args.ranks)),
+                itertools.repeat(pred_species, len(args.ranks)), itertools.repeat(confusion_matrices, len(args.ranks)), args.ranks))
+                pool.close()
+                pool.join()
+
+                outfile = os.path.join(args.input_dir, f'dl-toda-testing-dataset-cm.xlsx')
+                with pd.ExcelWriter(outfile) as writer:
+                    for r_name, r_cm in confusion_matrices.items():
+                        r_cm.to_excel(writer, sheet_name=f'{r_name}')
 
     else:
         tsv_files = sorted(glob.glob(os.path.join(args.input_dir, '*.tsv')))
