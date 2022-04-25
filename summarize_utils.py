@@ -6,7 +6,6 @@ import itertools
 import json
 import pandas as pd
 import numpy as np
-from cami2_new import create_heatmap, norm_confusion_matrix
 import multiprocessing as mp
 import sklearn
 from sklearn.metrics import roc_curve, auc
@@ -15,6 +14,41 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from utils import load_json_dict
 plt.ioff()
+
+def create_heatmap(cm, filename, cm_type, rank):
+
+    columns = cm.columns.tolist()
+    rows = cm.index.tolist()
+
+    plt.clf()
+    fig, ax = plt.subplots(figsize=(20,20))
+    im = ax.imshow(cm, cmap ="cool")
+    # Create colorbar
+    cbar = ax.figure.colorbar(im, ax=ax)
+    # Show all ticks and label them with the respective list entries
+    ax.set_xlabel('Ground Truth', fontsize='medium')
+    ax.set_ylabel('Predictions', fontsize='medium')
+    if rank in ['class', 'phylum']:
+        ax.set_xticks(range(len(cm.columns.tolist())))
+        ax.set_yticks(range(len(cm.index.tolist())))
+        ax.set_xticklabels(columns)
+        ax.set_yticklabels(rows)
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    fig.tight_layout()
+    plt.savefig(filename)
+
+def norm_confusion_matrix(cm_raw):
+    col = cm_raw.columns.tolist()
+    rows = cm_raw.index.tolist()
+    cm_norm = pd.DataFrame(columns = col, index = rows, dtype=np.float32)
+    for c in col:
+        # get total count of reads
+        total_reads = sum(cm_raw[c].tolist())
+        print(f'{c}\t{total_reads}')
+        for r in rows:
+            cm_norm.loc[r, c] = round(cm_raw.loc[r, c]/total_reads, 3)
+    return cm_norm
 
 def get_results_from_tsv(args, tsv_files):
     pred_species = []
