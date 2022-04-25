@@ -22,7 +22,7 @@ def main():
     # args.NUM_CPUS = int(os.getenv("SLURM_CPUS_PER_TASK"))
     print(f'# cpus: {args.NUM_CPUS}')
 
-    args.ranks = ['species', 'genus', 'family', 'order', 'class']
+    args.ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum']
 
     # load ncbi dl-toda ground truth
 
