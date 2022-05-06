@@ -185,7 +185,7 @@ def main():
         num_reads_classified += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
-        max_batch = 61 if test_steps > 61 else test_steps
+        max_batch = 60 if test_steps > 60 else test_steps
         initialize = False
         # if hvd.rank() == 0:
         print(f'process: {hvd.rank()}\tbs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
@@ -212,7 +212,7 @@ def main():
                 batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
             if batch == 1 or initialize == True:
-                print(f'{batch}: initialize')
+                print(f'{hvd.rank()}\t{batch}: initialize')
             # if batch == 1:
                 all_labels = [labels]
                 # all_pred_sp = [batch_pred_sp]
@@ -221,7 +221,7 @@ def main():
                 initialize = False
 
             elif batch % max_batch == 0 or batch == test_steps:
-                print(f'{batch}: create npy files')
+                print(f'{hvd.rank()}\t{batch}: create npy files')
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 all_labels = tf.concat([all_labels, [labels]], 1)
                 all_predictions_arr = all_predictions.numpy()
@@ -237,7 +237,7 @@ def main():
                 initialize = True
 
             else:
-                print(f'{batch}: concatenate')
+                print(f'{hvd.rank()}\t{batch}: concatenate')
                 all_predictions = tf.concat([all_predictions, batch_predictions], 0)
                 # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
