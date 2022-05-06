@@ -185,7 +185,7 @@ def main():
         num_reads_classified += num_reads
         # compute number of required steps to iterate over entire test file
         test_steps = math.ceil(num_reads/(args.batch_size))
-        max_batch = 62 if test_steps > 62 else test_steps
+        max_batch = 61 if test_steps > 61 else test_steps
         initialize = False
         # if hvd.rank() == 0:
         print(f'process: {hvd.rank()}\tbs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
