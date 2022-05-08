@@ -185,7 +185,7 @@ def main():
         epoch = args.epoch_to_resume + 1
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
-        checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch_to_resume}')).expect_partial()
+        checkpoint.restore(os.path.join(args.ckpt, f'ckpt-{args.epoch_to_resume}')).expect_partial()
     else:
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, args.dropout_rate, args.output_dir)
         epoch = 1
