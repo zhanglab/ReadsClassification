@@ -182,7 +182,7 @@ def main():
     if args.resume:
         # model = tf.keras.models.load_model(args.model)
         # args.output_dir = os.path.join(args.output_dir, f'resume-from-epoch-{args.epoch_to_resume}')
-        epoch = args.epoch_to_resume
+        epoch = args.epoch_to_resume + 1
         model = AlexNet(VECTOR_SIZE, EMBEDDING_SIZE, NUM_CLASSES, VOCAB_SIZE, DROPOUT_RATE)
         checkpoint = tf.train.Checkpoint(optimizer=opt, model=model)
         checkpoint.restore(os.path.join(args.ckpt, f'ckpts-{args.epoch_to_resume}')).expect_partial()
@@ -236,7 +236,7 @@ def main():
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch*args.epochs), 1):
         # get training loss
         loss_value, gradients = training_step(reads, labels, train_accuracy, loss, opt, model, batch == 1)
-        
+
         if batch % 100 == 0 and hvd.rank() == 0:
             print(f'Epoch: {epoch} - Step: {batch} - learning rate: {opt.learning_rate} - Training loss: {loss_value} - Training accuracy: {train_accuracy.result().numpy()*100}')
             # write metrics
