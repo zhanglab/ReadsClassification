@@ -93,8 +93,8 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
     pred_probs = tf.reduce_max(probs, axis=1)
 
     # return probs, pred_labels, pred_probs
-    return probs
-    # return pred_labels, pred_probs
+    # return probs
+    return pred_labels, pred_probs
 
 def main():
     start = datetime.datetime.now()
@@ -196,76 +196,76 @@ def main():
         test_input = test_preprocessor.get_device_dataset()
 
         # create empty arrays to store the predicted and true values
-        all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
-        # all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        # all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        # all_predictions = tf.zeros([args.batch_size, NUM_CLASSES], dtype=tf.dtypes.float32, name=None)
+        all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
 
         for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
-                # batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
-                batch_predictions = testing_step(args.data_type, reads, labels, model)
+                batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
+                # batch_predictions = testing_step(args.data_type, reads, labels, model)
             elif args.data_type == 'sim':
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-                # batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
-                batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
+                # batch_predictions = testing_step(args.data_type, reads, labels, model, loss, test_loss, test_accuracy)
 
-            if batch == 1 or initialize == True:
-                print(f'{hvd.rank()}\t{batch}: initialize')
-            # if batch == 1:
+            # if batch == 1 or initialize == True:
+                # print(f'{hvd.rank()}\t{batch}: initialize')
+            if batch == 1:
                 all_labels = [labels]
-                # all_pred_sp = [batch_pred_sp]
-                # all_prob_sp = [batch_prob_sp]
-                all_predictions = batch_predictions
-                initialize = False
+                all_pred_sp = [batch_pred_sp]
+                all_prob_sp = [batch_prob_sp]
+                # all_predictions = batch_predictions
+                # initialize = False
 
-            elif batch % max_batch == 0 or batch == test_steps:
-                print(f'{hvd.rank()}\t{batch}: create npy files')
-                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                all_labels = tf.concat([all_labels, [labels]], 1)
-                all_predictions_arr = all_predictions.numpy()
-                all_labels_arr = all_labels[0].numpy()
-                if batch == test_steps:
-                    print(f'{batch}: last batches --> {len(all_predictions_arr)}\t{len(all_labels_arr)}')
-                    num_extra_reads = (test_steps*args.batch_size) - num_reads
-                    all_predictions_arr = all_predictions_arr[:-num_extra_reads]
-                    all_labels_arr = all_labels_arr[:-num_extra_reads]
-                    # print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
-                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
-                np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
-                initialize = True
+            # elif batch % max_batch == 0 or batch == test_steps:
+            #     print(f'{hvd.rank()}\t{batch}: create npy files')
+            #     all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+            #     all_labels = tf.concat([all_labels, [labels]], 1)
+            #     all_predictions_arr = all_predictions.numpy()
+            #     all_labels_arr = all_labels[0].numpy()
+            #     if batch == test_steps:
+            #         print(f'{batch}: last batches --> {len(all_predictions_arr)}\t{len(all_labels_arr)}')
+            #         num_extra_reads = (test_steps*args.batch_size) - num_reads
+            #         all_predictions_arr = all_predictions_arr[:-num_extra_reads]
+            #         all_labels_arr = all_labels_arr[:-num_extra_reads]
+            #         # print(batch, num_extra_reads, len(all_predictions_arr), len(all_labels_arr))
+            #     np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-prob-out.npy'), all_predictions_arr)
+            #     np.save(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-{batch}-labels-out.npy'), all_labels_arr)
+            #     initialize = True
 
             else:
-                print(f'{hvd.rank()}\t{batch}: concatenate')
-                all_predictions = tf.concat([all_predictions, batch_predictions], 0)
-                # all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
-                # all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
+                # print(f'{hvd.rank()}\t{batch}: concatenate')
+                # all_predictions = tf.concat([all_predictions, batch_predictions], 0)
+                all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
+                all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
-        # all_pred_sp = all_pred_sp[0].numpy()
-        # all_prob_sp = all_prob_sp[0].numpy()
-        # all_labels = all_labels[0].numpy()
+        all_pred_sp = all_pred_sp[0].numpy()
+        all_prob_sp = all_prob_sp[0].numpy()
+        all_labels = all_labels[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
-        # if len(all_labels) > num_reads:
-            # num_extra_reads = (test_steps*args.batch_size) - num_reads
+        if len(all_labels) > num_reads:
+            num_extra_reads = (test_steps*args.batch_size) - num_reads
             # all_predictions = all_predictions[:-num_extra_reads]
-            # all_pred_sp = all_pred_sp[:-num_extra_reads]
-            # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            # all_labels = all_labels[:-num_extra_reads]
+            all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_prob_sp = all_prob_sp[:-num_extra_reads]
+            all_labels = all_labels[:-num_extra_reads]
 
-        # if args.data_type == 'meta':
+        if args.data_type == 'meta':
             # get dictionary mapping read ids to labels
-            # with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-                # content = f.readlines()
-                # dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
+            with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+                content = f.readlines()
+                dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
-            # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-                # for j in range(num_reads):
-                    # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
+            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+                for j in range(num_reads):
+                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
 
         # elif args.data_type == 'sim':
             # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
