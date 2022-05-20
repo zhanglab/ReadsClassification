@@ -45,25 +45,25 @@ def create_meta_tfrecords(args):
 def create_tfrecords(args):
     """ Converts simulated reads to tfrecord """
     output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
+    outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids.tsv']), 'w')
     records = list(SeqIO.parse(args.input_fastq, "fastq"))
-    random.shuffle(records)
+    if args.dataset in ['training', 'validation']:
+        random.shuffle(records)
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for count, rec in enumerate(records, 1):
-        # with open(args.input_fastq) as handle:
-            # for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
             read = str(rec.seq)
             read_id = rec.id
             label = int(read_id.split('|')[1])
-            # print(label)
+            outfile.write(f'{read_id}\t{count}\n')
             original_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
-            flipped_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, True)
-            # print(read, original_kmer_array)
-            # print(read[::-1], flipped_kmer_array)
+            if args.flipped:
+                flipped_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, True)
             for kmer_array in [original_kmer_array, flipped_kmer_array]:
                 data = \
                     {
                         'read': wrap_read(kmer_array),
                         'label': wrap_label(label),
+                        'read_id': wrap_label(count)
                     }
                 feature = tf.train.Features(feature=data)
                 example = tf.train.Example(features=feature)
@@ -82,7 +82,8 @@ def main():
     parser.add_argument('--vocab', help="Path to the vocabulary file")
     parser.add_argument('--k_value', default=12, type=int, help="Size of k-mers")
     parser.add_argument('--read_length', default=250, type=int, help="The length of simulated reads")
-    parser.add_argument('--dataset_type', type=str, help="Type of dataset", choices=['sim', 'meta'])
+    parser.add_argument('--dataset_type', type=str, help="Type of dataset", choices=['testing', 'training', 'validation', 'meta'])
+    parser.add_argument('--flipped', help='Use to add flipped versions of reads into tfrecords', action='store_true')
 
     args = parser.parse_args()
     args.output_prefix = args.input_fastq.split('/')[-1].split('.')[0]
@@ -90,7 +91,7 @@ def main():
     # get dictionary mapping kmers to indexes
     args.dict_kmers = vocab_dict(args.vocab)
 
-    if args.dataset_type == 'sim':
+    if args.dataset_type in ['testing', 'training', 'validation']:
         create_tfrecords(args)
     elif args.dataset_type == 'meta':
         create_meta_tfrecords(args)
