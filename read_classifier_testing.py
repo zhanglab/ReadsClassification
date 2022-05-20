@@ -294,9 +294,9 @@ def main():
             # all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
         # print(hvd.rank(), 'before', all_pred_sp.numpy().shape)
         # print(hvd.rank(), 'before', all_labels.numpy().shape)
-        all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
-        all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
-        all_labels = all_labels.numpy()[args.batch_size:]
+        all_pred_sp = all_pred_sp[0].numpy()[args.batch_size:]
+        all_prob_sp = all_prob_sp[0].numpy()[args.batch_size:]
+        all_labels = all_labels[0].numpy()[args.batch_size:]
         # print(hvd.rank(), 'after', all_pred_sp.shape)
         # print(hvd.rank(), 'after', all_prob_sp.shape)
         # print(hvd.rank(), 'after', all_labels.shape)
