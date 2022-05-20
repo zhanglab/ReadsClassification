@@ -107,11 +107,11 @@ def input_test(batch_size, test_steps, test_input, model, loss, test_loss, test_
 
     return all_pred_sp, all_prob_sp, all_labels
 
-# @tf.function
-# def get_metrics(x):
-#     print(type(x))
-#     print(x.result().numpy())
-#     return x.result().numpy()
+@tf.function
+def get_metrics(x):
+    print(type(x))
+    print(x.result().numpy())
+    return x.result().numpy()
 
 # @tf.function # only works in eager mode
 # def write_tensor_to_file(output_file, tensor):
@@ -199,6 +199,8 @@ def main():
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
+
+    print(f'{hvd.rank()}\t#files:{len(gpu_test_files)}')
 
     elapsed_time = []
     num_reads_classified = 0
@@ -292,9 +294,9 @@ def main():
             # all_labels = tf.concat([all_labels, tf.cast(labels, tf.float32)], 0)
         # print(hvd.rank(), 'before', all_pred_sp.numpy().shape)
         # print(hvd.rank(), 'before', all_labels.numpy().shape)
-        # all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
-        # all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
-        # all_labels = all_labels.numpy()[args.batch_size:]
+        all_pred_sp = all_pred_sp.numpy()[args.batch_size:]
+        all_prob_sp = all_prob_sp.numpy()[args.batch_size:]
+        all_labels = all_labels.numpy()[args.batch_size:]
         # print(hvd.rank(), 'after', all_pred_sp.shape)
         # print(hvd.rank(), 'after', all_prob_sp.shape)
         # print(hvd.rank(), 'after', all_labels.shape)
@@ -309,33 +311,35 @@ def main():
         # all_labels = all_labels[0].numpy()
 
         # # adjust the list of predicted species and read ids if necessary
-        # if len(all_pred_sp) > num_reads:
-        #     num_extra_reads = (test_steps*args.batch_size) - num_reads
+        if len(all_labels) > num_reads:
+            num_extra_reads = (test_steps*args.batch_size) - num_reads
             # pred_species = pred_species[:-num_extra_reads]
             # pred_probabilities = pred_probabilities[:-num_extra_reads]
-            # all_pred_sp = all_pred_sp[:-num_extra_reads]
-            # all_prob_sp = all_prob_sp[:-num_extra_reads]
-            # all_labels = all_labels[:-num_extra_reads]
+            all_pred_sp = all_pred_sp[:-num_extra_reads]
+            all_prob_sp = all_prob_sp[:-num_extra_reads]
+            all_labels = all_labels[:-num_extra_reads]
 
         # fill out dictionary of bins and create summary file of predicted probabilities
         # gpu_bins = {label: [] for label in class_mapping.keys()} # key = species predicted, value = list of read ids
 
-        # if args.data_type == 'meta':
-        #     # get dictionary mapping read ids to labels
-        #     with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-        #         content = f.readlines()
-        #         dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
-        #
-        #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-        #         for j in range(num_reads):
-        #             # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-        #             out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
-        #             # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
-        # elif args.data_type == 'test':
-        #     with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-        #         for j in range(num_reads):
-        #             # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
-        #             out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
+        if args.data_type == 'meta':
+            # get dictionary mapping read ids to labels
+            with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+                content = f.readlines()
+                dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
+
+            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+                for j in range(num_reads):
+                    # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
+                    # out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{pred_species[j]}\t{pred_probabilities[j]}\n')
+        elif args.data_type == 'test':
+            df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
+            df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
+            # with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+            #     for j in range(num_reads):
+            #         # gpu_bins[str(pred_species[j])].append(all_read_ids[j])
+            #         out_f.write(f'{class_mapping[str(all_pred_sp[j])]}\t{all_prob_sp[j]}\n')
         end_time = time.time()
         elapsed_time = np.append(elapsed_time, end_time - start_time)
     print('Througput: {:.0f} reads/s'.format(num_reads_classified / sum(elapsed_time)))
