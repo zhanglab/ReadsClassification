@@ -56,9 +56,11 @@ def create_tfrecords(args):
             label = int(read_id.split('|')[1])
             outfile.write(f'{read_id}\t{count}\n')
             original_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
+            list_kmer_array = [original_kmer_array]
             if args.flipped:
                 flipped_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, True)
-            for kmer_array in [original_kmer_array, flipped_kmer_array]:
+                list_kmer_array.append(flipped_kmer_array)
+            for kmer_array in list_kmer_array:
                 data = \
                     {
                         'read': wrap_read(kmer_array),
