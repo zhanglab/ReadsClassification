@@ -53,10 +53,12 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
                                  # initial_fill=10000,
                                  features={
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
+                                     "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1),
                                      "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
     # retrieve reads and labels and copy them to the gpus
     reads = inputs["read"].gpu()
     labels = inputs["label"].gpu()
+    read_ids = inputs["read_id"].gpu()
     return reads, labels
 
 class DALIPreprocessor(object):
@@ -76,8 +78,12 @@ class DALIPreprocessor(object):
         self.device_id = device_id
 
         self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
-            output_shapes=((batch_size, 239), (batch_size)),
-            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
+            output_shapes=((batch_size, 239), (batch_size), (batch_size)),
+            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64, tf.int64), device_id=device_id)
+
+        # self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
+        #     output_shapes=((batch_size, 239), (batch_size)),
+        #     batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
 
     def get_device_dataset(self):
         return self.dalidataset
@@ -160,14 +166,16 @@ def main():
     test_files = sorted(glob.glob(os.path.join(args.tfrecords, '*.tfrec')))
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
-    read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
+    read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv')))
+    # read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
     # split tfrecords between gpus
     test_files_per_gpu = len(test_files)//hvd.size()
     if hvd.rank() != hvd.size() - 1:
         gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu] if args.data_type == 'meta' else None
+        gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
+        # gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu] if args.data_type == 'meta' else None
     else:
         gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:len(test_files)]
@@ -200,8 +208,9 @@ def main():
         all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-
-        for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+        all_read_ids = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        # for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+        for batch, (reads, labels, read_ids) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
                 batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
@@ -217,6 +226,7 @@ def main():
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
                 all_prob_sp = [batch_prob_sp]
+                all_read_ids = [read_ids]
                 # all_predictions = batch_predictions
                 # initialize = False
 
@@ -242,12 +252,14 @@ def main():
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
+                all_read_ids = tf.concat([all_read_ids, [read_ids]], 1)
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
         all_pred_sp = all_pred_sp[0].numpy()
         all_prob_sp = all_prob_sp[0].numpy()
         all_labels = all_labels[0].numpy()
+        all_read_ids = all_read_ids[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
         if len(all_labels) > num_reads:
@@ -256,20 +268,21 @@ def main():
             all_pred_sp = all_pred_sp[:-num_extra_reads]
             all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
+            all_read_ids = all_read_ids[:-num_extra_reads]
 
-        if args.data_type == 'meta':
+        # if args.data_type == 'meta':
             # get dictionary mapping read ids to labels
-            with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
-                content = f.readlines()
-                dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
+        with open(os.path.join(args.tfrecords, gpu_read_ids_files[i]), 'r') as f:
+            content = f.readlines()
+            dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
-            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
-                for j in range(num_reads):
-                    out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
+        with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+            for j in range(num_reads):
+                out_f.write(f'{dict_read_ids[str(all_labels[j])]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
 
-        elif args.data_type == 'sim':
-            df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
-            df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
+        # elif args.data_type == 'sim':
+            # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
+            # df.to_csv(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), header=False, index=False, sep="\t")
 
         # if args.save_probs:
             # save predictions and labels to file
