@@ -59,7 +59,7 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
     reads = inputs["read"].gpu()
     labels = inputs["label"].gpu()
     read_ids = inputs["read_id"].gpu()
-    return reads, labels
+    return reads, labels, read_ids
 
 class DALIPreprocessor(object):
     def __init__(self, filenames, idx_filenames, batch_size, num_threads, dali_cpu=True,
@@ -278,7 +278,7 @@ def main():
 
         with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
             for j in range(num_reads):
-                out_f.write(f'{dict_read_ids[str(all_read_ids[j])]}\t{all_labels[j]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n') 
+                out_f.write(f'{dict_read_ids[str(all_read_ids[j])]}\t{all_labels[j]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
 
         # elif args.data_type == 'sim':
             # df = pd.DataFrame(list(zip(all_labels, all_pred_sp, all_prob_sp)))
