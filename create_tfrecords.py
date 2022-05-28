@@ -7,7 +7,7 @@ import random
 import gzip
 import sys
 import math
-from tfrecords_utils import vocab_dict, get_kmer_arr
+from tfrecords_utils import vocab_dict, get_kmer_arr, get_flipped_reads
 
 def wrap_read(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
@@ -46,39 +46,30 @@ def create_tfrecords(args):
     """ Converts simulated reads to tfrecord """
     output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
     outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids.tsv']), 'w')
-    if args.flipped:
-        flipped_records = []
-    records = list(SeqIO.parse(args.input_fastq, "fastq"))
-    factor = 2 if args.flipped else 1
+    records = [rec.format('fastq') for rec in list(SeqIO.parse(args.input_fastq, "fastq"))]
+    records += get_flipped_reads(args, records)
     if args.dataset_type in ['training', 'validation']:
         random.shuffle(records)
+    print(f'with flipped reads: {len(records)}')
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for count, rec in enumerate(records, 1):
-            label = int(rec.id.split('|')[1])
-            outfile.write(f'{rec.id}\t{count}\n')
-            original_kmer_array = get_kmer_arr(rec, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
-            list_kmer_array = [original_kmer_array]
-            if args.flipped:
-                flipped_kmer_array = get_kmer_arr(rec, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, flipped_records, True)
-                list_kmer_array.append(flipped_kmer_array)
-            for kmer_array in list_kmer_array:
-                data = \
-                    {
-                        'read': wrap_read(kmer_array),
-                        'label': wrap_label(label),
-                        'read_id': wrap_label(count)
-                    }
-                feature = tf.train.Features(feature=data)
-                example = tf.train.Example(features=feature)
-                serialized = example.SerializeToString()
-                writer.write(serialized)
+            label = int(rec.split('\n')[0].split('|')[1])
+            outfile.write(f'{rec.split("\n")[0]}\t{count}\n')
+            kmer_array = get_kmer_arr(rec, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
+            data = \
+                {
+                    'read': wrap_read(kmer_array),
+                    'label': wrap_label(label),
+                    'read_id': wrap_label(count)
+                }
+            feature = tf.train.Features(feature=data)
+            example = tf.train.Example(features=feature)
+            serialized = example.SerializeToString()
+            writer.write(serialized)
 
         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-            f.write(f'{count*factor}')
-    if args.flipped:
-        print(f'# flipped reads: {len(flipped_records)}\t{len(records)}')
-        with open((args.input_fastq[:-3] + '-flipped.fq'), 'w') as out_f:
-            out_f.write('\n'.join(flipped_records))
+            f.write(f'{count}')
+
 
 def main():
 
