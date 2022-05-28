@@ -77,7 +77,7 @@ def create_tfrecords(args):
             f.write(f'{count*factor}')
     if args.flipped:
         print(f'# flipped reads: {len(flipped_records)}\t{len(records)}')
-        with open(os.path.join(args.output_dir, args.output_prefix + '-flipped.fq'), 'w') as out_f:
+        with open((args.input_fastq[:-3] + '-flipped.fq'), 'w') as out_f:
             out_f.write('\n'.join(flipped_records))
 
 def main():
