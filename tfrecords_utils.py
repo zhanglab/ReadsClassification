@@ -41,7 +41,6 @@ def get_kmer_arr(record, k_value, dict_kmers, kmer_vector_length, read_length, f
         read = read[::-1]
         qual = record.format('fastq').split('\n')[3][::-1]
         flipped_records.append(f'{record.id}\n{read}\n+\n{qual}\n')
-        print(f'{record.id}\n{read}\n+\n{qual}\n')
     if len(read) > read_length:
         read = read[:read_length]
     list_kmers = []
