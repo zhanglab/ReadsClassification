@@ -38,10 +38,10 @@ def get_flipped_reads(args, records):
     flipped_records = []
     if args.flipped:
         for rec in records:
-            flipped_read_id = f'{rec.split("\n")[0]}-f'
+            flipped_read_id = rec.split("\n")[0]
             flipped_read = rec.split('\n')[1][::-1]
             flipped_qual = rec.split('\n')[3][::-1]
-            flipped_records.append(f'{flipped_read_id}\n{flipped_read}\n+\n{flipped_qual}\n')
+            flipped_records.append(f'{flipped_read_id}-f\n{flipped_read}\n+\n{flipped_qual}\n')
         print(f'# flipped reads: {len(flipped_records)}\t{len(records)}')
         with open((args.input_fastq[:-3] + '-flipped.fq'), 'w') as out_f:
             out_f.write('\n'.join(flipped_records))
