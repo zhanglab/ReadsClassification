@@ -46,20 +46,20 @@ def create_tfrecords(args):
     """ Converts simulated reads to tfrecord """
     output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
     outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids.tsv']), 'w')
+    if args.flipped:
+        flipped_records = []
     records = list(SeqIO.parse(args.input_fastq, "fastq"))
     factor = 2 if args.flipped else 1
     if args.dataset_type in ['training', 'validation']:
         random.shuffle(records)
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for count, rec in enumerate(records, 1):
-            read = str(rec.seq)
-            read_id = rec.id
-            label = int(read_id.split('|')[1])
-            outfile.write(f'{read_id}\t{count}\n')
-            original_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
+            label = int(rec.id.split('|')[1])
+            outfile.write(f'{rec.id}\t{count}\n')
+            original_kmer_array = get_kmer_arr(rec, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
             list_kmer_array = [original_kmer_array]
             if args.flipped:
-                flipped_kmer_array = get_kmer_arr(read, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, True)
+                flipped_kmer_array = get_kmer_arr(rec, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length, flipped_records, True)
                 list_kmer_array.append(flipped_kmer_array)
             for kmer_array in list_kmer_array:
                 data = \
@@ -75,6 +75,10 @@ def create_tfrecords(args):
 
         with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
             f.write(f'{count*factor}')
+    if args.flipped:
+        print(f'# flipped reads: {len(flipped_records)}\t{len(records)}')
+        with open(os.path.join(args.output_dir, args.output_prefix + '-flipped.fq'), 'w') as out_f:
+            out_f.write('\n'.join(flipped_records))
 
 def main():
 
