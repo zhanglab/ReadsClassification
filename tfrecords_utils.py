@@ -1,4 +1,5 @@
 import numpy as np
+from Bio.SeqRecord import SeqRecord
 
 def get_reverse_seq(read):
     """ Converts an k-mer to its reverse complement. All ambiguous bases are treated as Ns. """
@@ -34,13 +35,24 @@ def get_kmer_index(kmer, dict_kmers):
 
     return idx
 
-def get_kmer_arr(record, k_value, dict_kmers, kmer_vector_length, read_length, flipped_records=None, flip=False):
+def get_flipped_reads(args, records):
+    flipped_records = []
+    if args.flipped:
+        for rec in records:
+            flipped_read = rec.split('\n')[1][::-1]
+            flipped_qual = rec.split('\n')[3][::-1]
+            flipped_records.append(f'{rec.split("\n")[0]}-f\n{flipped_read}\n+\n{flipped_qual}\n')
+        print(f'# flipped reads: {len(flipped_records)}\t{len(records)}')
+        with open((args.input_fastq[:-3] + '-flipped.fq'), 'w') as out_f:
+            out_f.write('\n'.join(flipped_records))
+
+    return flipped_records
+
+
+def get_kmer_arr(record, k_value, dict_kmers, kmer_vector_length, read_length):
     """ Converts a DNA sequence split into a list of k-mers """
-    read = str(record.seq)
-    if flip:
-        read = read[::-1]
-        qual = record.format('fastq').split('\n')[3][::-1]
-        flipped_records.append(f'{record.id}\n{read}\n+\n{qual}\n')
+    read = rec.split('\n')[1]
+
     if len(read) > read_length:
         read = read[:read_length]
     list_kmers = []
