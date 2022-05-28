@@ -51,7 +51,7 @@ def get_flipped_reads(args, records):
 
 def get_kmer_arr(record, k_value, dict_kmers, kmer_vector_length, read_length):
     """ Converts a DNA sequence split into a list of k-mers """
-    read = rec.split('\n')[1]
+    read = record.split('\n')[1]
     if len(read) > read_length:
         read = read[:read_length]
     list_kmers = []
