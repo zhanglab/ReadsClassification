@@ -34,10 +34,13 @@ def get_kmer_index(kmer, dict_kmers):
 
     return idx
 
-def get_kmer_arr(read, k_value, dict_kmers, kmer_vector_length, read_length, flip=False):
+def get_kmer_arr(record, k_value, dict_kmers, kmer_vector_length, read_length, flipped_records, flip=False):
     """ Converts a DNA sequence split into a list of k-mers """
+    read = str(rec.seq)
     if flip:
         read = read[::-1]
+        qual = rec.format('fastq').split('\n')[3][::-1]
+        flipped_records.append(f'{rec.id}\n{read}\n+\n{qual}\n')
     if len(read) > read_length:
         read = read[:read_length]
     list_kmers = []
