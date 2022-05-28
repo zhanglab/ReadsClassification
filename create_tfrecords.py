@@ -54,7 +54,8 @@ def create_tfrecords(args):
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for count, rec in enumerate(records, 1):
             label = int(rec.split('\n')[0].split('|')[1])
-            outfile.write(f'{rec.split("\n")[0]}\t{count}\n')
+            read_id = rec.split("\n")[0]
+            outfile.write(f'{read_id}\t{count}\n')
             kmer_array = get_kmer_arr(rec, args.k_value, args.dict_kmers, args.kmer_vector_length, args.read_length)
             data = \
                 {
