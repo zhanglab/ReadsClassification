@@ -47,10 +47,11 @@ def create_tfrecords(args):
     output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
     outfile = open('/'.join([args.output_dir, args.output_prefix + f'-read_ids.tsv']), 'w')
     records = [rec.format('fastq') for rec in list(SeqIO.parse(args.input_fastq, "fastq"))]
-    records += get_flipped_reads(args, records)
+    if args.flipped:
+        records += get_flipped_reads(args, records)
+        print(f'with flipped reads: {len(records)}')
     if args.dataset_type in ['training', 'validation']:
         random.shuffle(records)
-    print(f'with flipped reads: {len(records)}')
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
         for count, rec in enumerate(records, 1):
             label = int(rec.split('\n')[0].split('|')[1])
