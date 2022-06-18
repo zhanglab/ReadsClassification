@@ -32,9 +32,6 @@ def create_meta_tfrecords(args):
                 list_reads = []
                 if len(read) > args.read_length:
                     list_reads = cut_read(args, read)
-                    print(read)
-                    print(list_reads)
-                    break
                 else:
                     list_reads = [read]
                 for r in list_reads:
