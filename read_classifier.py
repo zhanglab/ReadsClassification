@@ -99,9 +99,9 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
     pred_labels = tf.math.argmax(probs, axis=1)
     pred_probs = tf.reduce_max(probs, axis=1)
 
-    return probs, pred_labels, pred_probs
+    # return probs, pred_labels, pred_probs
     # return probs
-    # return pred_labels, pred_probs
+    return pred_labels, pred_probs
 
 
 
