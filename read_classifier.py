@@ -53,14 +53,14 @@ def get_dali_pipeline(tfrec_filenames, tfrec_idx_filenames, shard_id, num_gpus, 
                                  # initial_fill=10000,
                                  features={
                                      "read": tfrec.VarLenFeature([], tfrec.int64, 0),
-                                     "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1),
+                                     # "read_id": tfrec.FixedLenFeature([1], tfrec.int64, -1),
                                      "label": tfrec.FixedLenFeature([1], tfrec.int64, -1)})
     # retrieve reads and labels and copy them to the gpus
     reads = inputs["read"].gpu()
     labels = inputs["label"].gpu()
-    read_ids = inputs["read_id"].gpu()
-    return reads, labels, read_ids
-    # return reads, labels
+    # read_ids = inputs["read_id"].gpu()
+    # return reads, labels, read_ids
+    return reads, labels
 
 class DALIPreprocessor(object):
     def __init__(self, filenames, idx_filenames, batch_size, num_threads, dali_cpu=True,
@@ -78,13 +78,13 @@ class DALIPreprocessor(object):
         self.batch_size = batch_size
         self.device_id = device_id
 
-        self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
-            output_shapes=((batch_size, 239), (batch_size), (batch_size)),
-            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64, tf.int64), device_id=device_id)
-
         # self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
-        #     output_shapes=((batch_size, 239), (batch_size)),
-        #     batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
+        #     output_shapes=((batch_size, 239), (batch_size), (batch_size)),
+        #     batch_size=batch_size, output_dtypes=(tf.int64, tf.int64, tf.int64), device_id=device_id)
+
+        self.dalidataset = dali_tf.DALIDataset(fail_on_device_mismatch=False, pipeline=self.pipe,
+            output_shapes=((batch_size, 239), (batch_size)),
+            batch_size=batch_size, output_dtypes=(tf.int64, tf.int64), device_id=device_id)
 
     def get_device_dataset(self):
         return self.dalidataset
@@ -102,6 +102,8 @@ def testing_step(data_type, reads, labels, model, loss=None, test_loss=None, tes
     # return probs, pred_labels, pred_probs
     # return probs
     return pred_labels, pred_probs
+
+
 
 def main():
     start = datetime.datetime.now()
@@ -168,7 +170,7 @@ def main():
     test_idx_files = sorted(glob.glob(os.path.join(args.dali_idx, '*.idx')))
     num_reads_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_count')))
     read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv')))
-    # read_ids_files = sorted(glob.glob(os.path.join(args.tfrecords, '*-read_ids.tsv'))) if args.data_type == 'meta' else None
+
     # split tfrecords between gpus
     test_files_per_gpu = len(test_files)//hvd.size()
     if hvd.rank() != hvd.size() - 1:
@@ -176,13 +178,11 @@ def main():
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu]
-        # gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:(hvd.rank()+1)*test_files_per_gpu] if args.data_type == 'meta' else None
     else:
         gpu_test_files = test_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_test_idx_files = test_idx_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_num_reads_files = num_reads_files[hvd.rank()*test_files_per_gpu:len(test_files)]
         gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)]
-        # gpu_read_ids_files = read_ids_files[hvd.rank()*test_files_per_gpu:len(test_files)] if args.data_type == 'meta' else None
 
     elapsed_time = []
     # decision_thresholds = defaultdict(list)
@@ -197,7 +197,7 @@ def main():
         test_steps = math.ceil(num_reads/(args.batch_size))
         max_batch = 31 if test_steps > 31 else test_steps
         initialize = False
-        # if hvd.rank() == 0:
+
         print(f'process: {hvd.rank()}\tbs: {args.batch_size}\t#reads: {num_reads}\ttest steps: {test_steps}\tmax batch: {max_batch}')
 
         num_preprocessing_threads = 4
@@ -210,9 +210,9 @@ def main():
         all_pred_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_prob_sp = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
         all_labels = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        all_read_ids = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
-        # for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
-        for batch, (reads, labels, read_ids) in enumerate(test_input.take(test_steps), 1):
+        # all_read_ids = [tf.zeros([args.batch_size], dtype=tf.dtypes.float32, name=None)]
+        for batch, (reads, labels) in enumerate(test_input.take(test_steps), 1):
+        # for batch, (reads, labels, read_ids) in enumerate(test_input.take(test_steps), 1):
             if args.data_type == 'meta':
                 # batch_predictions, batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
                 batch_pred_sp, batch_prob_sp = testing_step(args.data_type, reads, labels, model)
@@ -228,7 +228,7 @@ def main():
                 all_labels = [labels]
                 all_pred_sp = [batch_pred_sp]
                 all_prob_sp = [batch_prob_sp]
-                all_read_ids = [read_ids]
+                # all_read_ids = [read_ids]
                 # all_predictions = batch_predictions
                 # initialize = False
 
@@ -254,14 +254,14 @@ def main():
                 all_pred_sp = tf.concat([all_pred_sp, [batch_pred_sp]], 1)
                 all_prob_sp = tf.concat([all_prob_sp, [batch_prob_sp]], 1)
                 all_labels = tf.concat([all_labels, [labels]], 1)
-                all_read_ids = tf.concat([all_read_ids, [read_ids]], 1)
+                # all_read_ids = tf.concat([all_read_ids, [read_ids]], 1)
 
         # get list of true species, predicted species and predicted probabilities
         # all_predictions = all_predictions.numpy()
         all_pred_sp = all_pred_sp[0].numpy()
         all_prob_sp = all_prob_sp[0].numpy()
         all_labels = all_labels[0].numpy()
-        all_read_ids = all_read_ids[0].numpy()
+        # all_read_ids = all_read_ids[0].numpy()
 
         # adjust the list of predicted species and read ids if necessary
         if len(all_labels) > num_reads:
@@ -270,7 +270,7 @@ def main():
             all_pred_sp = all_pred_sp[:-num_extra_reads]
             all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
-            all_read_ids = all_read_ids[:-num_extra_reads]
+            # all_read_ids = all_read_ids[:-num_extra_reads]
 
         if args.data_type == 'meta':
             # get dictionary mapping read ids to labels
