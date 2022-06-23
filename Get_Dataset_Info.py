@@ -94,7 +94,8 @@ def main():
     print(f'# genomes in {dataset_type} set: {n_genomes}')
     fq_files = sorted(glob.glob(os.path.join(fq_path, "*-reads.fq")))
     print(f'# fq files: {len(fq_files)}')
-    fq_files_per_process = split_data(fq_files, mp.cpu_count())
+    chunk_size = mp.cpu_count() if len(fq_files) > mp.cpu_count() else len(fq_files)
+    fq_files_per_process = split_data(fq_files, chunk_size)
     n_fq_files = sum([len(l) for l in fq_files_per_process])
     print(f'# fq files: {n_fq_files}\t# processes: {len(fq_files_per_process)}\t# processes: {mp.cpu_count()}')
 
