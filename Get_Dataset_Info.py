@@ -2,6 +2,7 @@ from collections import defaultdict
 import sys
 import pandas as pd
 import os
+import glob
 import multiprocessing as mp
 import json
 import math
@@ -49,11 +50,16 @@ def num_reads(path, genome_dict, species_dict, output_dir, process_id):
             out_f.write(f'{reads_dict[label]}\n')
 
 # split dictionary into sub dictionaries with one dictionary per process
-def split_dict(input_dict: dict, num_parts: int) -> list:
-    list_len: int = len(input_dict)
-    return [dict(list(input_dict.items())[i * list_len // num_parts:(i + 1) * list_len // num_parts])
+def split_data(input_list: list, num_parts: int) -> list:
+    list_len: int = len(input_list)
+    return [input_list[i * list_len // num_parts:(i + 1) * list_len // num_parts]
             for i in range(num_parts)]
 
+# # split dictionary into sub dictionaries with one dictionary per process
+# def split_dict(input_dict: dict, num_parts: int) -> list:
+#     list_len: int = len(input_dict)
+#     return [dict(list(input_dict.items())[i * list_len // num_parts:(i + 1) * list_len // num_parts])
+#             for i in range(num_parts)]
 
 def main():
 
@@ -66,9 +72,24 @@ def main():
 
     species_dict = load_json_dict(json_path)
     labels_dict = create_df(NCBI_info_path)
-    print(labels_dict)
-    # list_label_dict = split_dict(labels_dict, mp.cpu_count())
+    n_genomes = sum([len(v) for v in labels_dict.values()])
+    print(f'# genomes in {dataset_type} set: {n_genomes}')
+    fq_files = sorted(glob.glob(os.path.join(fq_path, "*-reads.fq")))
+    print(f'# fq files: {len(fq_files)}')
+    fq_files_per_process = split_data(fq_files, mp.cpu_count())
+    n_fq_files = sum([len(l) for l in fq_files_per_process])
+    print(f'# fq files: {n_fq_files}\t# processes: {len(fq_files_per_process)}\t# processes: {mp.cpu_count()}')
 
+    # get number of reads per label or sequence
+    # fq_files_per_process = [fq_files[i:i+chunk_size] for i in range(0, len(fq_files), chunk_size)]
+    # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
+    #              range(len(list_label_dict))]
+    # for p in processes:
+    #     p.start()
+    # for p in processes:
+    #     p.join()
+    #
+    #
     # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
     #              range(len(list_label_dict))]
     # for p in processes:
