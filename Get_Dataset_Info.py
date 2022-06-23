@@ -37,17 +37,29 @@ def create_dict_count(dict_list):
     return temp
 
 # Counts the number of reads associated with each species label and makes a new dictionary with this value
-def num_reads(path, genome_dict, species_dict, output_dir, process_id):
-    reads_dict = defaultdict(int)
-    with open(os.path.join(output_dir, f'results-process-id-{process_id}'), 'w') as out_f:
-        for label, genome_list in genome_dict.items():
-            out_f.write(f'{label}\t{species_dict[str(label)]}\t{len(genome_list)}\t')
-            for genome_fq in genome_list:
-                with open(os.path.join(path, (genome_fq + '.fq')), 'r') as f:
-                    content = f.readlines()
-                records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
-                reads_dict[label] += math.ceil(len(records) * .70)  # Only 70% of the reads are used for training
-            out_f.write(f'{reads_dict[label]}\n')
+# def num_reads(path, genome_dict, species_dict, output_dir, process_id):
+    # reads_dict = defaultdict(int)
+    # with open(os.path.join(output_dir, f'results-process-id-{process_id}'), 'w') as out_f:
+    #     for label, genome_list in genome_dict.items():
+    #         out_f.write(f'{label}\t{species_dict[str(label)]}\t{len(genome_list)}\t')
+    #         for genome_fq in genome_list:
+    #             with open(os.path.join(path, (genome_fq + '.fq')), 'r') as f:
+    #                 content = f.readlines()
+    #             records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
+    #             reads_dict[label] += math.ceil(len(records) * .70)  # Only 70% of the reads are used for training
+    #         out_f.write(f'{reads_dict[label]}\n')
+
+def num_reads(list_fq_files, dict_num_reads, level_analysis):
+    for fq_file in list_fq_files:
+        with open(fq_file, 'r') as f:
+            content = f.readlines()
+        records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
+        for r in records:
+            key = r.split('\n')[0].split('|')[1] if level_analysis = 'label' else r.split('\n')[0].split('-')[0]
+            if key not in dict_num_reads:
+                dict_num_reads[key] = 1
+            else:
+                dict_num_reads[key] += 1
 
 # split dictionary into sub dictionaries with one dictionary per process
 def split_data(input_list: list, num_parts: int) -> list:
@@ -81,15 +93,18 @@ def main():
     print(f'# fq files: {n_fq_files}\t# processes: {len(fq_files_per_process)}\t# processes: {mp.cpu_count()}')
 
     # get number of reads per label or sequence
-    # fq_files_per_process = [fq_files[i:i+chunk_size] for i in range(0, len(fq_files), chunk_size)]
-    # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
-    #              range(len(list_label_dict))]
-    # for p in processes:
-    #     p.start()
-    # for p in processes:
-    #     p.join()
-    #
-    #
+    with mp.Manager() as manager:
+        dict_num_reads = manager.dict()
+        processes = [mp.Process(target=num_reads, args=(fq_files_per_process[i], dict_num_reads, level_analysis)) for i in
+                     range(len(fq_files_per_process))]
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+
+        n_reads = sum(dict_num_reads.values())
+        print(f'# reads in {dataset_type}: {n_reads}')
+
     # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
     #              range(len(list_label_dict))]
     # for p in processes:
