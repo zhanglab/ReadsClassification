@@ -107,8 +107,8 @@ def main():
         for label, genomes in data_dict.items():
             l_nreads = 0
             for process_id, data in dict_num_reads.items():
-                l_nreads += data[label]
-                n_reads += sum(data.values())
+                l_nreads += data[str(label)]
+            n_reads += sum(data.values())
             out_f.write(f'{label}\t{len(genomes)}\t{l_nreads}\t{species_dict[str(label)]}\n')
 
         print(f'# reads in {dataset_type}: {n_reads}')
