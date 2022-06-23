@@ -1,4 +1,4 @@
-from collections import defaultdict, Counter
+from collections import defaultdict
 import sys
 import pandas as pd
 import os
@@ -16,14 +16,16 @@ def load_json_dict(json_path):
 
 # This function creates a dataframe from a tsv file. Then, we iterate through the dataframe to make a dictionary.
 # The species labels are the keys and the values are a list filled with respective genome associations.
-def create_df(path):
+def create_df(path, level_analysis):
+    key_index = 1 if level_analysis == 'label' else 0
+    value_index = 0 if level_analysis == 'label' else 1
     count = 0  # variable used to iterate through the dataframe
     df = pd.read_csv(path, sep='\t', header=None)  # converts the tsv file to a dataframe
     NCBI_dict = defaultdict(list)  # makes the default dictionary value a list
 
     # iterates through the dataframe to create the dictionary
-    for key in df[1]:
-        NCBI_dict[key].append(df[0][count])
+    for key in df[key_index]:
+        NCBI_dict[key].append(df[value_index][count])
         count += 1
 
     return NCBI_dict
@@ -50,14 +52,17 @@ def create_dict_count(dict_list):
     #         out_f.write(f'{reads_dict[label]}\n')
 
 
-def num_reads(list_fq_files, dict_num_reads, process_id):
+def num_reads(list_fq_files, dict_num_reads, process_id, level_analysis):
     reads_dict = defaultdict(int)
     for fq_file in list_fq_files:
         with open(fq_file, 'r') as f:
             content = f.readlines()
-        labels = [''.join(content[i:i + 4]).split('\n')[0].split('|')[1] for i in range(0, len(content), 4)]
-        for l in labels:
-            reads_dict[l] += 1
+        if level_analysis == 'label':
+            data = [''.join(content[i:i + 4]).split('\n')[0].split('|')[1] for i in range(0, len(content), 4)]
+        elif level_analysis == 'genome':
+            data = [''.join(content[i:i + 4]).split('\n')[0].split('-')[0][1:] for i in range(0, len(content), 4)]
+        for d in data:
+            reads_dict[d] += 1
     dict_num_reads[process_id] = reads_dict
 
 # split dictionary into sub dictionaries with one dictionary per process
@@ -72,6 +77,29 @@ def split_data(input_list: list, num_parts: int) -> list:
 #     return [dict(list(input_dict.items())[i * list_len // num_parts:(i + 1) * list_len // num_parts])
 #             for i in range(num_parts)]
 
+def summary(dict_num_reads, data_dict, outfilename, level_analysis, species_dict=None):
+    out_f = open(outfilename, 'w')
+
+    n_reads = 0
+    for x, y in data_dict.items():
+        x_nreads = 0
+        for process_id, data in dict_num_reads.items():
+            if level_analysis == 'label':
+                x_nreads += data[str(x)]
+                n_reads += data[str(x)]
+            elif level_analysis == 'genome':
+                for s in y:
+                    if s in data:
+                        x_nreads += data[s]
+                        n_reads += data[s]
+        if level_analysis == 'label':
+            out_f.write(f'{x}\t{len(y)}\t{x_nreads}\t{species_dict[str(x)]}\n')
+        elif level_analysis == 'genome':
+            out_f.write(f'{x}\t{len(y)}\t{x_nreads}\n')
+
+    print(f'# reads: {n_reads}')
+
+
 def main():
 
     data_info_path = sys.argv[1] # path to file containing list of genomes mapped to species labels and sequence ids
@@ -83,7 +111,7 @@ def main():
     n_processes = int(sys.argv[7])
 
     species_dict = load_json_dict(json_path)
-    data_dict = create_df(data_info_path)
+    data_dict = create_df(data_info_path, level_analysis)
     n_genomes = sum([len(v) for v in data_dict.values()])
     print(f'# genomes in {dataset_type} set: {n_genomes}')
     fq_files = sorted(glob.glob(os.path.join(fq_path, "*-reads.fq")))
@@ -92,26 +120,22 @@ def main():
     n_fq_files = sum([len(l) for l in fq_files_per_process])
     print(f'# fq files: {n_fq_files}\t# processes: {n_processes} - {len(fq_files_per_process)}\t# cpus on node: {mp.cpu_count()}')
 
+    outfilename = os.path.join(output_dir, f'{level_analysis}-{dataset_type}-info.tsv')
+
     # get number of reads per label or sequence
     with mp.Manager() as manager:
         dict_num_reads = manager.dict()
-        processes = [mp.Process(target=num_reads, args=(fq_files_per_process[i], dict_num_reads, i)) for i in
+        processes = [mp.Process(target=num_reads, args=(fq_files_per_process[i], dict_num_reads, i, level_analysis)) for i in
                      range(len(fq_files_per_process))]
         for p in processes:
             p.start()
         for p in processes:
             p.join()
 
-        n_reads = 0
-        out_f = open(os.path.join(output_dir, f'{level_analysis}-{dataset_type}-info.tsv'), 'w')
-        for label, genomes in data_dict.items():
-            l_nreads = 0
-            for process_id, data in dict_num_reads.items():
-                l_nreads += data[str(label)]
-                n_reads += data[str(label)]
-            out_f.write(f'{label}\t{len(genomes)}\t{l_nreads}\t{species_dict[str(label)]}\n')
-
-        print(f'# reads in {dataset_type}: {n_reads}')
+        if level_analysis == 'label':
+            summary(dict_num_reads, data_dict, outfilename, level_analysis, species_dict)
+        else:
+            summary(dict_num_reads, data_dict, outfilename, level_analysis)
 
 
     # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
