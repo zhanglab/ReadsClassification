@@ -103,11 +103,16 @@ def main():
             p.join()
 
         n_reads = 0
-        for process_id, data in dict_num_reads.items():
-            n_reads += sum(data.values())
+        out_f = open(os.path.join(output_dir, f'{level_analysis}-{dataset_type}-info.tsv'), 'w')
+        for label, genomes in labels_dict.items():
+            l_nreads = 0
+            for process_id, data in dict_num_reads.items():
+                l_nreads += data[label]
+                n_reads += sum(data.values())
+            out_f.write(f'{label}\t{len(genomes)}\t{l_nreads}\t{species_dict[label]}\n')
 
         print(f'# reads in {dataset_type}: {n_reads}')
-        # with open(os.path.join(output_dir, f'{level_analysis}-{dataset_type}'))
+
 
     # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
     #              range(len(list_label_dict))]
