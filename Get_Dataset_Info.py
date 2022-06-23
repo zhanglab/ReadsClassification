@@ -55,7 +55,7 @@ def num_reads(list_fq_files, dict_num_reads, level_analysis):
             content = f.readlines()
         records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
         for r in records:
-            key = r.split('\n')[0].split('|')[1] if level_analysis = 'label' else r.split('\n')[0].split('-')[0]
+            key = r.split('\n')[0].split('|')[1] if level_analysis == 'label' else r.split('\n')[0].split('-')[0]
             if key not in dict_num_reads:
                 dict_num_reads[key] = 1
             else:
