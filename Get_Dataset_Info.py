@@ -84,7 +84,7 @@ def main():
 
     species_dict = load_json_dict(json_path)
     data_dict = create_df(data_info_path)
-    n_genomes = sum([len(v) for v in labels_dict.values()])
+    n_genomes = sum([len(v) for v in data_dict.values()])
     print(f'# genomes in {dataset_type} set: {n_genomes}')
     fq_files = sorted(glob.glob(os.path.join(fq_path, "*-reads.fq")))
     print(f'# fq files: {len(fq_files)}')
@@ -104,7 +104,7 @@ def main():
 
         n_reads = 0
         out_f = open(os.path.join(output_dir, f'{level_analysis}-{dataset_type}-info.tsv'), 'w')
-        for label, genomes in labels_dict.items():
+        for label, genomes in data_dict.items():
             l_nreads = 0
             for process_id, data in dict_num_reads.items():
                 l_nreads += data[label]
