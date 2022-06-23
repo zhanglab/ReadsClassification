@@ -74,7 +74,7 @@ def split_data(input_list: list, num_parts: int) -> list:
 
 def main():
 
-    NCBI_info_path = sys.argv[1] # path to file containing list of genomes mapped to species labels
+    data_info_path = sys.argv[1] # path to file containing list of genomes mapped to species labels and sequence ids
     fq_path = sys.argv[2] # path to directory containing fastq files in training or testing set
     json_path = sys.argv[3] # path to species_labels_full_taxonomy.json dictionary
     output_dir = sys.argv[4] # path to output directory
@@ -83,7 +83,7 @@ def main():
     n_processes = int(sys.argv[7])
 
     species_dict = load_json_dict(json_path)
-    labels_dict = create_df(NCBI_info_path)
+    data_dict = create_df(data_info_path)
     n_genomes = sum([len(v) for v in labels_dict.values()])
     print(f'# genomes in {dataset_type} set: {n_genomes}')
     fq_files = sorted(glob.glob(os.path.join(fq_path, "*-reads.fq")))
@@ -109,7 +109,7 @@ def main():
             for process_id, data in dict_num_reads.items():
                 l_nreads += data[label]
                 n_reads += sum(data.values())
-            out_f.write(f'{label}\t{len(genomes)}\t{l_nreads}\t{species_dict[label]}\n')
+            out_f.write(f'{label}\t{len(genomes)}\t{l_nreads}\t{species_dict[str(label)]}\n')
 
         print(f'# reads in {dataset_type}: {n_reads}')
 
