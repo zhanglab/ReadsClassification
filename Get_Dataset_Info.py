@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
 import sys
 import pandas as pd
 import os
@@ -49,17 +49,22 @@ def create_dict_count(dict_list):
     #             reads_dict[label] += math.ceil(len(records) * .70)  # Only 70% of the reads are used for training
     #         out_f.write(f'{reads_dict[label]}\n')
 
-def num_reads(list_fq_files, dict_num_reads, level_analysis):
+
+
+
+def num_reads(list_fq_files, dict_num_reads, process_id):
+    reads_dict = defaultdict(int)
     for fq_file in list_fq_files:
         with open(fq_file, 'r') as f:
             content = f.readlines()
         records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
-        for r in records:
-            key = r.split('\n')[0].split('|')[1] if level_analysis == 'label' else r.split('\n')[0].split('-')[0]
-            if key not in dict_num_reads:
-                dict_num_reads[key] = 1
-            else:
-                dict_num_reads[key] += 1
+        labels = [r.split('\n')[0].split('|')[1] for r in records]
+        num_reads_in_file = Counter(labels)
+        for k, v in num_reads_in_file.items():
+            reads_dict[k] += v
+        if process_id == 0:
+            print(process_id, fq_file, len(records), len(labels), len(num_reads_in_file))
+    dict_num_reads[process_id] = reads_dict
 
 # split dictionary into sub dictionaries with one dictionary per process
 def split_data(input_list: list, num_parts: int) -> list:
@@ -95,14 +100,17 @@ def main():
     # get number of reads per label or sequence
     with mp.Manager() as manager:
         dict_num_reads = manager.dict()
-        processes = [mp.Process(target=num_reads, args=(fq_files_per_process[i], dict_num_reads, level_analysis)) for i in
+        processes = [mp.Process(target=num_reads, args=(fq_files_per_process[i], dict_num_reads, i)) for i in
                      range(len(fq_files_per_process))]
         for p in processes:
             p.start()
         for p in processes:
             p.join()
 
-        n_reads = sum(dict_num_reads.values())
+        n_reads = 0
+        for process_id, data in dict_num_reads.items():
+            n_reads += sum(data.values())
+
         print(f'# reads in {dataset_type}: {n_reads}')
 
     # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
