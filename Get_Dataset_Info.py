@@ -60,8 +60,8 @@ def num_reads(list_fq_files, dict_num_reads, process_id):
             records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
         labels = [r.split('\n')[0].split('|')[1] for r in records]
         num_reads_in_file = Counter(labels)
-            if process_id == 0:
-                print(process_id, fq_file, len(records))
+        if process_id == 0:
+            print(process_id, fq_file, len(records))
         for k, v in num_reads_in_file.items():
             reads_dict[k] += v
 
