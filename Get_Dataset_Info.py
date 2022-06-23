@@ -50,20 +50,21 @@ def create_dict_count(dict_list):
     #         out_f.write(f'{reads_dict[label]}\n')
 
 
-
-
 def num_reads(list_fq_files, dict_num_reads, process_id):
     reads_dict = defaultdict(int)
     for fq_file in list_fq_files:
+        if process_id == 0:
+            print(process_id, fq_file)
         with open(fq_file, 'r') as f:
             content = f.readlines()
         records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
         labels = [r.split('\n')[0].split('|')[1] for r in records]
         num_reads_in_file = Counter(labels)
-        for k, v in num_reads_in_file.items():
-            reads_dict[k] += v
         if process_id == 0:
             print(process_id, fq_file, len(records), len(labels), len(num_reads_in_file))
+        for k, v in num_reads_in_file.items():
+            reads_dict[k] += v
+
     dict_num_reads[process_id] = reads_dict
 
 # split dictionary into sub dictionaries with one dictionary per process
