@@ -53,18 +53,11 @@ def create_dict_count(dict_list):
 def num_reads(list_fq_files, dict_num_reads, process_id):
     reads_dict = defaultdict(int)
     for fq_file in list_fq_files:
-        if process_id == 0:
-            print(process_id, fq_file)
         with open(fq_file, 'r') as f:
             content = f.readlines()
-            records = [''.join(content[i:i + 4]) for i in range(0, len(content), 4)]
-        labels = [r.split('\n')[0].split('|')[1] for r in records]
-        num_reads_in_file = Counter(labels)
-        if process_id == 0:
-            print(process_id, fq_file, len(records))
-        for k, v in num_reads_in_file.items():
-            reads_dict[k] += v
-
+        labels = [''.join(content[i:i + 4]).split('\n')[0].split('|')[1] for i in range(0, len(content), 4)]
+        for l in labels:
+            reads_dict[l] += 1
     dict_num_reads[process_id] = reads_dict
 
 # split dictionary into sub dictionaries with one dictionary per process
@@ -87,6 +80,7 @@ def main():
     output_dir = sys.argv[4] # path to output directory
     dataset_type = sys.argv[5] # testing or training datasets
     level_analysis = sys.argv[6] # label or genome --> # reads are reported per genome or per label
+    n_processes = int(sys.argv[7])
 
     species_dict = load_json_dict(json_path)
     labels_dict = create_df(NCBI_info_path)
@@ -94,10 +88,9 @@ def main():
     print(f'# genomes in {dataset_type} set: {n_genomes}')
     fq_files = sorted(glob.glob(os.path.join(fq_path, "*-reads.fq")))
     print(f'# fq files: {len(fq_files)}')
-    chunk_size = mp.cpu_count() if len(fq_files) > mp.cpu_count() else len(fq_files)
-    fq_files_per_process = split_data(fq_files, chunk_size)
+    fq_files_per_process = split_data(fq_files, n_processes)
     n_fq_files = sum([len(l) for l in fq_files_per_process])
-    print(f'# fq files: {n_fq_files}\t# processes: {len(fq_files_per_process)}\t# processes: {mp.cpu_count()}')
+    print(f'# fq files: {n_fq_files}\t# processes: {n_processes} - {len(fq_files_per_process)}\t# cpus on node: {mp.cpu_count()}')
 
     # get number of reads per label or sequence
     with mp.Manager() as manager:
@@ -114,6 +107,7 @@ def main():
             n_reads += sum(data.values())
 
         print(f'# reads in {dataset_type}: {n_reads}')
+        # with open(os.path.join(output_dir, f'{level_analysis}-{dataset_type}'))
 
     # processes = [mp.Process(target=num_reads, args=(fq_path, list_label_dict[i], species_dict, output_dir, i)) for i in
     #              range(len(list_label_dict))]
