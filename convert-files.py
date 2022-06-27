@@ -56,7 +56,7 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
         process_results.append(f'{read}\t{taxonomy}\t{taxids}\n')
     results[process] = process_results
 
-def convert_centrifuge_dataset():
+def convert_centrifuge_dataset(args, data, process, d_nodes, d_names, results):
     pass
 
 
@@ -72,7 +72,6 @@ def load_data(args):
         content = in_f.readlines()
         if args.dataset == "centrifuge":
             content = content[4: (len(content) - 2)]
-            print(content[100:])
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     return data
