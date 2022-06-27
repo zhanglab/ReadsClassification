@@ -70,7 +70,6 @@ def load_data(args):
     else:
         in_f = open(args.input_file, 'r')
         content = in_f.readlines()
-        print(content)
         if args.dataset == "centrifuge":
             content = content[4: (len(content) - 1)]
             print(content)
