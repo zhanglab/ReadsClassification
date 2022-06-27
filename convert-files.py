@@ -56,6 +56,11 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
         process_results.append(f'{read}\t{taxonomy}\t{taxids}\n')
     results[process] = process_results
 
+def convert_centrifuge_dataset():
+    pass
+
+
+# TODO add convert centrifuge data set function
 
 def load_data(args):
     if args.dataset == 'cami':
@@ -65,6 +70,10 @@ def load_data(args):
     else:
         in_f = open(args.input_file, 'r')
         content = in_f.readlines()
+        print(content)
+        if args.dataset == "centrifuge":
+            content = content[4: (len(content) - 1)]
+            print(content)
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     return data
@@ -75,14 +84,14 @@ def main():
     parser.add_argument('--input_file', type=str, help='path to file to convert')
     parser.add_argument('--output_dir', type=str, help='path to output directory')
     parser.add_argument('--fastq', action='store_true', help='type of data to parse', default=False)
-    parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['cami', 'kraken', 'dl-toda'])
+    parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['cami', 'kraken', 'dl-toda', 'centrifuge'])
     parser.add_argument('--ncbi_db', help='path to directory containing ncbi taxonomy database')
     parser.add_argument('--dl_toda_tax', help='path to directory containing json directories with info on taxa present in dl-toda', required=('dl-toda' in sys.argv))
     parser.add_argument('--tax_db', help='type of taxonomy database used in DL-TODA', choices=['ncbi', 'gtdb'])
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
     args = parser.parse_args()
 
-    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset}
+    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_dataset}
     print(args.input_file)
     if args.dataset == 'dl-toda':
         if args.fastq:
