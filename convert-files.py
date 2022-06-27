@@ -71,8 +71,8 @@ def load_data(args):
         in_f = open(args.input_file, 'r')
         content = in_f.readlines()
         if args.dataset == "centrifuge":
-            content = content[4: (len(content) - 1)]
-            print(content[:50])
+            content = content[4: (len(content) - 2)]
+            print(content[100:])
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     return data
