@@ -56,6 +56,10 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
         process_results.append(f'{read}\t{taxonomy}\t{taxids}\n')
     results[process] = process_results
 
+def convert_centrifuge_dataset():
+    pass
+
+
 # TODO add convert centrifuge data set function
 
 def load_data(args):
@@ -87,7 +91,7 @@ def main():
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
     args = parser.parse_args()
 
-    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset}
+    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_dataset}
     print(args.input_file)
     if args.dataset == 'dl-toda':
         if args.fastq:
