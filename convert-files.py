@@ -56,11 +56,21 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
         process_results.append(f'{read}\t{taxonomy}\t{taxids}\n')
     results[process] = process_results
 
-def convert_centrifuge_dataset(args, data, process, d_nodes, d_names, results):
-    pass
 
+def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
+    # Read ID and tax id needed
+    process_results = []
+    for line in data:
 
-# TODO add convert centrifuge data set function
+        true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
+        taxid = line.rstrip().split('\t')[2]
+        read = line.rstrip().split('\t')[0]
+
+        true_taxonomy = get_dl_toda_taxonomy(args, true_species)
+        _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+        process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+    results[process] = process_results
+
 
 def load_data(args):
     if args.dataset == 'cami':
@@ -92,7 +102,7 @@ def main():
     functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_dataset}
 
     if args.to_ncbi:
-        # get dl_toda ncbi taxonomy 
+        # get dl_toda ncbi taxonomy
         with open(os.path.join(args.ncbi_db, 'dl_toda_ncbi_taxonomy.tsv'), 'r') as in_f:
             content = in_f.readlines()
             args.dl_toda_taxonomy = {}
