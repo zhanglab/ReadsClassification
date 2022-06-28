@@ -126,7 +126,7 @@ def merge_cm(args, all_cm, rank):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, help='file with predicted and ground truth taxonomy')
-    parser.add_argument('--tool', type=str, help='taxonomic classification tool', choices=['kraken', 'dl-toda'])
+    parser.add_argument('--tool', type=str, help='taxonomic classification tool', choices=['kraken', 'dl-toda', 'centrifuge'])
     parser.add_argument('--dataset', type=str, help='dataset ground truth', choices=['cami', 'testing'])
     parser.add_argument('--merge', help='summarized results from all samples combined', action='store_true')
     parser.add_argument('--metrics', help='get metrics from confusion matrix', action='store_true')
