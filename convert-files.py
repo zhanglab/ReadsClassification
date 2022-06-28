@@ -63,7 +63,7 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
     # Read ID and tax id needed
     process_results = []
     for line in data:
-        print(line, " ", len(line))
+        print(line)
 
         true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
         taxid = line.rstrip().split('\t')[2]
