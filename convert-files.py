@@ -101,7 +101,7 @@ def main():
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
     args = parser.parse_args()
 
-    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_dataset}
+    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_output}
 
     if args.to_ncbi:
         # get dl_toda ncbi taxonomy
