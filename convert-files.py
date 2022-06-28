@@ -9,6 +9,8 @@ import multiprocessing as mp
 from ncbi_tax_utils import get_ncbi_taxonomy, parse_nodes_file, parse_names_file
 from dl_toda_tax_utils import get_dl_toda_taxonomy, load_mapping_dict, get_rank_taxa
 
+
+
 def convert_kraken_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     for line in data:
