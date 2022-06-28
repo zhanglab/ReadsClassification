@@ -105,7 +105,7 @@ def main():
 
     if args.to_ncbi:
         # get dl_toda ncbi taxonomy
-        with open(os.path.join(args.dl_toda_tax 'dl_toda_ncbi_taxonomy.tsv'), 'r') as in_f:
+        with open(os.path.join(args.dl_toda_tax, 'dl_toda_ncbi_taxonomy.tsv'), 'r') as in_f:
             content = in_f.readlines()
             args.dl_toda_taxonomy = {}
             for i in range(len(content)):
