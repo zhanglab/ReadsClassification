@@ -101,8 +101,18 @@ def main():
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
     args = parser.parse_args()
 
-    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_output}
-    print(args.input_file)
+    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'cami': convert_cami_dataset, 'centrifuge': convert_centrifuge_dataset}
+
+    if args.to_ncbi:
+        # get dl_toda ncbi taxonomy
+        with open(os.path.join(args.ncbi_db, 'dl_toda_ncbi_taxonomy.tsv'), 'r') as in_f:
+            content = in_f.readlines()
+            args.dl_toda_taxonomy = {}
+            for i in range(len(content)):
+                line = content[i].rstrip().split('\t')
+                args.dl_toda_taxonomy[line[0]] = line[1]
+        get_rank_taxa(args, args.dl_toda_taxonomy)
+
     if args.dataset == 'dl-toda':
         if args.fastq:
             records = list(SeqIO.parse(args.input_file, "fastq"))
@@ -111,14 +121,6 @@ def main():
             data = [reads[i:i + chunk_size] for i in range(0, len(reads), chunk_size)]
         else:
             data = load_data(args)
-
-        if args.to_ncbi:
-            with open(os.path.join(args.ncbi_db, 'dl_toda_ncbi_taxonomy.tsv'), 'r') as in_f:
-                content = in_f.readlines()
-                args.dl_toda_taxonomy = {}
-                for i in range(len(content)):
-                    line = content[i].rstrip().split('\t')
-                    args.dl_toda_taxonomy[line[0]] = line[1]
 
         load_mapping_dict(args, args.dl_toda_tax)
 
