@@ -62,21 +62,18 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
 def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
     # centrifuge output shows multiple possible hits per read, choose hit with best score (first hit)
     process_results = []
-    reads_seen = set()
     number_unclassified = 0
     for line in data:
         read = line.rstrip().split('\t')[0]
-        if read not in reads_seen:
-            taxid = line.rstrip().split('\t')[2]
-            true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
-            true_taxonomy = get_dl_toda_taxonomy(args, true_species)
-            if taxid != '0':
-                _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
-                process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
-            else:
-                process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\t{true_taxonomy}\n')
-                number_unclassified += 1
-            reads_seen.add(read)
+        taxid = line.rstrip().split('\t')[2]
+        true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
+        true_taxonomy = get_dl_toda_taxonomy(args, true_species)
+        if taxid != '0':
+            _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+            process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+        else:
+            process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\t{true_taxonomy}\n')
+            number_unclassified += 1
     print(f'{process}\t{number_unclassified}\t{len(process_results)}')
     results[process] = process_results
 
@@ -91,6 +88,17 @@ def load_data(args):
         content = in_f.readlines()
         if args.dataset == "centrifuge":
             content = content[4: (len(content) - 2)]
+            print(len(content))
+            # take first hit for each read
+            reads_seen = set()
+            parsed_content = []
+            for line in content:
+                read = line.rstrip().split('\t')[0]
+                if read not in reads_seen:
+                    parsed_content.append(line)
+                    reads_seen.add(read)
+            content = parsed_content
+
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     print(f'{chunk_size}\t{len(data)}\t{len(content)}')
