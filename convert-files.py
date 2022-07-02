@@ -60,20 +60,23 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
 
 
 def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
-    # Read ID and tax id needed
+    # centrifuge output shows multiple possible hits per read, choose hit with best score (first hit)
     process_results = []
+    reads_seen = set()
     number_unclassified = 0
     for line in data:
-        true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
-        taxid = line.rstrip().split('\t')[2]
         read = line.rstrip().split('\t')[0]
-        if taxid != '0':
-            # get true and predicted taxonomy
+        if read not in reads_seen:
+            taxid = line.rstrip().split('\t')[2]
+            true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
             true_taxonomy = get_dl_toda_taxonomy(args, true_species)
-            _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
-            process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
-        else:
-            number_unclassified += 1
+            if taxid != '0':
+                _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+                process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+            else:
+                process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\t{true_taxonomy}\n')
+                number_unclassified += 1
+            reads_seen.add(read)
     print(f'{process}\t{number_unclassified}\t{len(process_results)}')
     results[process] = process_results
 
@@ -88,9 +91,9 @@ def load_data(args):
         content = in_f.readlines()
         if args.dataset == "centrifuge":
             content = content[4: (len(content) - 2)]
-            print(f'# reads in centrifuge output: {len(content)}')
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+    print(f'{chunk_size}\t{len(data)}\t{len(content)}')
     return data
 
 
