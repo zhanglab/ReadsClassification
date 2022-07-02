@@ -62,6 +62,7 @@ def convert_cami_dataset(args, data, process, d_nodes, d_names, results):
 def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
     # Read ID and tax id needed
     process_results = []
+    number_unclassified = 0
     for line in data:
         print(line)
 
@@ -71,7 +72,11 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
 
         true_taxonomy = get_dl_toda_taxonomy(args, true_species)
         _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+        if taxid == '0':
+            number_unclassified += 1
+            print(pred_taxonomy, taxid)
         process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+    print(f'{process}\t{number_unclassified}')
     results[process] = process_results
 
 
@@ -85,6 +90,7 @@ def load_data(args):
         content = in_f.readlines()
         if args.dataset == "centrifuge":
             content = content[4: (len(content) - 2)]
+            print(f'# reads in centrifuge output: {len(content)}')
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     return data
