@@ -64,8 +64,6 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     number_unclassified = 0
     for line in data:
-        if process > 22:
-            print(line)
         read = line.rstrip().split('\t')[0]
         taxid = line.rstrip().split('\t')[2]
         true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
@@ -90,15 +88,16 @@ def load_data(args):
         content = in_f.readlines()
         if args.dataset == "centrifuge":
             content = content[4: (len(content) - 2)]
-            print(len(content))
             # take first hit for each read
             reads_seen = set()
             parsed_content = []
             for line in content:
-                read = line.rstrip().split('\t')[0]
-                if read not in reads_seen:
-                    parsed_content.append(line)
-                    reads_seen.add(read)
+                # only consider lines with reads (presence of lines such as: report file /data/zhanglab/cecile_cres/archive/species-dataset-V4/training-data/data/dataset-6/linclust-test-train-1.0-1.0/centrifuge/centrifuge-set-0-report)
+                if 'label' in line:
+                    read = line.rstrip().split('\t')[0]
+                    if read not in reads_seen:
+                        parsed_content.append(line)
+                        reads_seen.add(read)
             content = parsed_content
 
     chunk_size = math.ceil(len(content)/mp.cpu_count())
