@@ -67,14 +67,14 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
         true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
         taxid = line.rstrip().split('\t')[2]
         read = line.rstrip().split('\t')[0]
-        # get true and predicted taxonomy
-        true_taxonomy = get_dl_toda_taxonomy(args, true_species)
-        _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
-        if taxid == '0':
+        if taxid != '0':
+            # get true and predicted taxonomy
+            true_taxonomy = get_dl_toda_taxonomy(args, true_species)
+            _, pred_taxonomy, _ = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+            process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+        else:
             number_unclassified += 1
-            print(pred_taxonomy, taxid)
-        process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
-    print(f'{process}\t{number_unclassified}')
+    print(f'{process}\t{number_unclassified}\t{len(process_results)}')
     results[process] = process_results
 
 
