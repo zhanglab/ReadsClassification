@@ -162,27 +162,27 @@ def main():
     else:
         data = load_data(args)
         # get ncbi taxids info
-        d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
-        d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
-
-        with mp.Manager() as manager:
-            results = manager.dict()
-            processes = [mp.Process(target=functions[args.dataset], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
-            for p in processes:
-                p.start()
-            for p in processes:
-                p.join()
-
-            print(len(results))
-
-            if args.output_dir is not None:
-                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.dataset == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
-                out_f = open(out_filename, 'w')
-            else:
-                out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
-
-            for p in results.keys():
-                out_f.write(''.join(results[p]))
+        # d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
+        # d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
+        #
+        # with mp.Manager() as manager:
+        #     results = manager.dict()
+        #     processes = [mp.Process(target=functions[args.dataset], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
+        #     for p in processes:
+        #         p.start()
+        #     for p in processes:
+        #         p.join()
+        #
+        #     print(len(results))
+        #
+        #     if args.output_dir is not None:
+        #         out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.dataset == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
+        #         out_f = open(out_filename, 'w')
+        #     else:
+        #         out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
+        #
+        #     for p in results.keys():
+        #         out_f.write(''.join(results[p]))
 
 
 
