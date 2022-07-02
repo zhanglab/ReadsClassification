@@ -64,7 +64,8 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     number_unclassified = 0
     for line in data:
-        print(line)
+        if process > 22:
+            print(line)
         read = line.rstrip().split('\t')[0]
         taxid = line.rstrip().split('\t')[2]
         true_species = line.rstrip().split('\t')[0].split('|')[1] # change where it splits
