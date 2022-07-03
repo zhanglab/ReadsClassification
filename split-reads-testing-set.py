@@ -15,6 +15,7 @@ def get_reads(fq_files):
                 elif r.split('\n')[0][-1] == '2':
                     rv_reads[r.split('\n')[0]] = r
     print(f'# fw reads: {len(fw_reads)}\t# rev reads: {len(rv_reads)}')
+    return fw_reads, rv_reads
 
 
 if __name__ == "__main__":
@@ -33,8 +34,8 @@ if __name__ == "__main__":
         subset_rv_reads = [rv_reads[r] for r in reads_id[i:i+num_reads_per_set]]
         print(f'subset: {i}\t{len(subset_fw_reads)}\t{len(subset_rv_reads)}')
         total_num_reads += len(subset_fw_reads) + len(subset_rv_reads)
-        # with open(os.path.join(output_dir, f'fw-updated-testing-set-{i}-reads.fq'), 'w') as out_f:
-        #     out_f.write(''.join(subset_fw_reads))
-        # with open(os.path.join(output_dir, f'rv-updated-testing-set-{i}-reads.fq'), 'w') as out_f:
-        #     out_f.write(''.join(subset_rv_reads))
+        with open(os.path.join(output_dir, f'fw-updated-testing-set-{i}-reads.fq'), 'w') as out_f:
+            out_f.write(''.join(subset_fw_reads))
+        with open(os.path.join(output_dir, f'rv-updated-testing-set-{i}-reads.fq'), 'w') as out_f:
+            out_f.write(''.join(subset_rv_reads))
     print(f'total # reads: {total_num_reads}')
