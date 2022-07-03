@@ -40,7 +40,7 @@ if __name__ == "__main__":
     with mp.Manager() as manager:
         fw_reads = manager.dict()
         rv_reads = manager.dict()
-        processes = [mp.Process(target=get_reads, args=(set_fq_files[i], fw_reads, rv_reads) for i in range(len(seq_fq_files))]
+        processes = [mp.Process(target=get_reads, args=(set_fq_files[i], fw_reads, rv_reads)) for i in range(len(seq_fq_files))]
         for p in processes:
             p.start()
         for p in processes:
