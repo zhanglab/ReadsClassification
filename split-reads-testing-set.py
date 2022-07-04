@@ -18,8 +18,8 @@ def write_reads_to_file(reads, fw_reads, rv_reads, type_of_reads):
     num_reads_per_set = 500000
     total_num_reads = 0
     for i in range(0, len(reads), num_reads_per_set):
-        subset_fw_reads = [fw_reads[r] for r in reads_id[i:i+num_reads_per_set]]
-        subset_rv_reads = [rv_reads[r] for r in reads_id[i:i+num_reads_per_set]]
+        subset_fw_reads = [fw_reads[r] for r in reads[i:i+num_reads_per_set]]
+        subset_rv_reads = [rv_reads[r] for r in reads[i:i+num_reads_per_set]]
         print(f'subset: {i}\t{len(subset_fw_reads)}\t{len(subset_rv_reads)}')
         total_num_reads += len(subset_fw_reads) + len(subset_rv_reads)
         with open(os.path.join(output_dir, f'fw-updated-testing-set-{i}-reads.fq'), 'w') as out_f:
