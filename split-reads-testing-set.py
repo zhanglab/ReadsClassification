@@ -34,7 +34,7 @@ if __name__ == "__main__":
     output_dir = sys.argv[2]
 
     list_fq_files = sorted(glob.glob(os.path.join(input_dir, 'updated-testing-set-*-reads.fq')))
-    chunk_size = 20
+    chunk_size = 10
     set_fq_files = [list_fq_files[i:i+chunk_size] for i in range(0, len(list_fq_files), chunk_size)]
     print(f'{chunk_size}\t{len(set_fq_files)}\t{len(list_fq_files)}')
     with mp.Manager() as manager:
