@@ -41,7 +41,7 @@ def write_unpaired_reads_to_file(reads, fw_reads, rv_reads):
         print(f'subset: {i}\t{len(subset_reads)}')
         total_num_reads += len(subset_reads)
         with open(os.path.join(output_dir, f'unpaired-updated-testing-set-{i}-reads.fq'), 'w') as out_f:
-            out_f.write(''.join(subset_fw_reads))
+            out_f.write(''.join(subset_reads))
     print(f'total # reads: {total_num_reads}')
 
 if __name__ == "__main__":
