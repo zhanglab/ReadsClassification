@@ -87,17 +87,17 @@ def load_data(args):
         in_f = open(args.input_file, 'r')
         content = in_f.readlines()
         if args.dataset == "centrifuge":
-            content = content[4: (len(content) - 2)]
+            content = content[1:]
             # take first hit for each read
             reads_seen = set()
             parsed_content = []
             for line in content:
                 # only consider lines with reads (presence of lines such as: report file /data/zhanglab/cecile_cres/archive/species-dataset-V4/training-data/data/dataset-6/linclust-test-train-1.0-1.0/centrifuge/centrifuge-set-0-report)
-                if 'label' in line:
-                    read = line.rstrip().split('\t')[0]
-                    if read not in reads_seen:
-                        parsed_content.append(line)
-                        reads_seen.add(read)
+                # if 'label' in line:
+                read = line.rstrip().split('\t')[0]
+                if read not in reads_seen:
+                    parsed_content.append(line)
+                    reads_seen.add(read)
             content = parsed_content
 
     chunk_size = math.ceil(len(content)/mp.cpu_count())
@@ -162,27 +162,27 @@ def main():
     else:
         data = load_data(args)
         # get ncbi taxids info
-        # d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
-        # d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
-        #
-        # with mp.Manager() as manager:
-        #     results = manager.dict()
-        #     processes = [mp.Process(target=functions[args.dataset], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
-        #     for p in processes:
-        #         p.start()
-        #     for p in processes:
-        #         p.join()
-        #
-        #     print(len(results))
-        #
-        #     if args.output_dir is not None:
-        #         out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.dataset == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
-        #         out_f = open(out_filename, 'w')
-        #     else:
-        #         out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
-        #
-        #     for p in results.keys():
-        #         out_f.write(''.join(results[p]))
+        d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
+        d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
+
+        with mp.Manager() as manager:
+            results = manager.dict()
+            processes = [mp.Process(target=functions[args.dataset], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
+            for p in processes:
+                p.start()
+            for p in processes:
+                p.join()
+
+            print(len(results))
+
+            if args.output_dir is not None:
+                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.dataset == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
+                out_f = open(out_filename, 'w')
+            else:
+                out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
+
+            for p in results.keys():
+                out_f.write(''.join(results[p]))
 
 
 
