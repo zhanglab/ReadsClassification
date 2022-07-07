@@ -30,7 +30,7 @@ def convert_kraken_output(args, data, process, d_nodes, d_names, results):
 
     results[process] = process_results
 
-def convert_dl_toda_output(args, data, process, results):
+def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     reads = [line.rstrip().split('\t')[0][1:] if line.rstrip().split('\t')[0][0] == "@" else line.rstrip().split('\t')[0] for line in data ]
     pred_species = [line.rstrip().split('\t')[0][2] for line in data]
@@ -110,6 +110,10 @@ def main():
 
     functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output}
 
+    # get ncbi taxids info
+    d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
+    d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
+
     if args.dataset == 'cami':
         args.cami_data = load_cami_data(args)
 
@@ -136,7 +140,7 @@ def main():
 
         with mp.Manager() as manager:
             results = manager.dict()
-            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, results)) for i in range(len(data))]
+            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
             for p in processes:
                 p.start()
             for p in processes:
@@ -152,9 +156,6 @@ def main():
                 out_f.write(''.join(results[p]))
     else:
         data = load_tool_output(args)
-        # get ncbi taxids info
-        d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
-        d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
 
         with mp.Manager() as manager:
             results = manager.dict()
