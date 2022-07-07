@@ -136,7 +136,7 @@ def main():
 
         with mp.Manager() as manager:
             results = manager.dict()
-            processes = [mp.Process(target=functions[args.dataset], args=(args, data[i], i, results)) for i in range(len(data))]
+            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, results)) for i in range(len(data))]
             for p in processes:
                 p.start()
             for p in processes:
@@ -158,7 +158,7 @@ def main():
 
         with mp.Manager() as manager:
             results = manager.dict()
-            processes = [mp.Process(target=functions[args.dataset], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
+            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
             for p in processes:
                 p.start()
             for p in processes:
