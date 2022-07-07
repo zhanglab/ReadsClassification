@@ -112,7 +112,6 @@ def main():
 
     if args.dataset == 'cami':
         args.cami_data = load_cami_data(args)
-        print(args.cami_data)
 
     if args.to_ncbi:
         # get dl_toda ncbi taxonomy
