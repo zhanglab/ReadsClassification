@@ -40,7 +40,7 @@ def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
     else:
         true_taxonomy = [get_dl_toda_taxonomy(args, reads[i].split('|')[1]) for i in range(len(reads))]
 
-    for i in range(pred_species):
+    for i in range(len(pred_species)):
         pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
         process_results.append(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
 
