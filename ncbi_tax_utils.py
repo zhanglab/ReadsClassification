@@ -126,7 +126,7 @@ def get_ncbi_taxonomy(current_taxid, d_nodes, d_names, gtdb_df=None, n_taxon=Non
 
         parent = d_nodes[parent][0]
 
-    return '|'.join(list_taxids), ';'.join(list_taxa), ';'.join(list_ranks)
+    return ';'.join(list_taxa)
 
 def create_ncbi_taxonomy(taxid, ncbi_db_dir, output_dir=None):
     # get ncbi taxids info
