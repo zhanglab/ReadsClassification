@@ -56,7 +56,7 @@ def get_dl_toda_taxonomy(args, species):
         for i in range(1, len(list_ranks), 1):
             rank_taxid = str(args.rank_species_mapping[list_ranks[i]][str(species_id)])
             rank_taxon = args.labels_mapping_dict[list_ranks[i]][str(rank_taxid)]
-            list_taxids.append(rank_taxid)
+            # list_taxids.append(rank_taxid)
             list_taxa.append(rank_taxon)
 
-        return '|'.join(list_taxids), ';'.join(list_taxa), ';'.join(list_ranks)
+        return ';'.join(list_taxa)
