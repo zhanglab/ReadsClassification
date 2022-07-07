@@ -69,7 +69,7 @@ def load_cami_data(args):
     in_f = gzip.open(os.path.join(args.cami_path, 'reads_mapping.tsv.gz'), 'rb')
     content = in_f.readlines()
     # create dictionary mapping reads id to ncbi taxid
-    data = {content[1:][i].rstrip().split('\t')[0]: content[1:][i].rstrip().split('\t')[2] for i in range(len(content[1:]))}
+    data = {line.rstrip().split('\t')[0]: line[i].rstrip().split('\t')[2] for line in content[1:]}
 
     return data
 
