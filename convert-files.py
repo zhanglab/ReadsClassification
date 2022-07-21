@@ -65,6 +65,11 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
             number_unclassified += 1
     results[process] = process_results
 
+def convert_metaphlan_output():
+    pass
+
+
+
 def load_cami_data(args):
     in_f = gzip.open(os.path.join(args.cami_path, 'reads_mapping.tsv.gz'), 'rb')
     content = in_f.readlines()
@@ -73,22 +78,29 @@ def load_cami_data(args):
 
     return data
 
-def load_tool_output(args):
-    in_f = open(args.input_file, 'r')
-    content = in_f.readlines()
-    if args.tool == "centrifuge":
-        # parse output of centrifuge to only take the first hit for each read
-        content = content[1:]
-        reads_seen = set()
-        parsed_content = []
-        for line in content:
-            read = line.rstrip().split('\t')[0]
-            if read not in reads_seen:
-                parsed_content.append(line)
-                reads_seen.add(read)
-        content = parsed_content
 
+def load_tool_output(args):
+    # args is a generic variable allowing for multiple variables to be given to the function
+    in_f = open(args.input_file, 'r')  # opens the file so we can read it
+    content = in_f.readlines()         # sets an array named content to hold each line of the input file
+    if args.tool == "centrifuge":      # checks if args.tool is equal to centrifuge
+        # parse output of centrifuge to only take the first hit for each read
+        content = content[1:]  # ignores the first line of the input file
+        reads_seen = set()     # creates an empty set named reads seen. Sets can not contain duplicate values
+        parsed_content = []    # creates an empty list named parsed_content
+        for line in content:   # for loop that reads each line of the content list
+            # first rstrip() gets rid of the trailing characters, and split('\t') creates a list based on the line variable
+            # that is split by tabs. Then we choose the first word that is contained in this new array.
+            read = line.rstrip().split('\t')[0]
+            if read not in reads_seen:   # checks to see if read is in the reads_seen array
+                parsed_content.append(line)  # adds the line variable to the parsed content array
+                reads_seen.add(read)     # adds the read variable to the reads_seen set.
+        content = parsed_content   # sets the content array to the value of parsed content
+
+    # chunk_size is an integer used set the length of the sub-arrays
+    # that will be used for multi-processing.
     chunk_size = math.ceil(len(content)/mp.cpu_count())
+    # data is a list of lists. The lists in data are the sub arrays of content. This is necessary for multiprocessing.
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
 
     return data
@@ -99,7 +111,7 @@ def main():
     parser.add_argument('--input_file', type=str, help='path to file to convert')
     parser.add_argument('--output_dir', type=str, help='path to output directory')
     parser.add_argument('--fastq', action='store_true', help='type of data to parse', default=False)
-    parser.add_argument('--tool', type=str, help='type of dataset to convert', choices=['kraken', 'dl-toda', 'centrifuge'])
+    parser.add_argument('--tool', type=str, help='type of dataset to convert', choices=['kraken', 'dl-toda', 'centrifuge', 'metaphlan'])
     parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami'])
     parser.add_argument('--ncbi_db', help='path to directory containing ncbi taxonomy database')
     parser.add_argument('--cami_path', help='path to cami reads_mapping.tsv.gz file', required=('cami' in sys.argv))
@@ -108,7 +120,7 @@ def main():
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
     args = parser.parse_args()
 
-    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output}
+    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output, 'metaphlan': convert_metaphlan_output}
 
     # get ncbi taxids info
     d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
