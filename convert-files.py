@@ -86,16 +86,17 @@ def load_tool_output(args):
     if args.tool == "centrifuge":      # checks if args.tool is equal to centrifuge
         # parse output of centrifuge to only take the first hit for each read
         content = content[1:]  # ignores the first line of the input file
-        reads_seen = set()     # creates an empty set named reads seen. Sets can not contain duplicate values
-        parsed_content = []    # creates an empty list named parsed_content
+        # reads_seen = set()     # creates an empty set named reads seen. Sets can not contain duplicate values
+        parsed_content = defaultdict(list)    # creates an empty list named parsed_content
         for line in content:   # for loop that reads each line of the content list
             # first rstrip() gets rid of the trailing characters, and split('\t') creates a list based on the line variable
             # that is split by tabs. Then we choose the first word that is contained in this new array.
             read = line.rstrip().split('\t')[0]
-            if read not in reads_seen:   # checks to see if read is in the reads_seen array
-                parsed_content.append(line)  # adds the line variable to the parsed content array
-                reads_seen.add(read)     # adds the read variable to the reads_seen set.
-        content = parsed_content   # sets the content array to the value of parsed content
+            parsed_content[read].append(line)
+            # if read not in reads_seen:   # checks to see if read is in the reads_seen array
+                # parsed_content.append(line)  # adds the line variable to the parsed content array
+                # reads_seen.add(read)     # adds the read variable to the reads_seen set.
+        content = [v[0] if len(v) == 1 else '\t'.join(v[0].rstrip().split('\t')[0], '' ,'0') for k, v in parsed_content.items()]   # sets the content array to the value of parsed content
 
     # chunk_size is an integer used set the length of the sub-arrays
     # that will be used for multi-processing.
