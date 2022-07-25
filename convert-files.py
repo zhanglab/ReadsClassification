@@ -96,7 +96,7 @@ def load_tool_output(args):
             # if read not in reads_seen:   # checks to see if read is in the reads_seen array
                 # parsed_content.append(line)  # adds the line variable to the parsed content array
                 # reads_seen.add(read)     # adds the read variable to the reads_seen set.
-        content = [v[0] if len(v) == 1 else '\t'.join(v[0].rstrip().split('\t')[0], '' ,'0') for k, v in parsed_content.items()]   # sets the content array to the value of parsed content
+        content = [v[0] if len(v) == 1 else '\t'.join([v[0].rstrip().split('\t')[0], '' ,'0']) for k, v in parsed_content.items()]   # sets the content array to the value of parsed content
 
     # chunk_size is an integer used set the length of the sub-arrays
     # that will be used for multi-processing.
