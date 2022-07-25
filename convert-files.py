@@ -65,8 +65,15 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
             number_unclassified += 1
     results[process] = process_results
 
-def convert_metaphlan_output():
+# returns a dictionary with gene ID as key and the taxonomy as the value
+
+
+def parse_metaphlan_database():
     pass
+
+def convert_metaphlan_output(args, data, process, d_nodes, d_names, results):
+    process_results = []
+    number_unclassified = 0
 
 
 
@@ -118,6 +125,9 @@ def main():
     parser.add_argument('--dl_toda_tax', help='path to directory containing json directories with info on taxa present in dl-toda', required=('dl-toda' in sys.argv))
     parser.add_argument('--tax_db', help='type of taxonomy database used in DL-TODA', choices=['ncbi', 'gtdb'])
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
+    parser.add_argument('--metaphlan_db',
+                        help='path to directory containing metaphlan database file called mpa_v30_CHOCOPhlAn_201901.fna',
+                        required=('metaphlan' in sys.argv))
     args = parser.parse_args()
 
     functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output, 'metaphlan': convert_metaphlan_output}
@@ -185,10 +195,6 @@ def main():
 
             for p in results.keys():
                 out_f.write(''.join(results[p]))
-
-
-
-
 
 
 if __name__ == "__main__":
