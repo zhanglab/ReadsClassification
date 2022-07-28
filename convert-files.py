@@ -68,12 +68,39 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
 # returns a dictionary with gene ID as key and the taxonomy as the value
 
 
-def parse_metaphlan_database():
-    pass
+def parse_metaphlan_database(file_path):
+    parse_dict = {}
+    with open(file_path, 'r') as f:
+        for line in f:
+            if line[0] == '>':
+                temp = line.split("\t")
+                if len(temp) < 2:
+                    taxonomy = 'na'
+                else:
+                    temp[1] = taxonomy = taxonomy.split(';')
+                    taxonomy = taxonomy[1][::-1]
 
-def convert_metaphlan_output(args, data, process, d_nodes, d_names, results):
+                parse_dict[temp[0]] = 'na' + taxonomy
+    return parse_dict
+
+
+
+
+def convert_metaphlan_output(args, data, process, db_dict, results):
     process_results = []
-    number_unclassified = 0
+    for line in data:
+        read = line.rstrip().split('\t')[0]
+        gene_id = line.rstrip().split('\t')[1]
+        if args.dataset == 'cami':
+            true_taxonomy = get_ncbi_taxonomy(args.cami_data[read], db_dict)
+        else:
+            true_taxonomy = get_dl_toda_taxonomy(args, read.split('|')[1])
+        if taxid != '0':
+            pred_taxonomy = db_dict[gene_id]
+            process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+        else:
+            process_results.append(f'{read}\t{";".join(["unclassified"] * 7)}\t{true_taxonomy}\n')
+    results[process] = process_results
 
 
 
@@ -137,6 +164,7 @@ def main():
     d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
     d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
 
+
     if args.dataset == 'cami':
         args.cami_data = load_cami_data(args)
 
@@ -180,9 +208,16 @@ def main():
     else:
         data = load_tool_output(args)
 
+
+
         with mp.Manager() as manager:
             results = manager.dict()
-            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
+            if args.tool == "metaphlan":
+                db_dict = parse_metaphlan_database()
+                processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, db_dict, results)) for i in range(len(data))]
+            else:
+                processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results))
+                             for i in range(len(data))]
             for p in processes:
                 p.start()
             for p in processes:
