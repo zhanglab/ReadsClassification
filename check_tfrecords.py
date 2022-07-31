@@ -90,6 +90,8 @@ def main():
     parser.add_argument('--num_val_samples', type=int, help='number of reads in validation set')
     args = parser.parse_args()
 
+    VECTOR_SIZE = 250 - 12 + 1
+
     # Get training and validation tfrecords
     train_files = sorted(glob.glob(os.path.join(args.tfrecords, 'train*.tfrec')))
     train_idx_files = sorted(glob.glob(os.path.join(args.idx_files, 'train*.idx')))
