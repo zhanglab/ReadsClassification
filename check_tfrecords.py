@@ -16,6 +16,7 @@ import math
 import io
 import random
 import argparse
+from collections import defaultdict
 
 
 # disable eager execution
@@ -111,10 +112,32 @@ def main():
     train_input = train_preprocessor.get_device_dataset()
     val_input = val_preprocessor.get_device_dataset()
 
+    train_labels_count = defaultdict(int)
+    val_labels_count = defaultdict(int)
+
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch), 1):
-        print(reads.numpy())
-        print(labels.numpy())
-        break
+        if hvd.rank() == 0:
+            print(reads.numpy()[0])
+            print(labels.numpy())
+        for l in labels.numpy():
+            train_labels_count[l] += 1
+
+    for batch, (reads, labels) in enumerate(val_input.take(val_steps), 1):
+        if hvd.rank() == 0:
+            print(reads.numpy()[0])
+            print(labels.numpy())
+        for l in labels.numpy():
+            val_labels_count[l] += 1
+
+    with open(os.path.join(args.output_dir, 'train_read_count'), 'w') as out_f:
+        for k, v in train_labels_count.items():
+            out_f.write(f'{k}\t{v}\n')
+
+    with open(os.path.join(args.output_dir, 'val_read_count'), 'w') as out_f:
+        for k, v in val_labels_count.items():
+            out_f.write(f'{k}\t{v}\n')
+
+
 
 
 
