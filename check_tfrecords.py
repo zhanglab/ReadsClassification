@@ -112,7 +112,9 @@ def main():
     val_input = val_preprocessor.get_device_dataset()
 
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch), 1):
-        print(reads, labels)
+        print(reads.numpy())
+        print(labels.numpy())
+        break
 
 
 
