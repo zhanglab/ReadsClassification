@@ -65,9 +65,26 @@ def convert_centrifuge_output(args, data, process, d_nodes, d_names, results):
             number_unclassified += 1
     results[process] = process_results
 
+def convert_diamond_output(args, data, process, d_nodes, d_names, results):
+    # centrifuge output shows multiple possible hits per read, choose hit with best score (first hit)
+    process_results = []
+    number_unclassified = 0
+    for line in data:
+        read = line.rstrip().split('\t')[0]
+        taxid = line.rstrip().split('\t')[-1]
+        if args.dataset == 'cami':
+            true_taxonomy = get_ncbi_taxonomy(args.cami_data[read], d_nodes, d_names)
+        else:
+            true_taxonomy = get_dl_toda_taxonomy(args, read.split('|')[1])
+        if taxid != '0':
+            pred_taxonomy = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+            process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+        else:
+            process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\t{true_taxonomy}\n')
+            number_unclassified += 1
+    results[process] = process_results
+
 # returns a dictionary with gene ID as key and the taxonomy as the value
-
-
 def parse_metaphlan_database(file_path):
     parse_dict = {}
     with open(file_path, 'r') as f:
@@ -82,9 +99,6 @@ def parse_metaphlan_database(file_path):
 
                 parse_dict[temp[0]] = 'na' + taxonomy
     return parse_dict
-
-
-
 
 def convert_metaphlan_output(args, data, process, db_dict, results):
     process_results = []
@@ -131,6 +145,16 @@ def load_tool_output(args):
                 # parsed_content.append(line)  # adds the line variable to the parsed content array
                 # reads_seen.add(read)     # adds the read variable to the reads_seen set.
         content = [v[0] if len(v) == 1 else '\t'.join([v[0].rstrip().split('\t')[0], '' ,'0']) for k, v in parsed_content.items()]   # sets the content array to the value of parsed content
+    if args.tool == 'diamond':
+        content = content[3:]
+        reads_seen = set()
+        parsed_content = []
+        for line in content:
+            read = line.rstrip().split('\t')[0]
+            if read not in reads_seen:
+                parsed_content.append(line)
+                reads_seen.add(read)
+        content = parsed_content
 
     # chunk_size is an integer used set the length of the sub-arrays
     # that will be used for multi-processing.
@@ -146,7 +170,7 @@ def main():
     parser.add_argument('--input_file', type=str, help='path to file to convert')
     parser.add_argument('--output_dir', type=str, help='path to output directory')
     parser.add_argument('--fastq', action='store_true', help='type of data to parse', default=False)
-    parser.add_argument('--tool', type=str, help='type of dataset to convert', choices=['kraken', 'dl-toda', 'centrifuge', 'metaphlan'])
+    parser.add_argument('--tool', type=str, help='type of dataset to convert', choices=['kraken', 'dl-toda', 'centrifuge', 'metaphlan', 'diamond'])
     parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami'])
     parser.add_argument('--ncbi_db', help='path to directory containing ncbi taxonomy database')
     parser.add_argument('--cami_path', help='path to cami reads_mapping.tsv.gz file', required=('cami' in sys.argv))
@@ -158,7 +182,7 @@ def main():
                         required=('metaphlan' in sys.argv))
     args = parser.parse_args()
 
-    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output, 'metaphlan': convert_metaphlan_output}
+    functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output, 'metaphlan': convert_metaphlan_output, 'diamond': convert_diamond_output}
 
     # get ncbi taxids info
     d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
@@ -207,8 +231,6 @@ def main():
                 out_f.write(''.join(results[p]))
     else:
         data = load_tool_output(args)
-
-
 
         with mp.Manager() as manager:
             results = manager.dict()
