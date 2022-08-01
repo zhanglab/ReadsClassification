@@ -129,11 +129,11 @@ def main():
         for l in labels.numpy():
             val_labels_count[l] += 1
 
-    with open(os.path.join(args.output_dir, 'train_read_count'), 'w') as out_f:
+    with open(os.path.join(args.output_dir, f'train_read_count_{hvd.rank()}'), 'w') as out_f:
         for k, v in train_labels_count.items():
             out_f.write(f'{k}\t{v}\n')
 
-    with open(os.path.join(args.output_dir, 'val_read_count'), 'w') as out_f:
+    with open(os.path.join(args.output_dir, f'val_read_count_{hvd.rank()}'), 'w') as out_f:
         for k, v in val_labels_count.items():
             out_f.write(f'{k}\t{v}\n')
 
