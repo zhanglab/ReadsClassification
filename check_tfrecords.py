@@ -99,15 +99,15 @@ def main():
     val_files = sorted(glob.glob(os.path.join(args.tfrecords, 'val*.tfrec')))
     val_idx_files = sorted(glob.glob(os.path.join(args.idx_files, 'val*.idx')))
     # compute number of steps/batches per epoch
-    nstep_per_epoch = args.num_train_samples // (args.batch_size*hvd.size())
+    nstep_per_epoch = math.ceil(args.num_train_samples/args.batch_size)
     # compute number of steps/batches to iterate over entire validation set
-    val_steps = args.num_val_samples // (args.batch_size*hvd.size())
+    val_steps = math.ceil(args.num_val_samples/args.batch_size)
 
     num_preprocessing_threads = 4
     train_preprocessor = DALIPreprocessor(train_files, train_idx_files, args.batch_size, num_preprocessing_threads, VECTOR_SIZE,
-                                          dali_cpu=True, deterministic=False, training=False)
+                                          dali_cpu=True, deterministic=False, training=True)
     val_preprocessor = DALIPreprocessor(val_files, val_idx_files, args.batch_size, num_preprocessing_threads, VECTOR_SIZE, dali_cpu=True,
-                                        deterministic=False, training=False)
+                                        deterministic=False, training=True)
 
     train_input = train_preprocessor.get_device_dataset()
     val_input = val_preprocessor.get_device_dataset()
@@ -115,13 +115,21 @@ def main():
     train_labels_count = defaultdict(int)
     val_labels_count = defaultdict(int)
 
+    num_train_reads = 0
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch), 1):
         for l in labels.numpy():
             train_labels_count[l] += 1
+            num_train_reads += 1
+            if num_train_reads == args.num_train_samples:
+                break
 
+    num_val_reads = 0
     for batch, (reads, labels) in enumerate(val_input.take(val_steps), 1):
         for l in labels.numpy():
             val_labels_count[l] += 1
+            num_val_reads += 1
+            if num_val_reads == args.num_val_samples:
+                break
 
     with open(os.path.join(args.output_dir, f'train_read_count_{hvd.rank()}'), 'w') as out_f:
         for k, v in train_labels_count.items():
@@ -130,6 +138,8 @@ def main():
     with open(os.path.join(args.output_dir, f'val_read_count_{hvd.rank()}'), 'w') as out_f:
         for k, v in val_labels_count.items():
             out_f.write(f'{k}\t{v}\n')
+
+
 
 
 
