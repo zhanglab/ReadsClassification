@@ -116,16 +116,10 @@ def main():
     val_labels_count = defaultdict(int)
 
     for batch, (reads, labels) in enumerate(train_input.take(nstep_per_epoch), 1):
-        if hvd.rank() == 0:
-            print(reads.numpy()[0])
-            print(labels.numpy())
         for l in labels.numpy():
             train_labels_count[l] += 1
 
     for batch, (reads, labels) in enumerate(val_input.take(val_steps), 1):
-        if hvd.rank() == 0:
-            print(reads.numpy()[0])
-            print(labels.numpy())
         for l in labels.numpy():
             val_labels_count[l] += 1
 
