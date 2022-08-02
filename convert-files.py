@@ -171,7 +171,7 @@ def main():
     parser.add_argument('--output_dir', type=str, help='path to output directory')
     parser.add_argument('--fastq', action='store_true', help='type of data to parse', default=False)
     parser.add_argument('--tool', type=str, help='type of dataset to convert', choices=['kraken', 'dl-toda', 'centrifuge', 'metaphlan', 'diamond'])
-    parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami'])
+    parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami', 'meta'])
     parser.add_argument('--ncbi_db', help='path to directory containing ncbi taxonomy database')
     parser.add_argument('--cami_path', help='path to cami reads_mapping.tsv.gz file', required=('cami' in sys.argv))
     parser.add_argument('--dl_toda_tax', help='path to directory containing json directories with info on taxa present in dl-toda', required=('dl-toda' in sys.argv))
@@ -246,7 +246,7 @@ def main():
                 p.join()
 
             if args.output_dir is not None:
-                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.dataset == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
+                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.tool == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
                 out_f = open(out_filename, 'w')
             else:
                 out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
