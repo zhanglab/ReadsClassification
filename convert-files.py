@@ -44,7 +44,7 @@ def convert_kraken_output(args, data, process, d_nodes, d_names, results):
 def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     reads = [line.rstrip().split('\t')[0][1:] if line.rstrip().split('\t')[0][0] == "@" else line.rstrip().split('\t')[0] for line in data ]
-    pred_species = [line.rstrip().split('\t')[1]] for line in data] if args.dataset == 'meta' else [line.rstrip().split('\t')[0][2] for line in data]
+    pred_species = [line.rstrip().split('\t')[1] for line in data] if args.dataset == 'meta' else [line.rstrip().split('\t')[0][2] for line in data]
     if args.dataset == 'meta':
         probs = [float(line.rstrip().split('\t')[2]) for line in data]
         for i in range(len(pred_species)):
