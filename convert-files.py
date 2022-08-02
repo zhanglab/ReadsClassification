@@ -193,7 +193,7 @@ def main():
     parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami', 'meta'])
     parser.add_argument('--ncbi_db', help='path to directory containing ncbi taxonomy database')
     parser.add_argument('--cami_path', help='path to cami reads_mapping.tsv.gz file', required=('cami' in sys.argv))
-    parser.add_argument('--cutoff', type=float(), help='confidence score cutoff above which reads are considered as classified', required=('dl-toda' in sys.argv), default=0.0)
+    parser.add_argument('--cutoff', type=float, help='confidence score cutoff above which reads are considered as classified', required=('dl-toda' in sys.argv), default=0.0)
     parser.add_argument('--dl_toda_tax', help='path to directory containing json directories with info on taxa present in dl-toda', required=('dl-toda' in sys.argv))
     parser.add_argument('--tax_db', help='type of taxonomy database used in DL-TODA', choices=['ncbi', 'gtdb'])
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
