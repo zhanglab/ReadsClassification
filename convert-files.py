@@ -44,16 +44,24 @@ def convert_kraken_output(args, data, process, d_nodes, d_names, results):
 def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     reads = [line.rstrip().split('\t')[0][1:] if line.rstrip().split('\t')[0][0] == "@" else line.rstrip().split('\t')[0] for line in data ]
-    pred_species = [line.rstrip().split('\t')[0][2] for line in data]
-
-    if args.dataset == 'cami':
-        true_taxonomy = [get_ncbi_taxonomy(args.cami_data[reads[i]], d_nodes, d_names) for i in range(len(reads))]
+    pred_species = [line.rstrip().split('\t')[1]] for line in data] if args.dataset == 'meta' else [line.rstrip().split('\t')[0][2] for line in data]
+    if args.dataset == 'meta':
+        probs = [float(line.rstrip().split('\t')[2]) for line in data]
+        for i in range(len(pred_species)):
+            if probs[i] > args.cutoff:
+                pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
+                process_results.append(f'{reads[i]}\t{pred_taxonomy}\n')
+            else:
+                process_results.append(f'{read}\t{";".join(["unclassified"]*7)}')
     else:
-        true_taxonomy = [get_dl_toda_taxonomy(args, reads[i].split('|')[1]) for i in range(len(reads))]
+        if args.dataset == 'cami':
+            true_taxonomy = [get_ncbi_taxonomy(args.cami_data[reads[i]], d_nodes, d_names) for i in range(len(reads))]
+        else:
+            true_taxonomy = [get_dl_toda_taxonomy(args, reads[i].split('|')[1]) for i in range(len(reads))]
 
-    for i in range(len(pred_species)):
-        pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
-        process_results.append(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
+        for i in range(len(pred_species)):
+            pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
+            process_results.append(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
 
     results[process] = process_results
 
@@ -185,6 +193,7 @@ def main():
     parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami', 'meta'])
     parser.add_argument('--ncbi_db', help='path to directory containing ncbi taxonomy database')
     parser.add_argument('--cami_path', help='path to cami reads_mapping.tsv.gz file', required=('cami' in sys.argv))
+    parser.add_argument('--cutoff', type=float(), help='confidence score cutoff above which reads are considered as classified', required=('dl-toda' in sys.argv), default=0.0)
     parser.add_argument('--dl_toda_tax', help='path to directory containing json directories with info on taxa present in dl-toda', required=('dl-toda' in sys.argv))
     parser.add_argument('--tax_db', help='type of taxonomy database used in DL-TODA', choices=['ncbi', 'gtdb'])
     parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
