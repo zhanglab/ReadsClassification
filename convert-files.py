@@ -14,19 +14,30 @@ def convert_kraken_output(args, data, process, d_nodes, d_names, results):
     for line in data:
         line = line.rstrip().split('\t')
         read = line[1]
-        if args.dataset == 'cami':
-            true_taxonomy = get_ncbi_taxonomy(args.cami_data[read], d_nodes, d_names)
+        if args.dataset == 'meta':
+            if line[0] == 'U':
+                process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\n')
+            else:
+                # get ncbi taxid of predicted taxon
+                taxid_index = line[2].find('taxid')
+                taxid = line[2][taxid_index+6:-1]
+                # get ncbi taxonomy
+                pred_taxonomy = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+                process_results.append(f'{read}\t{pred_taxonomy}\n')
         else:
-            true_taxonomy = get_dl_toda_taxonomy(args, read.split('|')[1])
-        if line[0] == 'U':
-            process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\t{true_taxonomy}\n')
-        else:
-            # get ncbi taxid of predicted taxon
-            taxid_index = line[2].find('taxid')
-            taxid = line[2][taxid_index+6:-1]
-            # get ncbi taxonomy
-            pred_taxonomy = get_ncbi_taxonomy(taxid, d_nodes, d_names)
-            process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
+            if args.dataset == 'cami':
+                true_taxonomy = get_ncbi_taxonomy(args.cami_data[read], d_nodes, d_names)
+            else:
+                true_taxonomy = get_dl_toda_taxonomy(args, read.split('|')[1])
+            if line[0] == 'U':
+                process_results.append(f'{read}\t{";".join(["unclassified"]*7)}\t{true_taxonomy}\n')
+            else:
+                # get ncbi taxid of predicted taxon
+                taxid_index = line[2].find('taxid')
+                taxid = line[2][taxid_index+6:-1]
+                # get ncbi taxonomy
+                pred_taxonomy = get_ncbi_taxonomy(taxid, d_nodes, d_names)
+                process_results.append(f'{read}\t{pred_taxonomy}\t{true_taxonomy}\n')
 
     results[process] = process_results
 
