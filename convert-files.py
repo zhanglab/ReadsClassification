@@ -274,7 +274,9 @@ def main():
                 out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
 
             num_reads = 0
+            print(f'{num_reads}\t{len(results)}')
             for p in results.keys():
+                print(f'{p}\t{len(results[p])}')
                 num_reads += len(results[p])
                 out_f.write(''.join(results[p]))
             print(f'# reads: {num_reads}')
