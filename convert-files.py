@@ -52,7 +52,7 @@ def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
                 pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
                 process_results.append(f'{reads[i]}\t{pred_taxonomy}\n')
             else:
-                process_results.append(f'{reads[i]}\t{";".join(["unclassified"]*7)}')
+                process_results.append(f'{reads[i]}\t{";".join(["unclassified"]*7)}\n')
     else:
         if args.dataset == 'cami':
             true_taxonomy = [get_ncbi_taxonomy(args.cami_data[reads[i]], d_nodes, d_names) for i in range(len(reads))]
@@ -180,6 +180,8 @@ def load_tool_output(args):
     chunk_size = math.ceil(len(content)/mp.cpu_count())
     # data is a list of lists. The lists in data are the sub arrays of content. This is necessary for multiprocessing.
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
+    num_reads = [len(i) for i in data]
+    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}')
 
     return data
 
@@ -271,9 +273,11 @@ def main():
             else:
                 out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
 
+            num_reads = 0
             for p in results.keys():
+                num_reads += len(results[p])
                 out_f.write(''.join(results[p]))
-
+            print(f'# reads: {num_reads}')
 
 if __name__ == "__main__":
     main()
