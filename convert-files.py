@@ -2,6 +2,7 @@ import argparse
 import sys
 import os
 import gzip
+import glob
 import math
 from Bio import SeqIO
 from collections import defaultdict
@@ -45,14 +46,18 @@ def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     reads = [line.rstrip().split('\t')[0][1:] if line.rstrip().split('\t')[0][0] == "@" else line.rstrip().split('\t')[0] for line in data ]
     pred_species = [line.rstrip().split('\t')[2] for line in data] if args.dataset == 'meta' else [line.rstrip().split('\t')[0][2] for line in data]
+
     if args.dataset == 'meta':
         probs = [float(line.rstrip().split('\t')[2]) for line in data]
+        print(len(data), len(probs), len(reads), len(pred_species))
         for i in range(len(pred_species)):
             if probs[i] > args.cutoff:
                 pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
                 process_results.append(f'{reads[i]}\t{pred_taxonomy}\n')
+                # out_f.write(f'{reads[i]}\t{pred_taxonomy}\n')
             else:
                 process_results.append(f'{reads[i]}\t{";".join(["unclassified"]*7)}\n')
+                # out_f.write(f'{reads[i]}\t{";".join(["unclassified"]*7)}\n')
     else:
         if args.dataset == 'cami':
             true_taxonomy = [get_ncbi_taxonomy(args.cami_data[reads[i]], d_nodes, d_names) for i in range(len(reads))]
@@ -62,6 +67,7 @@ def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
         for i in range(len(pred_species)):
             pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
             process_results.append(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
+            # out_f.write(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
 
     results[process] = process_results
 
@@ -181,7 +187,7 @@ def load_tool_output(args):
     # data is a list of lists. The lists in data are the sub arrays of content. This is necessary for multiprocessing.
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     num_reads = [len(i) for i in data]
-    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}')
+    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}\t{len(data[-1])}')
 
     return data
 
@@ -249,10 +255,22 @@ def main():
                 out_filename = f'{args.input_file[:-3]}-{args.tax_db}-cnvd' if args.fastq else f'{args.input_file[:-4]}-{args.tax_db}-cnvd'
 
             out_f = open(out_filename, 'w')
+            num_reads = 0
+            print(f'{num_reads}\t{len(results)}')
             for p in results.keys():
+                print(f'{p}\t{len(results[p])}')
+                num_reads += len(results[p])
                 out_f.write(''.join(results[p]))
+            print(f'# reads: {num_reads}')
     else:
         data = load_tool_output(args)
+
+        if args.output_dir is not None:
+            out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.tool == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
+            # out_f = open(out_filename, 'w')
+        else:
+            # out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
+            out_filename = f'{args.input_file}-{args.tax_db}-cnvd'
 
         with mp.Manager() as manager:
             results = manager.dict()
@@ -267,11 +285,6 @@ def main():
             for p in processes:
                 p.join()
 
-            if args.output_dir is not None:
-                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-2]}-{args.tax_db}-cnvd') if args.tool == 'kraken' else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1]}-{args.tax_db}-cnvd')
-                out_f = open(out_filename, 'w')
-            else:
-                out_f = open(f'{args.input_file}-{args.tax_db}-cnvd', 'w')
 
             num_reads = 0
             print(f'{num_reads}\t{len(results)}')
