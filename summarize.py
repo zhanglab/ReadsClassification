@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--tpr', type=float, help='desired true positive rate (number between 0 and 1)', required=('--roc' in sys.argv), default=0.9)
     parser.add_argument('--rank_mapping_dir', type=str, help='path to json files containing dictionaries mapping taxa to labels', required=True)
     parser.add_argument('--thresholds_dir', type=str, help='path to directory containing decision thresholds at every taxonomic level', required=('--meta' in sys.argv))
-    parser.add_argument('--roc', help='option to generate decision thresholds with ROC curves', action='store_true', required=('sim' in sys.argv))
+    parser.add_argument('--roc', help='option to generate decision thresholds with ROC curves', action='store_true')
     args = parser.parse_args()
 
     args.NUM_CPUS = mp.cpu_count()
@@ -43,11 +43,17 @@ def main():
             # get predictions and ground truth at species level
             with mp.Manager() as manager:
                 confusion_matrices = manager.dict()
-                pool = mp.pool.ThreadPool(args.NUM_CPUS)
-                results = pool.starmap(get_metrics, zip(itertools.repeat(args, len(args.ranks)), itertools.repeat(true_species, len(args.ranks)),
-                itertools.repeat(pred_species, len(args.ranks)), itertools.repeat(confusion_matrices, len(args.ranks)), args.ranks))
-                pool.close()
-                pool.join()
+            #     pool = mp.pool.ThreadPool(args.NUM_CPUS)
+            #     results = pool.starmap(get_metrics, zip(itertools.repeat(args, len(args.ranks)), itertools.repeat(true_species, len(args.ranks)),
+            #     itertools.repeat(pred_species, len(args.ranks)), itertools.repeat(confusion_matrices, len(args.ranks)), args.ranks))
+            #     pool.close()
+            #     pool.join()
+                # Create new processes
+                processes = [mp.Process(target=get_metrics, args=(args, true_species, pred_species, confusion_matrices, rank)) for rank in args.ranks]
+                for p in processes:
+                    p.start()
+                for p in processes:
+                    p.join()
 
                 outfile = os.path.join(args.input_dir, f'dl-toda-testing-dataset-cm.xlsx')
                 with pd.ExcelWriter(outfile) as writer:
