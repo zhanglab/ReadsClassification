@@ -196,10 +196,10 @@ def main():
                     r_cm.to_excel(writer, sheet_name=f'{r_name}')
 
     elif args.metrics:
-        cm = pd.read_excel(os.path.join(args.input_dir, f'{args.tool}-all-reads-{args.tax_db}.xlsx'), index_col=0, sheet_name=None)
+        cm = pd.read_excel(os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-all-reads-{args.tax_db}.xlsx'), index_col=0, sheet_name=None)
         for r in args.ranks:
             if r in cm.keys():
-                out_filename = os.path.join(args.input_dir, f'{args.tool}-{args.tax_db}-w-zeros') if args.zeros else os.path.join(args.input_dir, f'{args.tool}-{args.tax_db}-wo-zeros')
+                out_filename = os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-{args.tax_db}-w-zeros') if args.zeros else os.path.join(args.input_dir, f'{args.tool}-{args.tax_db}-wo-zeros')
                 get_metrics(args, cm[r], r, out_filename)
 
     elif args.confusion_matrix:
