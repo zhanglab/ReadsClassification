@@ -8,7 +8,17 @@ import multiprocessing as mp
 from collections import defaultdict
 from dl_toda_tax_utils import load_mapping_dict, get_rank_taxa
 
-def load_data(filename):
+def load_conf_scores(filename):
+    c_scores = {}
+    with open(f'{filename[:-10]}.tsv', 'r') as in_f:
+        for line in in_f:
+            read_id = line.rstrip().split('\t')[0]
+            read_id = read_id[2:] if read_id[1] == '@' else read_id[1:]
+            c_scores[read_id] = float(line.rstrip().split('\t')[3])
+
+    return c_scores
+
+def load_cnvd_data(filename):
     ground_truth = {}
     predictions = {}
     with open(filename, 'r') as in_f:
@@ -21,10 +31,13 @@ def load_data(filename):
 
     return ground_truth, predictions
 
-def get_confusion_matrix(args, ground_truth, predictions, r_name, r_index):
+def get_confusion_matrix(args, ground_truth, predictions, confidence_scores, r_name, r_index):
     ground_truth_taxa = set([v.split(';')[r_index] for v in ground_truth.values()])
     predictions_taxa = set([v.split(';')[r_index] for v in predictions.values()])
+    predictions_taxa.add('unclassified')
     print(f'{r_name}\t# ground truth taxa: {len(ground_truth_taxa)}\t# predicted taxa: {len(predictions_taxa)}')
+    # create output file to store results for confidence scores analysis
+    out_f = open(f'{args.input[:-5]}-cutoff-{args.cutoff}-{r_name}-confidence-scores.tsv', 'w')
     # create empty confusion matrix
     cm = pd.DataFrame(columns = ground_truth_taxa, index = predictions_taxa)
     # fill out table with zeros
@@ -38,8 +51,14 @@ def get_confusion_matrix(args, ground_truth, predictions, r_name, r_index):
         if read_id[-1] == 'f':
             read_id = read_id[:-2]
         true_taxon = ground_truth[read_id].split(';')[r_index]
-        tool_taxon = read_tax.split(';')[r_index]
+        if confidence_scores[read_id] > args.cutoff:
+            tool_taxon = read_tax.split(';')[r_index]
+        else:
+            tool_taxon = 'unclassified'
         cm.loc[tool_taxon, true_taxon] += 1
+        category_1 = 'correct' if tool_taxon == true_taxon else 'incorrect'
+        category_2 = 'classified' if tool_taxon != 'unclassified' else 'unclassified'
+        out_f.write(f'{true_taxon}\t{category_1}\t{category_2}\t{confidence_scores[read_id]}\n')
 
     print(f'{r_name}\t{cm.to_numpy().sum()}\t{len(ground_truth)}\t{len(predictions)}\t{total_n_reads}')
 
@@ -128,6 +147,7 @@ def main():
     parser.add_argument('--input', type=str, help='file with predicted and ground truth taxonomy')
     parser.add_argument('--tool', type=str, help='taxonomic classification tool', choices=['kraken', 'dl-toda', 'centrifuge'])
     parser.add_argument('--dataset', type=str, help='dataset ground truth', choices=['cami', 'testing'])
+    parser.add_argument('--cutoff', type=float, help='decision thershold abover which reads are classified', default=0.0)
     parser.add_argument('--merge', help='summarized results from all samples combined', action='store_true')
     parser.add_argument('--metrics', help='get metrics from confusion matrix', action='store_true')
     parser.add_argument('--confusion_matrix', help='create confusion matrix', action='store_true')
@@ -183,12 +203,13 @@ def main():
                 get_metrics(args, cm[r], r, out_filename)
 
     elif args.confusion_matrix:
-        ground_truth, predictions = load_data(args.input)
-        out_filename = f'{args.input[:-5]}-confusion-matrix.xlsx'
+        ground_truth, predictions = load_cnvd_data(args.input)
+        confidence_scores = load_conf_scores(args.input)
+        out_filename = f'{args.input[:-5]}-cutoff-{args.cutoff}-confusion-matrix.xlsx'
 
         all_cm = {}
         for r_name, r_index in args.ranks.items():
-            cm = get_confusion_matrix(args, ground_truth, predictions, r_name, r_index)
+            cm = get_confusion_matrix(args, ground_truth, predictions, confidence_scores, r_name, r_index)
             all_cm[r_name] = cm
 
         with pd.ExcelWriter(out_filename) as writer:
