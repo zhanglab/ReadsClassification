@@ -116,7 +116,7 @@ def get_metrics(args, cm, r_name, output_file):
 
 
 def merge_cm(args, all_cm, rank):
-    excel_files = sorted(glob.glob(os.path.join(args.input_dir, f'*{args.tax_db}-confusion-matrix.xlsx')))
+    excel_files = sorted(glob.glob(os.path.join(args.input_dir, f'*{args.tax_db}-cutoff-{args.cutoff}-confusion-matrix.xlsx')))
     print(rank, len(excel_files))
     df_list = []
     columns = []
@@ -189,7 +189,7 @@ def main():
             for p in processes:
                 p.join()
 
-            out_filename = os.path.join(args.input_dir, f'{args.tool}-all-reads-{args.tax_db}.xlsx')
+            out_filename = os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-all-reads-{args.tax_db}.xlsx')
 
             with pd.ExcelWriter(out_filename) as writer:
                 for r_name, r_cm in all_cm.items():
