@@ -76,6 +76,7 @@ def get_metrics(args, cm, r_name, output_file):
         classified_reads = 0
         misclassified_reads = 0
         unclassified_reads = 0
+        cs_unclassified_reads = 0
         total_num_reads = 0
         for true_taxon in ground_truth:
             num_reads = sum([cm.loc[i, true_taxon] for i in predicted_taxa])
@@ -106,10 +107,14 @@ def get_metrics(args, cm, r_name, output_file):
                 unclassified_reads += num_reads
             total_num_reads += num_reads
 
+        # add reads unclassified reads from adjusting the decison threshold
+        if 'unclassified' in predicted_taxa:
+            cs_unclassified_reads += sum([cm.loc['unclassified', i] for i in ground_truth])
+
         accuracy_whole = round(correct_predictions/cm.to_numpy().sum(), 5) if cm.to_numpy().sum() > 0 else 0
         accuracy_classified = round(correct_predictions/classified_reads, 5) if classified_reads > 0 else 0
         accuracy_w_misclassified = round(correct_predictions/(classified_reads+misclassified_reads), 5) if (classified_reads+misclassified_reads) > 0 else 0
-        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t {unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
+        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
         out_f.write(f'Accuracy - whole dataset: {accuracy_whole}\n')
         out_f.write(f'Accuracy - classified reads only: {accuracy_classified}\n')
         out_f.write(f'Accuracy - classified and misclassified reads: {accuracy_w_misclassified}')
