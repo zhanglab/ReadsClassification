@@ -88,7 +88,8 @@ def get_metrics(args, cm, r_name, output_file):
                         true_positives = cm.loc[predicted_taxon, true_taxon]
                         correct_predictions += true_positives
                         false_positives = sum([cm.loc[predicted_taxon, i] for i in other_true_taxa])
-                        false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in (predicted_taxon,'unclassified','na')])
+                        #false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in (predicted_taxon,'unclassified','na')])
+                        false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i != predicted_taxon])
                         precision = float(true_positives)/(true_positives+false_positives) if true_positives+false_positives > 0 else 0
                         recall = float(true_positives)/(true_positives+false_negatives) if true_positives+false_negatives > 0 else 0
                         f1_score = float(2 * (precision * recall)) / (precision + recall) if precision + recall > 0 else 0
