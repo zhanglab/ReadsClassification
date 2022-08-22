@@ -104,23 +104,33 @@ def get_metrics(args, cm, r_name, output_file):
             else:
                 print(f'ground truth unknown: {true_taxon}\t{num_reads}')
                 unclassified_reads += num_reads
+
             total_num_reads += num_reads
 
-        # add reads unclassified reads from adjusting the decison threshold
-        if args.tool == 'dl-toda' and 'unclassified' in predicted_taxa:
-            cs_unclassified_reads = sum([cm.loc['unclassified', i] for i in ground_truth])
+        if args.tool == 'dl-toda':
+            # add reads unclassified reads from adjusting the decison threshold
+            cs_unclassified_reads = 0
+            if 'unclassified' in predicted_taxa:
+                cs_unclassified_reads = sum([cm.loc['unclassified', i] for i in ground_truth])
+                out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+cs_unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
+            else:
+                out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+cs_unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
+        else:
+            out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\tNA\t {unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
 
         accuracy_whole = round(correct_predictions/cm.to_numpy().sum(), 5) if cm.to_numpy().sum() > 0 else 0
         accuracy_classified = round(correct_predictions/classified_reads, 5) if classified_reads > 0 else 0
         accuracy_w_misclassified = round(correct_predictions/(classified_reads+misclassified_reads), 5) if (classified_reads+misclassified_reads) > 0 else 0
-        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+cs_unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
         out_f.write(f'Accuracy - whole dataset: {accuracy_whole}\n')
         out_f.write(f'Accuracy - classified reads only: {accuracy_classified}\n')
         out_f.write(f'Accuracy - classified and misclassified reads: {accuracy_w_misclassified}')
 
 
 def merge_cm(args, all_cm, rank):
-    excel_files = sorted(glob.glob(os.path.join(args.input_dir, f'*{args.tax_db}-cutoff-{args.cutoff}-confusion-matrix.xlsx')))
+    if args.tool == 'dl-toda':
+        excel_files = sorted(glob.glob(os.path.join(args.input_dir, f'*{args.tax_db}-cutoff-{args.cutoff}-confusion-matrix.xlsx')))
+    else:
+        excel_files = sorted(glob.glob(os.path.join(args.input_dir, f'*{args.tax_db}-confusion-matrix.xlsx')))
     print(rank, len(excel_files))
     df_list = []
     columns = []
@@ -198,14 +208,21 @@ def main():
             for p in processes:
                 p.join()
 
-            out_filename = os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-all-reads-{args.tax_db}.xlsx')
+            if args.tool == 'dl-toda':
+                out_filename = os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-all-reads-{args.tax_db}.xlsx')
+            else:
+                out_filename = os.path.join(args.input_dir, f'{args.tool}-all-reads-{args.tax_db}.xlsx')
 
             with pd.ExcelWriter(out_filename) as writer:
                 for r_name, r_cm in all_cm.items():
                     r_cm.to_excel(writer, sheet_name=f'{r_name}')
 
     elif args.metrics:
-        cm = pd.read_excel(os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-all-reads-{args.tax_db}.xlsx'), index_col=0, sheet_name=None)
+        if args.tool == 'dl-toda':
+            input_filename = os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-all-reads-{args.tax_db}.xlsx')
+        else:
+            input_filename = os.path.join(args.input_dir, f'{args.tool}-all-reads-{args.tax_db}.xlsx')
+        cm = pd.read_excel(input_filename, index_col=0, sheet_name=None)
         for r in args.ranks:
             if r in cm.keys():
                 out_filename = os.path.join(args.input_dir, f'{args.tool}-cutoff-{args.cutoff}-{args.tax_db}-w-zeros') if args.zeros else os.path.join(args.input_dir, f'{args.tool}-{args.tax_db}-wo-zeros')
