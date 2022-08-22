@@ -76,7 +76,6 @@ def get_metrics(args, cm, r_name, output_file):
         classified_reads = 0
         misclassified_reads = 0
         unclassified_reads = 0
-        cs_unclassified_reads = 0
         total_num_reads = 0
         for true_taxon in ground_truth:
             num_reads = sum([cm.loc[i, true_taxon] for i in predicted_taxa])
@@ -108,13 +107,13 @@ def get_metrics(args, cm, r_name, output_file):
             total_num_reads += num_reads
 
         # add reads unclassified reads from adjusting the decison threshold
-        if 'unclassified' in predicted_taxa:
-            cs_unclassified_reads += sum([cm.loc['unclassified', i] for i in ground_truth])
+        if args.tool == 'dl-toda' and 'unclassified' in predicted_taxa:
+            cs_unclassified_reads = sum([cm.loc['unclassified', i] for i in ground_truth])
 
         accuracy_whole = round(correct_predictions/cm.to_numpy().sum(), 5) if cm.to_numpy().sum() > 0 else 0
         accuracy_classified = round(correct_predictions/classified_reads, 5) if classified_reads > 0 else 0
         accuracy_w_misclassified = round(correct_predictions/(classified_reads+misclassified_reads), 5) if (classified_reads+misclassified_reads) > 0 else 0
-        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
+        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+cs_unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
         out_f.write(f'Accuracy - whole dataset: {accuracy_whole}\n')
         out_f.write(f'Accuracy - classified reads only: {accuracy_classified}\n')
         out_f.write(f'Accuracy - classified and misclassified reads: {accuracy_w_misclassified}')
@@ -126,12 +125,14 @@ def merge_cm(args, all_cm, rank):
     df_list = []
     columns = []
     rows = []
+    files = []
     for x in excel_files:
         df = pd.read_excel(x, index_col=0, sheet_name=None)
         if rank in df.keys():
             df_list.append(df[rank])
             columns += df[rank].columns.tolist()
             rows += df[rank].index.tolist()
+            files.append(x)
 
     if len(df_list) != 0:
         predicted_taxa = set(rows)
@@ -140,8 +141,11 @@ def merge_cm(args, all_cm, rank):
         cm = pd.DataFrame(columns = true_taxa, index = predicted_taxa)
         for c in cm:
             cm[c] = 0
-        for df in df_list:
-            cm = cm.add(df, fill_value=0)
+        for i in range(len(df_list)):
+            if args.tool == "centrifuge" and files[i].split('-')[3] == 'paired':
+                cm = cm.add(df_list[i]*2, fill_value=0)
+            else:
+                cm = cm.add(df_list[i], fill_value=0)
         cm = cm.fillna(0)
         print(cm)
         print(f'Sum of rank_table: {cm.to_numpy().sum()}')
