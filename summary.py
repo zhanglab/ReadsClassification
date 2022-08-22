@@ -100,10 +100,10 @@ def get_metrics(args, cm, r_name, output_file):
                         unclassified_reads += sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in ('unclassified', 'na')])
                 else:
                     print(f'{true_taxon} with {num_reads} reads is not in {args.tool} model')
-                    problematic_reads += num_reads
+                    problematic_reads += sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in ('unclassified', 'na')])
             else:
                 print(f'ground truth unknown: {true_taxon}\t{num_reads}')
-                problematic_reads += num_reads
+                problematic_reads += sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in ('unclassified', 'na')])
 
             total_num_reads += num_reads
 
