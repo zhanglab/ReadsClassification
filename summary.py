@@ -75,7 +75,7 @@ def get_metrics(args, cm, r_name, output_file):
         correct_predictions = 0
         classified_reads = 0
         misclassified_reads = 0
-        unclassified_reads = 0
+        problematic_reads = 0
         total_num_reads = 0
         for true_taxon in ground_truth:
             num_reads = sum([cm.loc[i, true_taxon] for i in predicted_taxa])
@@ -100,23 +100,17 @@ def get_metrics(args, cm, r_name, output_file):
                         misclassified_reads += num_reads
                 else:
                     print(f'{true_taxon} with {num_reads} reads is not in {args.tool} model')
-                    unclassified_reads += num_reads
+                    problematic_reads += num_reads
             else:
                 print(f'ground truth unknown: {true_taxon}\t{num_reads}')
-                unclassified_reads += num_reads
+                problematic_reads += num_reads
 
             total_num_reads += num_reads
 
-        if args.tool == 'dl-toda':
-            # add reads unclassified reads from adjusting the decison threshold
-            cs_unclassified_reads = 0
-            if 'unclassified' in predicted_taxa:
-                cs_unclassified_reads = sum([cm.loc['unclassified', i] for i in ground_truth])
-                out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+cs_unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
-            else:
-                out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\t{cs_unclassified_reads}\t {unclassified_reads+cs_unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
-        else:
-            out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{unclassified_reads}\tNA\t {unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
+        if 'unclassified' in predicted_taxa:
+            unclassified_reads = sum([cm.loc['unclassified', i] for i in ground_truth])
+
+        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{problematic_reads}\t{unclassified_reads}\t {problematic_reads+unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
 
         accuracy_whole = round(correct_predictions/cm.to_numpy().sum(), 5) if cm.to_numpy().sum() > 0 else 0
         accuracy_classified = round(correct_predictions/classified_reads, 5) if classified_reads > 0 else 0
