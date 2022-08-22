@@ -83,20 +83,12 @@ def get_metrics(args, cm, r_name, output_file):
                 if true_taxon in taxa_in_dl_toda:
                     if true_taxon in predicted_taxa:
                         predicted_taxon = true_taxon
-                        classified_reads += sum([cm.loc[i, true_taxon] for i in predicted_taxa if i != 'unclassified'])
+                        classified_reads += sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in ('unclassified', 'na')])
                         other_true_taxa = [i for i in ground_truth if i != true_taxon]
                         true_positives = cm.loc[predicted_taxon, true_taxon]
                         correct_predictions += true_positives
                         false_positives = sum([cm.loc[predicted_taxon, i] for i in other_true_taxa])
-                        #false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in (predicted_taxon,'unclassified','na')])
                         false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i != predicted_taxon])
-                        if true_taxon == "Acetivibrio thermocellus":
-                            print(num_reads, true_positives, false_negatives, false_positives)
-                            print(len([cm.loc[predicted_taxon, i] for i in other_true_taxa]))
-                            print(len([cm.loc[i, true_taxon] for i in predicted_taxa if i != predicted_taxon]))
-                            print(len([cm.loc[i, true_taxon] for i in predicted_taxa]))
-                            print(len(ground_truth))
-                            print(len(predicted_taxa))
                         precision = float(true_positives)/(true_positives+false_positives) if true_positives+false_positives > 0 else 0
                         recall = float(true_positives)/(true_positives+false_negatives) if true_positives+false_negatives > 0 else 0
                         f1_score = float(2 * (precision * recall)) / (precision + recall) if precision + recall > 0 else 0
