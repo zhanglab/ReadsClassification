@@ -74,7 +74,7 @@ def get_metrics(args, cm, r_name, output_file):
         print(f'Taxa tested: {r_name}\t{len(ground_truth)}\t{len(predicted_taxa)}')
         correct_predictions = 0
         classified_reads = 0
-        misclassified_reads = 0
+        unclassified_reads = 0
         problematic_reads = 0
         total_num_reads = 0
         for true_taxon in ground_truth:
@@ -88,7 +88,7 @@ def get_metrics(args, cm, r_name, output_file):
                         true_positives = cm.loc[predicted_taxon, true_taxon]
                         correct_predictions += true_positives
                         false_positives = sum([cm.loc[predicted_taxon, i] for i in other_true_taxa])
-                        false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in (predicted_taxon,'unclassified')])
+                        false_negatives = sum([cm.loc[i, true_taxon] for i in predicted_taxa if i not in (predicted_taxon,'unclassified','na')])
                         precision = float(true_positives)/(true_positives+false_positives) if true_positives+false_positives > 0 else 0
                         recall = float(true_positives)/(true_positives+false_negatives) if true_positives+false_negatives > 0 else 0
                         f1_score = float(2 * (precision * recall)) / (precision + recall) if precision + recall > 0 else 0
@@ -97,7 +97,7 @@ def get_metrics(args, cm, r_name, output_file):
                         if args.zeros:
                             print(f'{true_taxon} has a precision/recall/F1 scores equal to 0')
                             out_f.write(f'{true_taxon}\tna\t{num_reads}\t0\t0\t0\t0\t0\t{num_reads}\n')
-                        misclassified_reads += num_reads
+                        unclassified_reads += num_reads
                 else:
                     print(f'{true_taxon} with {num_reads} reads is not in {args.tool} model')
                     problematic_reads += num_reads
@@ -108,16 +108,18 @@ def get_metrics(args, cm, r_name, output_file):
             total_num_reads += num_reads
 
         if 'unclassified' in predicted_taxa:
-            unclassified_reads = sum([cm.loc['unclassified', i] for i in ground_truth])
+            unclassified_reads += sum([cm.loc['unclassified', i] for i in ground_truth])
+        if 'na' in predicted_taxa:
+            unclassified_reads += sum([cm.loc['na', i] for i in ground_truth])
 
-        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{misclassified_reads}\t{problematic_reads}\t{unclassified_reads}\t {problematic_reads+unclassified_reads+classified_reads+misclassified_reads}\t{total_num_reads}\n')
+        out_f.write(f'{correct_predictions}\t{cm.to_numpy().sum()}\t{classified_reads}\t{problematic_reads}\t{unclassified_reads}\t {problematic_reads+unclassified_reads+classified_reads}\t{total_num_reads}\n')
 
         accuracy_whole = round(correct_predictions/cm.to_numpy().sum(), 5) if cm.to_numpy().sum() > 0 else 0
         accuracy_classified = round(correct_predictions/classified_reads, 5) if classified_reads > 0 else 0
-        accuracy_w_misclassified = round(correct_predictions/(classified_reads+misclassified_reads), 5) if (classified_reads+misclassified_reads) > 0 else 0
+        accuracy_w_misclassified = round(correct_predictions/(classified_reads+unclassified_reads), 5) if (classified_reads+unclassified_reads) > 0 else 0
         out_f.write(f'Accuracy - whole dataset: {accuracy_whole}\n')
         out_f.write(f'Accuracy - classified reads only: {accuracy_classified}\n')
-        out_f.write(f'Accuracy - classified and misclassified reads: {accuracy_w_misclassified}')
+        out_f.write(f'Accuracy - classified and unclassified reads: {accuracy_w_misclassified}')
 
 
 def merge_cm(args, all_cm, rank):
