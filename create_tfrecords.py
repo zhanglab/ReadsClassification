@@ -97,7 +97,7 @@ def main():
     parser.add_argument('--flipped', help='Use to add flipped versions of reads into tfrecords', action='store_true')
 
     args = parser.parse_args()
-    args.output_prefix = args.input_fastq.split('/')[-1].split('.')[0]
+    args.output_prefix = args.input_fastq.split('/')[-1].split('.')[0] if len(args.input_fastq.split('/')[-1].split('.')[0]) == 2 else '.'.join(args.input_fastq.split('/')[-1].split('.')[0:2])
     args.kmer_vector_length = args.read_length - args.k_value + 1
     # get dictionary mapping kmers to indexes
     args.dict_kmers = vocab_dict(args.vocab)
