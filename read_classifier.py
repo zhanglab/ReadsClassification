@@ -287,7 +287,9 @@ def main():
                 content = f.readlines()
                 dict_read_ids = {content[j].rstrip().split('\t')[1]: '@' + content[j].rstrip().split('\t')[0] for j in range(len(content))}
 
-            with open(os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv'), 'w') as out_f:
+            out_filename = os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0]}-out.tsv') if len(gpu_test_files[i].split("/")[-1].split(".")) == 2 else os.path.join(args.output_dir, f'{gpu_test_files[i].split("/")[-1].split(".")[0:2]}-out.tsv')
+
+            with open(out_filename, 'w') as out_f:
                 for j in range(num_reads):
                     out_f.write(f'{dict_read_ids[str(all_read_ids[j])]}\t{all_labels[j]}\t{all_pred_sp[j]}\t{all_prob_sp[j]}\n')
         # if args.save_probs:
