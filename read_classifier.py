@@ -270,7 +270,7 @@ def main():
             all_pred_sp = all_pred_sp[:-num_extra_reads]
             all_prob_sp = all_prob_sp[:-num_extra_reads]
             all_labels = all_labels[:-num_extra_reads]
-            # all_read_ids = all_read_ids[:-num_extra_reads]
+            all_read_ids = all_read_ids[:-num_extra_reads]
 
         if args.data_type == 'meta':
             # get dictionary mapping read ids to labels
