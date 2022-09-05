@@ -222,12 +222,12 @@ def main():
 
     if args.to_ncbi:
         # get dl_toda ncbi taxonomy
-        with open(args.dl_toda_tax, 'r') as in_f:
+        with open(os.path.join(args.dl_toda_tax, 'dl_toda_taxonomy.tsv'), 'r') as in_f:
             content = in_f.readlines()
             args.dl_toda_taxonomy = {}
             for i in range(len(content)):
                 line = content[i].rstrip().split('\t')
-                args.dl_toda_taxonomy[line[1]] = line[3]
+                args.dl_toda_taxonomy[line[0]] = line[2]
         get_rank_taxa(args, args.dl_toda_taxonomy)
 
     if args.tool == 'dl-toda':
