@@ -184,11 +184,11 @@ def main():
     if args.dl_toda_tax:
         if args.to_ncbi:
             dl_toda_taxonomy = {}
-            with open(os.path.join(args.dl_toda_tax, 'dl_toda_ncbi_taxonomy.tsv'), 'r') as in_f:
+            with open(os.path.join(args.dl_toda_tax, 'dl_toda_taxonomy.tsv'), 'r') as in_f:
                 content = in_f.readlines()
                 for i in range(len(content)):
                     line = content[i].rstrip().split('\t')
-                    dl_toda_taxonomy[line[0]] = line[1]
+                    dl_toda_taxonomy[line[0]] = line[2]
                 get_rank_taxa(args, dl_toda_taxonomy)
             print(f'dl-toda ncbi taxonomy: {len(args.labels_mapping_dict["species"])}\t{len(args.labels_mapping_dict["genus"])}\t{len(args.labels_mapping_dict["family"])}\t{len(args.labels_mapping_dict["order"])}\t{len(args.labels_mapping_dict["class"])}\t{len(args.labels_mapping_dict["phylum"])}')
         else:
