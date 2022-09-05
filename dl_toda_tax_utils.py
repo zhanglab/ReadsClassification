@@ -32,12 +32,12 @@ def load_mapping_dict(args, input_dir):
     args.labels_mapping_dict['class'] = load_json_dict(os.path.join(input_dir, 'class_labels.json'))
     args.labels_mapping_dict['phylum'] = load_json_dict(os.path.join(input_dir, 'phylum_labels.json'))
     args.inv_labels_mapping_dict = {v: k for k, v in args.labels_mapping_dict['species'].items()}
-    args.rank_species_mapping = {}
-    args.rank_species_mapping['genus'] = load_json_dict(os.path.join(input_dir, 'genus_species_labels.json'))
-    args.rank_species_mapping['family'] = load_json_dict(os.path.join(input_dir, 'family_species_labels.json'))
-    args.rank_species_mapping['order'] = load_json_dict(os.path.join(input_dir, 'order_species_labels.json'))
-    args.rank_species_mapping['class'] = load_json_dict(os.path.join(input_dir, 'class_species_labels.json'))
-    args.rank_species_mapping['phylum'] = load_json_dict(os.path.join(input_dir, 'phylum_species_labels.json'))
+    # args.rank_species_mapping = {}
+    # args.rank_species_mapping['genus'] = load_json_dict(os.path.join(input_dir, 'genus_species_labels.json'))
+    # args.rank_species_mapping['family'] = load_json_dict(os.path.join(input_dir, 'family_species_labels.json'))
+    # args.rank_species_mapping['order'] = load_json_dict(os.path.join(input_dir, 'order_species_labels.json'))
+    # args.rank_species_mapping['class'] = load_json_dict(os.path.join(input_dir, 'class_species_labels.json'))
+    # args.rank_species_mapping['phylum'] = load_json_dict(os.path.join(input_dir, 'phylum_species_labels.json'))
 
 
 def get_dl_toda_taxonomy(args, species):
