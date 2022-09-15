@@ -16,6 +16,14 @@ def wrap_read(value):
 def wrap_label(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
+def check_file(args):
+    handle = gzip.open(args.input_fastq, 'rt')
+    try:
+        handle.read(1)
+        args.gzipped = True
+    except OSError:
+        args.gzipped = False
+
 def create_meta_tfrecords(args):
     """ Converts metagenomic reads to tfrecords """
     output_tfrec = os.path.join(args.output_dir, args.output_prefix + '.tfrec')
@@ -23,32 +31,35 @@ def create_meta_tfrecords(args):
     num_reads = 0
     length_reads = set()
     with tf.compat.v1.python_io.TFRecordWriter(output_tfrec) as writer:
-        with gzip.open(args.input_fastq, 'rt') as handle:
-            for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
-                read = str(rec.seq)
-                length_reads.add(len(read))
-                read_id = rec.description
-                outfile.write(f'{read_id}\t{count}\n')
-                list_reads = []
-                if len(read) > args.read_length:
-                    list_reads = cut_read(args, read)
-                else:
-                    list_reads = [read]
-                for r in list_reads:
-                    kmer_array = get_kmer_arr(args, r, args.k_value, args.dict_kmers, args.kmer_vector_length)
-                    data = \
-                        {
-                            'read': wrap_read(kmer_array),
-                            'label': wrap_label(count)
-                        }
-                    feature = tf.train.Features(feature=data)
-                    example = tf.train.Example(features=feature)
-                    serialized = example.SerializeToString()
-                    writer.write(serialized)
-                    num_reads += 1
+        if args.gzipped == False:
+            handle = open(args.input_fastq, 'r')
+        else:
+            handle = gzip.open(args.input_fastq, 'rt')
+        for count, rec in enumerate(SeqIO.parse(handle, 'fastq'), 1):
+            read = str(rec.seq)
+            length_reads.add(len(read))
+            read_id = rec.description
+            outfile.write(f'{read_id}\t{count}\n')
+            list_reads = []
+            if len(read) > args.read_length:
+                list_reads = cut_read(args, read)
+            else:
+                list_reads = [read]
+            for r in list_reads:
+                kmer_array = get_kmer_arr(args, r, args.k_value, args.dict_kmers, args.kmer_vector_length)
+                data = \
+                    {
+                        'read': wrap_read(kmer_array),
+                        'label': wrap_label(count)
+                    }
+                feature = tf.train.Features(feature=data)
+                example = tf.train.Example(features=feature)
+                serialized = example.SerializeToString()
+                writer.write(serialized)
+                num_reads += 1
 
-            with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
-                f.write(f'{num_reads}')
+        with open(os.path.join(args.output_dir, args.output_prefix + '-read_count'), 'w') as f:
+            f.write(f'{num_reads}')
 
     outfile.close()
     print(f'{args.input_fastq}\t{statistics.mean(length_reads)}\t{min(length_reads)}\t{max(length_reads)}')
@@ -101,6 +112,8 @@ def main():
     args.kmer_vector_length = args.read_length - args.k_value + 1
     # get dictionary mapping kmers to indexes
     args.dict_kmers = vocab_dict(args.vocab)
+    # check if file is gzipped or not
+    check_file(args)
 
     if args.dataset_type in ['testing', 'training', 'validation']:
         create_tfrecords(args)
