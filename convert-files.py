@@ -185,11 +185,11 @@ def load_tool_output(args):
 
     # chunk_size is an integer used set the length of the sub-arrays
     # that will be used for multi-processing.
-    chunk_size = math.ceil(len(content)/mp.cpu_count())
+    chunk_size = math.ceil(len(content)/args.processes)
     # data is a list of lists. The lists in data are the sub arrays of content. This is necessary for multiprocessing.
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     num_reads = [len(i) for i in data]
-    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}\t{len(data[-1])}\t{mp.cpu_count()}')
+    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}\t{len(data[-1])}\t{args.processes}')
 
     return data
 
@@ -198,6 +198,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_file', type=str, help='path to file to convert')
     parser.add_argument('--output_dir', type=str, help='path to output directory')
+    parser.add_argument('--processes', type=int, help='number of processes')
     parser.add_argument('--fastq', action='store_true', help='type of data to parse', default=False)
     parser.add_argument('--tool', type=str, help='type of dataset to convert', choices=['kraken', 'dl-toda', 'centrifuge', 'metaphlan', 'diamond'])
     parser.add_argument('--dataset', type=str, help='type of dataset to convert', choices=['dl-toda', 'cami', 'meta'])
@@ -247,27 +248,27 @@ def main():
 
         # load_mapping_dict(args, args.dl_toda_tax)
 
-        # with mp.Manager() as manager:
-        #     results = manager.dict()
-        #     processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
-        #     for p in processes:
-        #         p.start()
-        #     for p in processes:
-        #         p.join()
-        #
-        #     if args.output_dir is not None:
-        #         out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-3]}-{args.tax_db}-cnvd') if args.fastq else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-4]}-{args.tax_db}-cnvd')
-        #     else:
-        #         out_filename = f'{args.input_file[:-3]}-{args.tax_db}-cnvd' if args.fastq else f'{args.input_file[:-4]}-{args.tax_db}-cnvd'
-        #
-        #     out_f = open(out_filename, 'w')
-        #     num_reads = 0
-        #     print(f'{num_reads}\t{len(results)}')
-        #     for p in results.keys():
-        #         print(f'{p}\t{len(results[p])}')
-        #         num_reads += len(results[p])
-        #         out_f.write(''.join(results[p]))
-        #     print(f'# reads: {num_reads}')
+        with mp.Manager() as manager:
+            results = manager.dict()
+            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
+            for p in processes:
+                p.start()
+            for p in processes:
+                p.join()
+
+            if args.output_dir is not None:
+                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-3]}-{args.tax_db}-cnvd') if args.fastq else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-4]}-{args.tax_db}-cnvd')
+            else:
+                out_filename = f'{args.input_file[:-3]}-{args.tax_db}-cnvd' if args.fastq else f'{args.input_file[:-4]}-{args.tax_db}-cnvd'
+
+            out_f = open(out_filename, 'w')
+            num_reads = 0
+            print(f'{num_reads}\t{len(results)}')
+            for p in results.keys():
+                print(f'{p}\t{len(results[p])}')
+                num_reads += len(results[p])
+                out_f.write(''.join(results[p]))
+            print(f'# reads: {num_reads}')
     else:
         data = load_tool_output(args)
 
