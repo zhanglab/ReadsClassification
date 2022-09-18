@@ -213,8 +213,8 @@ def main():
     functions = {'kraken': convert_kraken_output, 'dl-toda': convert_dl_toda_output, 'centrifuge': convert_centrifuge_output, 'metaphlan': convert_metaphlan_output, 'diamond': convert_diamond_output}
 
     # get ncbi taxids info
-    d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'taxonomy', 'nodes.dmp'))
-    d_names = parse_names_file(os.path.join(args.ncbi_db, 'taxonomy', 'names.dmp'))
+    d_nodes = parse_nodes_file(os.path.join(args.ncbi_db, 'nodes.dmp'))
+    d_names = parse_names_file(os.path.join(args.ncbi_db, 'names.dmp'))
 
 
     if args.dataset == 'cami':
@@ -229,6 +229,8 @@ def main():
                 line = content[i].rstrip().split('\t')
                 args.dl_toda_taxonomy[line[0]] = line[2]
         get_rank_taxa(args, args.dl_toda_taxonomy)
+        print(args.labels_mapping_dict['species'])
+        print(f'size ncbi dict species: {len(labels_mapping_dict["species"])}')
 
     if args.tool == 'dl-toda':
         if args.fastq:
