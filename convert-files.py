@@ -247,27 +247,27 @@ def main():
 
         # load_mapping_dict(args, args.dl_toda_tax)
 
-        with mp.Manager() as manager:
-            results = manager.dict()
-            processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
-            for p in processes:
-                p.start()
-            for p in processes:
-                p.join()
-
-            if args.output_dir is not None:
-                out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-3]}-{args.tax_db}-cnvd') if args.fastq else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-4]}-{args.tax_db}-cnvd')
-            else:
-                out_filename = f'{args.input_file[:-3]}-{args.tax_db}-cnvd' if args.fastq else f'{args.input_file[:-4]}-{args.tax_db}-cnvd'
-
-            out_f = open(out_filename, 'w')
-            num_reads = 0
-            print(f'{num_reads}\t{len(results)}')
-            for p in results.keys():
-                print(f'{p}\t{len(results[p])}')
-                num_reads += len(results[p])
-                out_f.write(''.join(results[p]))
-            print(f'# reads: {num_reads}')
+        # with mp.Manager() as manager:
+        #     results = manager.dict()
+        #     processes = [mp.Process(target=functions[args.tool], args=(args, data[i], i, d_nodes, d_names, results)) for i in range(len(data))]
+        #     for p in processes:
+        #         p.start()
+        #     for p in processes:
+        #         p.join()
+        #
+        #     if args.output_dir is not None:
+        #         out_filename = os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-3]}-{args.tax_db}-cnvd') if args.fastq else os.path.join(args.output_dir, f'{args.input_file.split("/")[-1][:-4]}-{args.tax_db}-cnvd')
+        #     else:
+        #         out_filename = f'{args.input_file[:-3]}-{args.tax_db}-cnvd' if args.fastq else f'{args.input_file[:-4]}-{args.tax_db}-cnvd'
+        #
+        #     out_f = open(out_filename, 'w')
+        #     num_reads = 0
+        #     print(f'{num_reads}\t{len(results)}')
+        #     for p in results.keys():
+        #         print(f'{p}\t{len(results[p])}')
+        #         num_reads += len(results[p])
+        #         out_f.write(''.join(results[p]))
+        #     print(f'# reads: {num_reads}')
     else:
         data = load_tool_output(args)
 
