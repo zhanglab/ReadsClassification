@@ -189,7 +189,7 @@ def load_tool_output(args):
     # data is a list of lists. The lists in data are the sub arrays of content. This is necessary for multiprocessing.
     data = [content[i:i + chunk_size] for i in range(0, len(content), chunk_size)]
     num_reads = [len(i) for i in data]
-    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}\t{len(data[-1])}')
+    print(f'{sum(num_reads)}\t{len(data)}\t{len(content)}\t{chunk_size}\t{len(data[-1])}\t{mp.cpu_count()}')
 
     return data
 
