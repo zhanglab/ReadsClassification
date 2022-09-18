@@ -45,14 +45,15 @@ def convert_kraken_output(args, data, process, d_nodes, d_names, results):
 def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
     process_results = []
     reads = [line.rstrip().split('\t')[0][1:] if line.rstrip().split('\t')[0][0] == "@" else line.rstrip().split('\t')[0] for line in data]
-    pred_species = [line.rstrip().split('\t')[1] for line in data] if args.dataset == 'meta' else [line.rstrip().split('\t')[2] for line in data]
+    pred_species = [line.rstrip().split('\t')[2] for line in data] if args.dataset == 'meta' else [line.rstrip().split('\t')[2] for line in data]
 
     if args.dataset == 'meta':
-        probs = [float(line.rstrip().split('\t')[2]) for line in data]
+        probs = [float(line.rstrip().split('\t')[3]) for line in data]
         print(len(data), len(probs), len(reads), len(pred_species))
         for i in range(len(pred_species)):
             if probs[i] > args.cutoff:
-                pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
+                pred_taxonomy = args.dl_toda_taxonomy[pred_species[i]]
+                # pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
                 process_results.append(f'{reads[i]}\t{pred_taxonomy}\n')
                 # out_f.write(f'{reads[i]}\t{pred_taxonomy}\n')
             else:
@@ -65,7 +66,8 @@ def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
             true_taxonomy = [get_dl_toda_taxonomy(args, reads[i].split('|')[1]) for i in range(len(reads))]
 
         for i in range(len(pred_species)):
-            pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
+            # pred_taxonomy = get_dl_toda_taxonomy(args, pred_species[i])
+            pred_taxonomy = args.dl_toda_taxonomy[pred_species[i]]
             process_results.append(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
             # out_f.write(f'{reads[i]}\t{pred_taxonomy}\t{true_taxonomy[i]}\n')
 
@@ -204,7 +206,7 @@ def main():
     parser.add_argument('--cutoff', type=float, help='confidence score cutoff above which reads are considered as classified', default=0.0)
     parser.add_argument('--dl_toda_tax', help='path to directory containing json directories with info on taxa present in dl-toda', required=('dl-toda' in sys.argv))
     parser.add_argument('--tax_db', help='type of taxonomy database used in DL-TODA', choices=['ncbi', 'gtdb'])
-    parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
+    # parser.add_argument('--to_ncbi', action='store_true', help='whether to analyze results with ncbi taxonomy', default=False)
     parser.add_argument('--metaphlan_db',
                         help='path to directory containing metaphlan database file called mpa_v30_CHOCOPhlAn_201901.fna',
                         required=('metaphlan' in sys.argv))
@@ -220,17 +222,19 @@ def main():
     if args.dataset == 'cami':
         args.cami_data = load_cami_data(args)
 
-    if args.to_ncbi:
-        # get dl_toda ncbi taxonomy
-        with open(os.path.join(args.dl_toda_tax, 'dl_toda_taxonomy.tsv'), 'r') as in_f:
-            content = in_f.readlines()
-            args.dl_toda_taxonomy = {}
-            for i in range(len(content)):
-                line = content[i].rstrip().split('\t')
-                args.dl_toda_taxonomy[line[0]] = line[2]
-        get_rank_taxa(args, args.dl_toda_taxonomy)
-        print(args.labels_mapping_dict['species'])
-        print(f'size ncbi dict species: {len(labels_mapping_dict["species"])}')
+    if args.tax_db == 'ncbi':
+        index = 2
+    elif args.tax_db =='gtdb':
+        index = 3
+
+    # get dl_toda taxonomy
+    with open(os.path.join(args.dl_toda_tax, 'dl_toda_taxonomy.tsv'), 'r') as in_f:
+        content = in_f.readlines()
+        args.dl_toda_taxonomy = {}
+        for i in range(len(content)):
+            line = content[i].rstrip().split('\t')
+            args.dl_toda_taxonomy[line[0]] = line[index]
+    # get_rank_taxa(args, args.dl_toda_taxonomy)
 
     if args.tool == 'dl-toda':
         if args.fastq:
@@ -241,7 +245,7 @@ def main():
         else:
             data = load_tool_output(args)
 
-        load_mapping_dict(args, args.dl_toda_tax)
+        # load_mapping_dict(args, args.dl_toda_tax)
 
         with mp.Manager() as manager:
             results = manager.dict()
