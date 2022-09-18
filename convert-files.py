@@ -49,7 +49,7 @@ def convert_dl_toda_output(args, data, process, d_nodes, d_names, results):
 
     if args.dataset == 'meta':
         probs = [float(line.rstrip().split('\t')[3]) for line in data]
-        print(len(data), len(probs), len(reads), len(pred_species))
+        # print(len(data), len(probs), len(reads), len(pred_species))
         for i in range(len(pred_species)):
             if probs[i] > args.cutoff:
                 pred_taxonomy = args.dl_toda_taxonomy[pred_species[i]]
@@ -233,7 +233,7 @@ def main():
         args.dl_toda_taxonomy = {}
         for i in range(len(content)):
             line = content[i].rstrip().split('\t')
-            args.dl_toda_taxonomy[line[0]] = line[index]
+            args.dl_toda_taxonomy[str(line[1])] = line[index]
     # get_rank_taxa(args, args.dl_toda_taxonomy)
 
     if args.tool == 'dl-toda':
